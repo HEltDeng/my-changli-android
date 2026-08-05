@@ -1,0 +1,33 @@
+name: Reusable Send Notification
+
+on:
+  workflow_call:
+    inputs:
+      build_status:
+        required: true
+        type: string
+      obs_url:
+        required: false
+        type: string
+        description: "OBS download URL for the APK file"
+    secrets:
+      WEBHOOK_ADDRESS:
+        required: true
+
+jobs:
+  send-notification:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post Data to Webhook Center
+        run: |
+          curl -X POST \
+          -H "Content-Type: application/json" \
+          -d '{
+            "status": "${{ inputs.build_status }}",
+            "repo": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "download_url": "${{ inputs.obs_url }}"
+          }' \
+          "${{ secrets.WEBHOOK_ADDRESS }}"

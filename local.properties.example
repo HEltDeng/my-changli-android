@@ -1,0 +1,26 @@
+# 示例文件，不含真实凭据，不要改名为 local.properties 后直接提交。
+# Copy this file to local.properties and replace values only in your ignored local copy.
+sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+amap.apiKey=
+
+# Optional local-only Baseline Profile test credentials.
+baseline.studentId=YOUR_TEST_STUDENT_ID
+baseline.studentPassword=YOUR_TEST_STUDENT_PASSWORD
+
+# Existing public config/map service. Replace with your own deployment before independent release.
+planet.apiBaseUrl.debug=https://api-dev.example.com/v1/
+planet.apiBaseUrl.release=https://api.example.com/v1/
+
+# Community service URLs must end with a slash.
+community.apiBaseUrl=https://api.example.com/app/
+community.commentsBaseUrl=https://api.example.com/app/fresh_news/
+community.userBaseUrl=https://api.example.com/users/
+
+# Optional skin/tools service. The default is disabled with a .invalid host.
+tools.apiBaseUrl=https://api.example.com/app/tools/
+
+# Keep disabled until a compliant advertising provider and consent flow are implemented.
+ads.enabled=false
+
+# Release signing is intentionally configured outside this repository.
+# Set MY_CHANGLI_SIGNING_CONFIG to a private local properties file when a release is authorized.

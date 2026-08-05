@@ -1,0 +1,49 @@
+# Gradle / Android
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.log
+
+# Signing and secrets
+*.jks
+*.keystore
+key.properties
+signing.properties
+release.properties
+.env
+.env.*
+!.env.example
+secrets/
+
+# Databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.zip
+*.7z
+archives/
+
+# IDE
+.idea/
+*.iml
+captures/
+externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local-only binaries with unclear redistribution rights
+app/libs/CSUSTDataGet-*.aar
+app/libs/csust_spider-*.aar
+app/libs/Lite3DMap.jar
+app/libs/develocity-*.jar
+app/src/main/res/drawable-nodpi/csust_emblem.png
