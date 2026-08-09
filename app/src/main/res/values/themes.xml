@@ -12,6 +12,11 @@
 
     <style name="Theme.Changliplanetapp" parent="Base.Theme.Changliplanetapp"></style>
 
+    <!-- Android 11 and earlier launch window. Android 12+ overrides this style in values-v31. -->
+    <style name="Theme.MyChangli.Starting" parent="Theme.Changliplanetapp">
+        <item name="android:windowBackground">@drawable/my_changli_splash_background</item>
+    </style>
+
     <!--ShapeableImageView 圆角-->
     <style name="RoundedStyle">
         <item name="cornerFamily">rounded</item>

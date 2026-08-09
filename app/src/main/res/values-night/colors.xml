@@ -65,7 +65,8 @@
     <color name="app_blue1">#2ABFFD</color>
     <color name="app_white">#FFFFFF</color>
     <color name="app_red">#D81E06</color>
-    <color name="my_changli_icon_background">#162638</color>
+    <color name="my_changli_brand_blue">#042981</color>
+    <color name="my_changli_icon_background">#042981</color>
 
     <color name="widget_background">#17212B</color>
     <color name="widget_surface">#20364B</color>

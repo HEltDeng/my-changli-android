@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.MyChangli.Starting" parent="Theme.Changliplanetapp">
+        <item name="android:windowSplashScreenBackground">@color/my_changli_brand_blue</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/my_changli_icon</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/my_changli_brand_blue</item>
+        <item name="android:postSplashScreenTheme">@style/Theme.Changliplanetapp</item>
+    </style>
+
     <!--
     Having themes.xml for v31 variant because @android:dimen/system_app_widget_background_radius
      and @android:dimen/system_app_widget_internal_padding requires API level 31

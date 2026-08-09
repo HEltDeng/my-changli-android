@@ -279,7 +279,8 @@
         <activity
             android:name="com.mychangli.app.core.MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MyChangli.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -290,19 +291,6 @@
             android:name="com.mychangli.app.feature.common.ui.ElectronicActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.common.ui.SplashActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/SplashTheme">
-
-            <!-- <intent-filter> -->
-            <!-- <action android:name="android.intent.action.MAIN" /> -->
-
-
-            <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
-            <!-- </intent-filter> -->
-        </activity>
         <activity
             android:name="com.mychangli.app.freshNews.ui.CommentsActivity"
             android:exported="false"
