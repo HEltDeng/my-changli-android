@@ -3,6 +3,7 @@ package com.mychangli.app.feature.mooc.cookie
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.security.CredentialCipher
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
@@ -34,16 +35,16 @@ class PersistentCookieJar : CookieJar {
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         //从mmkv读取该 host 已有的 cookie
         val host = url.host
-        Log.d(TAG, "saveFromResponse: Saving cookies for host: $host")
+        debug("saveFromResponse: Saving cookies for host: $host")
 
         //mmkv加载到内存
         val list = memoryCache.computeIfAbsent(host) {
             val json = readCachedPayload(host)
-            Log.d(TAG, "saveFromResponse: Reading cached cookies for host: $host")
+            debug("saveFromResponse: Reading cached cookies for host: $host")
             if (json != null) {
                 parseCookiesFromCache(host, json)
             } else {
-                Log.d(TAG, "saveFromResponse: No cookies found in MMKV for host: $host")
+                debug("saveFromResponse: No cookies found in MMKV for host: $host")
                 mutableListOf()
             }
         }
@@ -63,28 +64,28 @@ class PersistentCookieJar : CookieJar {
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val host = url.host
-        Log.d(TAG, "loadForRequest: Loading cookies for host: $host")
+        debug("loadForRequest: Loading cookies for host: $host")
         val now = System.currentTimeMillis()
         val list = memoryCache.computeIfAbsent(host) {
             val json = readCachedPayload(host)
-            Log.d(TAG, "loadForRequest: Reading cached cookies for host: $host")
+            debug("loadForRequest: Reading cached cookies for host: $host")
             if (json != null) {
                 parseCookiesFromCache(host, json)
             } else {
-                Log.d(TAG, "loadForRequest: No cookies found in MMKV for host: $host")
+                debug("loadForRequest: No cookies found in MMKV for host: $host")
                 mutableListOf()
             }
         }
         //过滤过期cookie
         val validList = list.filter { it.expiresAt > now }
-        Log.d(TAG, "loadForRequest: Returning ${validList.size} valid cookies for host: $host")
+        debug("loadForRequest: Returning ${validList.size} valid cookies for host: $host")
         return validList
     }
 
     private fun jobSave(host: String) {
         pendingJobs[host]?.let { job ->
             if (!job.isCompleted && !job.isCancelled) {
-                Log.d(TAG, "scheduleSave: cancelling existing job for host=$host")
+                debug("scheduleSave: cancelling existing job for host=$host")
                 job.cancel()
             }
         }
@@ -97,7 +98,7 @@ class PersistentCookieJar : CookieJar {
 
     private fun persistHost(host: String) {
         val list = memoryCache[host] ?: return
-        Log.d(TAG, "persistHost: Persisting ${list.size} cookies for host: $host")
+        debug("persistHost: Persisting ${list.size} cookies for host: $host")
         val now = System.currentTimeMillis()
         val toSave = list.filter { it.expiresAt > now }.map { it ->
             SerializableCookie(
@@ -111,7 +112,7 @@ class PersistentCookieJar : CookieJar {
                 hostOnly = it.hostOnly
             )
         }
-        Log.d(TAG, "persistHost: Saving ${toSave.size} valid cookies to MMKV for host: $host")
+        debug("persistHost: Saving ${toSave.size} valid cookies to MMKV for host: $host")
         val payload = runCatching { CredentialCipher.encrypt(gson.toJson(toSave)) }.getOrNull()
         if (payload != null) mmkv.encode(host, payload) else mmkv.removeValueForKey(host)
         pendingJobs.remove(host)
@@ -144,16 +145,16 @@ class PersistentCookieJar : CookieJar {
             val cookies = serializableCookies.mapNotNull { cookie ->
                 cookie.toOkHttpCookieOrNull().also { result ->
                     if (result == null) {
-                        Log.w(TAG, "parseCookiesFromCache: Skipping invalid cookie: ${cookie.name} for host: $host")
+                        debugWarning("parseCookiesFromCache: Skipping an invalid cookie for host: $host")
                     }
                 }
             }.toMutableList()
             if (cookies.isEmpty()) {
-                Log.w(TAG, "parseCookiesFromCache: No valid cookies remain, clearing cache for host: $host")
+                debugWarning("parseCookiesFromCache: No valid cookies remain, clearing cache for host: $host")
                 mmkv.removeValueForKey(host)
                 memoryCache.remove(host)
             }
-            Log.d(TAG, "parseCookiesFromCache: Loaded ${cookies.size} valid cookies from MMKV for host: $host")
+            debug("parseCookiesFromCache: Loaded ${cookies.size} valid cookies from MMKV for host: $host")
             cookies
         }.getOrElse {
             clearHostCache(host, "Failed to parse cookies from cache, clear host cache", it)
@@ -162,20 +163,28 @@ class PersistentCookieJar : CookieJar {
     }
 
     private fun clearHostCache(host: String, reason: String, throwable: Throwable? = null) {
-        Log.w(TAG, "clearHostCache: host=$host, reason=$reason", throwable)
+        debugWarning("clearHostCache: host=$host, reason=$reason", throwable)
         mmkv.removeValueForKey(host)
         memoryCache.remove(host)
         pendingJobs.remove(host)?.cancel()
     }
 
     fun clear() {
-        Log.d(TAG, "clear: Clearing all cookies and cancelling jobs")
+        debug("clear: Clearing all cookies and cancelling jobs")
         // 取消所有协程任务
         pendingJobs.values.forEach { it.cancel() }
         pendingJobs.clear()
         scope.cancel()
         memoryCache.clear()
         mmkv.clearAll()
-        Log.d(TAG, "clear: Cleared MMKV and memory cache")
+        debug("clear: Cleared MMKV and memory cache")
+    }
+
+    private fun debug(message: String) {
+        if (BuildConfig.DEBUG) Log.d(TAG, message)
+    }
+
+    private fun debugWarning(message: String, throwable: Throwable? = null) {
+        if (BuildConfig.DEBUG) Log.w(TAG, message, throwable)
     }
 }

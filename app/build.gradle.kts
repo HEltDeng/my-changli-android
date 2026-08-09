@@ -75,15 +75,24 @@ val campusToolsApiBaseUrlRelease: String =
 tasks.register("verifyReleaseEndpointSafety") {
     group = "verification"
     description = "Fails when a Release endpoint can reconnect to inherited production services."
-    doLast {
-        val releaseEndpoints = listOf(
+    inputs.property(
+        "releaseEndpoints",
+        listOf(
             planetApiBaseUrlRelease,
             campusToolsApiBaseUrlRelease,
             communityApiBaseUrl,
             communityCommentsBaseUrl,
             communityUserBaseUrl,
             toolsApiBaseUrl,
-        )
+        ).joinToString("\n"),
+    )
+    doLast {
+        val releaseEndpoints = inputs.properties
+            .getValue("releaseEndpoints")
+            .toString()
+            .lineSequence()
+            .filter(String::isNotBlank)
+            .toList()
         val forbiddenHosts = listOf(
             "api.planet.zhelearn.com",
             "api-dev.planet.zhelearn.com",

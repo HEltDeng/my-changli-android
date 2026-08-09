@@ -544,7 +544,7 @@ class MoocCoursePageActivity : BaseActivity<ActivityMoocCoursePageBinding>() {
             }
         }
         val result = dedup.values.toList()
-        Log.d(TAG, "collectCookies: size=${result.size}")
+        if (BuildConfig.DEBUG) Log.d(TAG, "collectCookies: size=${result.size}")
         return result
     }
 
@@ -576,12 +576,12 @@ class MoocCoursePageActivity : BaseActivity<ActivityMoocCoursePageBinding>() {
 
         // 硬超时兜底
         mainHandler.postAtTime({
-            Log.w(TAG, "syncCookiesToWebView: timeout, load anyway")
+            if (BuildConfig.DEBUG) Log.w(TAG, "syncCookiesToWebView: timeout, load anyway")
             finish()
         }, TIMEOUT_TOKEN, android.os.SystemClock.uptimeMillis() + COOKIE_SYNC_TIMEOUT_MS)
 
         cookieManager.removeAllCookies { cleared ->
-            Log.d(TAG, "removeAllCookies cleared=$cleared")
+            if (BuildConfig.DEBUG) Log.d(TAG, "removeAllCookies cleared=$cleared")
             if (completed.get()) return@removeAllCookies
             if (entries.isEmpty()) {
                 finish()

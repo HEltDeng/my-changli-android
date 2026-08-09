@@ -16,6 +16,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.mychangli.app.BuildConfig
 import com.mychangli.app.R
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import okhttp3.Cookie
@@ -92,7 +93,7 @@ class SSOWebviewDialog(
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                Log.d("Qingyue","onPageFinished")
+                if (BuildConfig.DEBUG) Log.d("SSOWebviewDialog", "onPageFinished")
                 val js = """
                         (function() {
                             function watchInput(id, fieldName) {
@@ -126,7 +127,7 @@ class SSOWebviewDialog(
                     urlString.contains("login?type=userNameLogin") -> loginMode = LoginMode.Username
                     urlString.contains("login?type=dynamicLogin") -> loginMode = LoginMode.Dynamic
                 }
-                Log.d("Qingyue",loginMode.toString())
+                if (BuildConfig.DEBUG) Log.d("SSOWebviewDialog", loginMode.toString())
                 if (urlString == "https://ehall.csust.edu.cn/index.html" ||
                     urlString == "https://ehall.csust.edu.cn/default/index.html"
                 ) {
@@ -155,8 +156,8 @@ class SSOWebviewDialog(
                                     .path("/") // 设置路径
                                     .build()
                             } else null
-                        } catch (e: Exception) {
-                            Log.e("SSOWebviewDialog", "Cookie parsing error: ${e.message}")
+                        } catch (_: Exception) {
+                            if (BuildConfig.DEBUG) Log.e("SSOWebviewDialog", "Cookie parsing failed")
                             null
                         }
                     }

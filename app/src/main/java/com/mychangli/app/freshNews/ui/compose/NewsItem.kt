@@ -288,7 +288,7 @@ fun InteractionButton(
 @Preview(showBackground = true)
 @Composable
 fun NewsItemPreview() {
-    // 模拟数据 1：带图片的内容 (对应 JSON 第一条)
+    // 预览仅使用本地文本数据，不触发任何外部图片请求。
     val mockItemWithImages = FreshNewsItem(
         freshNewsId = 35,
         userId = 24,
@@ -296,11 +296,7 @@ fun NewsItemPreview() {
         authorAvatar = "", // 模拟头像URL，为空则显示占位图
         title = "你怎么知道我抽到一套安姐",
         content = "如图",
-        images = listOf(
-            "https://csustplant.obs.cn-south-1.myhuaweicloud.com/freshNewsImage/e23697db-7951-4208-a279-4ee04eaa390d.png",
-            "https://csustplant.obs.cn-south-1.myhuaweicloud.com/freshNewsImage/c9122835-7712-4bec-b049-78160d961545.png",
-            "https://csustplant.obs.cn-south-1.myhuaweicloud.com/freshNewsImage/fb46bbb0-1bf0-439f-b4d8-616c9b2e921f.png"
-        ),
+        images = emptyList(),
         tags = emptyList(),
         liked = 12, // 模拟点赞数
         comments = 5, // 模拟评论数

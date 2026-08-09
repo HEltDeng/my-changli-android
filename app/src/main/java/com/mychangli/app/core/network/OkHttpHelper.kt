@@ -243,13 +243,13 @@ object OkHttpHelper {
                     }
 
                     else -> {
-                        Log.w("Token Refresh", "Failed to refresh token: ${response.code}")
+                        if (BuildConfig.DEBUG) Log.w("Token Refresh", "Failed to refresh credentials: ${response.code}")
                     }
                 }
                 response.headers["Authorization"]
             }
         } catch (e: Exception) {
-            Log.e("Token Refresh", "Network error during token refresh", e)
+            if (BuildConfig.DEBUG) Log.e("Token Refresh", "Network error during credential refresh")
             return null
         }
     }
