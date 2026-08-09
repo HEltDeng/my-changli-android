@@ -178,6 +178,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            buildConfigField("boolean", "ADS_ENABLED", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -200,6 +201,7 @@ android {
         create("benchmark") {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
+            buildConfigField("boolean", "ADS_ENABLED", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
