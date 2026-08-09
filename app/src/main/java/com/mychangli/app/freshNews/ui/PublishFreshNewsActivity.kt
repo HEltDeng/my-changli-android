@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -182,99 +181,30 @@ class PublishFreshNewsActivity : FullScreenActivity<ActivityPublishFreshNewsBind
     }
 
     private fun checkGalleryPermission() {
-        when {
-            // 对于 Android 13 (API 33) 及以上版本
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                when {
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
-                            == PackageManager.PERMISSION_GRANTED -> openGallery()
-
-                    else -> ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
-                        REQUEST_GALLERY
-                    )
-                }
-            }
-            // 对于 Android 10 及以上版本
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-                when {
-                    ContextCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                    )
-                            == PackageManager.PERMISSION_GRANTED -> openGallery()
-
-                    else -> ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                        REQUEST_GALLERY
-                    )
-                }
-            }
-            // 对于 Android 10 以下版本
-            else -> {
-                when {
-                    ContextCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                    )
-                            == PackageManager.PERMISSION_GRANTED -> openGallery()
-
-                    else -> ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        ),
-                        REQUEST_GALLERY
-                    )
-                }
-            }
-        }
+        // The system document picker grants access only to the selected image. No broad media
+        // or storage permission is required on any supported API level (minSdk 24).
+        openGallery()
     }
 
     private fun checkCameraPermission() {
-        when {
-            // Android 10 及以上版本
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-                when {
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                            == PackageManager.PERMISSION_GRANTED -> openCamera()
-
-                    else -> ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.CAMERA),
-                        REQUEST_CAMERA
-                    )
-                }
-            }
-            // Android 10 以下版本可能需要额外的存储权限
-            else -> {
-                when {
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                            == PackageManager.PERMISSION_GRANTED &&
-                            ContextCompat.checkSelfPermission(
-                                this,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            )
-                            == PackageManager.PERMISSION_GRANTED -> openCamera()
-
-                    else -> ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(
-                            Manifest.permission.CAMERA,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        ),
-                        REQUEST_CAMERA
-                    )
-                }
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            openCamera()
+        } else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CAMERA),
+                REQUEST_CAMERA,
+            )
         }
     }
 
     private fun openGallery() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+        }
         startActivityForResult(intent, REQUEST_GALLERY)
     }
 

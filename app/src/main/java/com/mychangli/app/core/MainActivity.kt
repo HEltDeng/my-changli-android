@@ -29,6 +29,11 @@ import com.mychangli.app.core.main.ui.MainScreen
 import com.mychangli.app.core.network.campustools.AccountSessionState
 import com.mychangli.app.core.network.campustools.CampusToolsSession
 import com.mychangli.app.core.network.campustools.RemoteConfigurationStore
+import com.mychangli.app.core.privacy.PrivacyConsentManager
+import com.mychangli.app.core.privacy.PrivacyConsentManager.AppConsentState
+import com.mychangli.app.core.privacy.PrivacyConsentScreen
+import com.mychangli.app.core.privacy.PrivacyDeclinedScreen
+import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.feature.lostfound.data.LostFoundRepository
 import com.mychangli.app.feature.sports.data.SportsReservationRepository
 import com.mychangli.app.core.theme.AppSkinTheme
@@ -50,6 +55,7 @@ class MainActivity : ComponentActivity(), DrawerController {
 
     override fun onResume() {
         super.onResume()
+        if (!PrivacyConsentManager.hasAppConsent(this)) return
         store.dispatch(UserAction.initilaize())  //初始化用户信息，对游客模式无影响
         lifecycleScope.launch(Dispatchers.IO) {
             runCatching { RemoteConfigurationStore.refreshIfStale(30_000L) }
@@ -78,56 +84,111 @@ class MainActivity : ComponentActivity(), DrawerController {
         PlanetApplication.startTime = System.currentTimeMillis()
         setContent {
             AppSkinTheme {
-                val accountState by CampusToolsSession.state.collectAsState()
-                var availableUpdate by remember { mutableStateOf<VersionCheckResult.Available?>(null) }
-                LaunchedEffect(Unit) {
-                    CampusToolsSession.restore()
+                var privacyState by remember {
+                    mutableStateOf(PrivacyConsentManager.appConsentState(this@MainActivity))
                 }
-                LaunchedEffect(Unit) {
-                    delay(1_800)
-                    val result = AppUpdateChecker.check()
-                    val update = result as? VersionCheckResult.Available
-                    if (update != null && AppUpdateCooldown.isPromptAllowed(this@MainActivity, update.version.latest_version_code)) {
-                        availableUpdate = update
-                    }
-                }
-                LaunchedEffect(accountState) {
-                    val signedIn = accountState as? AccountSessionState.SignedIn
-                    if (signedIn != null) {
-                        SportsReservationRepository.activateAccount(signedIn.user.id)
-                        LostFoundRepository.activateAccount(signedIn.user.id)
-                    } else if (accountState is AccountSessionState.SignedOut) {
-                        LostFoundRepository.activateGuest()
-                    }
-                }
-                Surface(color = AppTheme.colors.bgPrimaryColor) {
-                    MainScreen(navigator = mainTabNavigator)
-                }
-                availableUpdate?.let { update ->
-                    AppUpdatePrompt(
-                        update = update,
-                        onLater = {
-                            AppUpdateCooldown.recordDismissed(
-                                this@MainActivity,
-                                update.version.latest_version_code,
-                            )
-                            availableUpdate = null
+                when (privacyState) {
+                    AppConsentState.UNDECIDED -> PrivacyConsentScreen(
+                        onAccept = {
+                            PrivacyConsentManager.acceptAppConsent(this@MainActivity)
+                            privacyState = AppConsentState.ACCEPTED
+                            runConsentedLifecycleWork()
                         },
-                        onSimulateUpdate = {
-                            availableUpdate = null
-                            Toast.makeText(
+                        onDecline = {
+                            PrivacyConsentManager.declineAppConsent(this@MainActivity)
+                            privacyState = AppConsentState.DECLINED
+                        },
+                        onOpenPrivacy = {
+                            Route.goReleaseInformation(
                                 this@MainActivity,
-                                "本地体验版未配置真实 APK 下载，不会执行安装",
-                                Toast.LENGTH_LONG,
-                            ).show()
+                                ReleaseDocumentType.PRIVACY,
+                            )
+                        },
+                        onOpenAgreement = {
+                            Route.goReleaseInformation(
+                                this@MainActivity,
+                                ReleaseDocumentType.AGREEMENT,
+                            )
                         },
                     )
+                    AppConsentState.DECLINED -> PrivacyDeclinedScreen(
+                        onReviewDecision = {
+                            PrivacyConsentManager.clearDeclinedDecision(this@MainActivity)
+                            privacyState = AppConsentState.UNDECIDED
+                        },
+                        onOpenPrivacy = {
+                            Route.goReleaseInformation(
+                                this@MainActivity,
+                                ReleaseDocumentType.PRIVACY,
+                            )
+                        },
+                        onOpenAgreement = {
+                            Route.goReleaseInformation(
+                                this@MainActivity,
+                                ReleaseDocumentType.AGREEMENT,
+                            )
+                        },
+                        onExit = { finishAffinity() },
+                    )
+                    AppConsentState.ACCEPTED -> {
+                        val accountState by CampusToolsSession.state.collectAsState()
+                        var availableUpdate by remember {
+                            mutableStateOf<VersionCheckResult.Available?>(null)
+                        }
+                        LaunchedEffect(Unit) {
+                            CampusToolsSession.restore()
+                        }
+                        LaunchedEffect(Unit) {
+                            delay(1_800)
+                            val result = AppUpdateChecker.check()
+                            val update = result as? VersionCheckResult.Available
+                            if (
+                                update != null &&
+                                AppUpdateCooldown.isPromptAllowed(
+                                    this@MainActivity,
+                                    update.version.latest_version_code,
+                                )
+                            ) {
+                                availableUpdate = update
+                            }
+                        }
+                        LaunchedEffect(accountState) {
+                            val signedIn = accountState as? AccountSessionState.SignedIn
+                            if (signedIn != null) {
+                                SportsReservationRepository.activateAccount(signedIn.user.id)
+                                LostFoundRepository.activateAccount(signedIn.user.id)
+                            } else if (accountState is AccountSessionState.SignedOut) {
+                                LostFoundRepository.activateGuest()
+                            }
+                        }
+                        Surface(color = AppTheme.colors.bgPrimaryColor) {
+                            MainScreen(navigator = mainTabNavigator)
+                        }
+                        availableUpdate?.let { update ->
+                            AppUpdatePrompt(
+                                update = update,
+                                onLater = {
+                                    AppUpdateCooldown.recordDismissed(
+                                        this@MainActivity,
+                                        update.version.latest_version_code,
+                                    )
+                                    availableUpdate = null
+                                },
+                                onSimulateUpdate = {
+                                    availableUpdate = null
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "本地体验版未配置真实 APK 下载，不会执行安装",
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
-        sendBroadcast(Intent(this, com.mychangli.app.ScheduleSystemReceiver::class.java).apply {
-            action = com.mychangli.app.WidgetUpdateCoordinator.ACTION_REFRESH_SCHEDULE
-        })
+        if (PrivacyConsentManager.hasAppConsent(this)) notifyLocalScheduleComponents()
         Log.d("MainActivity", "用时 ${System.currentTimeMillis() - start}")
         // 版本检查仅访问“我的长理”后端；本地阶段不下载或安装 APK。
     }
@@ -139,12 +200,28 @@ class MainActivity : ComponentActivity(), DrawerController {
 
     override fun onStart() {
         super.onStart()
+        if (!PrivacyConsentManager.hasAppConsent(this)) return
         // 账号系统已取消，不再拉取自研后端的用户资料。
         // 但从老版本升级上来时，MMKV 中原本由自研后端写入的头像/昵称已被
         // migrateLegacyCacheIfNeeded 清除，这里用已绑定的学号/密码做一次静默 SSO
         // 重新登录 + getLoginUser，把 MOOC(网络教学平台) 的用户名/头像写回 UserInfoManager。
         // 若未绑定、或 UserInfoManager.account 已有值，action 内部会直接跳过，无网络开销。
         store.dispatch(UserAction.RefreshMoocProfileSilently)
+    }
+
+    private fun runConsentedLifecycleWork() {
+        store.dispatch(UserAction.initilaize())
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching { RemoteConfigurationStore.refreshIfStale(30_000L) }
+        }
+        store.dispatch(UserAction.RefreshMoocProfileSilently)
+        notifyLocalScheduleComponents()
+    }
+
+    private fun notifyLocalScheduleComponents() {
+        sendBroadcast(Intent(this, com.mychangli.app.ScheduleSystemReceiver::class.java).apply {
+            action = com.mychangli.app.WidgetUpdateCoordinator.ACTION_REFRESH_SCHEDULE
+        })
     }
 
     override fun openDrawer() {

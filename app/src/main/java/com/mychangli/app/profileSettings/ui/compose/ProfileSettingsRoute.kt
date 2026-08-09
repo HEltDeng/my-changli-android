@@ -59,6 +59,7 @@ import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.common.data.local.mmkv.UserInfoManager
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.Route
+import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.core.network.campustools.AccountSessionState
 import com.mychangli.app.core.network.campustools.CampusToolsSession
 import com.mychangli.app.core.theme.AppSkinTheme
@@ -438,6 +439,11 @@ private fun handleSettingItemClick(
         "10" -> Route.goFeedback(context)
         "12" -> Route.goCourseReminders(context)
         "13" -> Route.goAbout(context)
+        "14" -> Route.goReleaseInformation(context, ReleaseDocumentType.PRIVACY)
+        "15" -> Route.goReleaseInformation(context, ReleaseDocumentType.AGREEMENT)
+        "16" -> Route.goReleaseInformation(context, ReleaseDocumentType.THIRD_PARTY)
+        "17" -> Route.goReleaseInformation(context, ReleaseDocumentType.PERSONAL_INFORMATION)
+        "18" -> Route.goReleaseInformation(context, ReleaseDocumentType.ACCOUNT_DATA)
     }
 }
 
@@ -457,7 +463,13 @@ private fun createSettingItems(): List<SettingItemUiModel> = buildList {
         add(SettingItemUiModel.Option("6", "主题设置", Icons.Outlined.Palette))
     }
     add(SettingItemUiModel.Option("10", "意见反馈", Icons.Outlined.Feedback))
-    add(SettingItemUiModel.Option("13", "关于与检查更新", Icons.Outlined.Info))
+    add(SettingItemUiModel.Header("隐私与合规"))
+    add(SettingItemUiModel.Option("13", "关于我的长理", Icons.Outlined.Info))
+    add(SettingItemUiModel.Option("14", "隐私政策", Icons.Outlined.Info))
+    add(SettingItemUiModel.Option("15", "用户协议", Icons.Outlined.Info))
+    add(SettingItemUiModel.Option("16", "第三方 SDK / 服务清单", Icons.Outlined.Info))
+    add(SettingItemUiModel.Option("17", "个人信息清单", Icons.Outlined.Info))
+    add(SettingItemUiModel.Option("18", "账号与数据管理", Icons.Outlined.AccountCircle))
 }
 
 private fun maskedStudentId(studentId: String): String {

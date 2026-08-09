@@ -130,7 +130,9 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
         appContext = applicationContext
         setSkin()
         saveDefaultSkin()
-        initAMapPrivacy()
+        if (PrivacyConsentManager.hasAppConsent(this)) {
+            initAMapPrivacy()
+        }
     }
 
     /**

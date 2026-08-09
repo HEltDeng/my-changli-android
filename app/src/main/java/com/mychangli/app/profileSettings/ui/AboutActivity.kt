@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.mychangli.app.R
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
+import com.mychangli.app.core.privacy.NON_OFFICIAL_STATEMENT
 import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
@@ -122,6 +123,14 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            Text(
+                text = NON_OFFICIAL_STATEMENT,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppTheme.colors.primaryTextColor,
+                lineHeight = 24.sp,
+                modifier = Modifier.padding(top = 18.dp, bottom = 20.dp),
+            )
             CheckUpdateSection(
                 checking = checking,
                 checkMessage = checkMessage,
@@ -151,7 +160,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
             )
 
             Text(
-                text = "我的长理是一款面向长沙理工大学师生的非官方校园工具，目标是把课表、成绩、校园服务、资料和同学交流集中到一个更简洁的入口。应用基于 CreaMakers 的开源校园项目二次开发。",
+                text = "我的长理以课表、成绩、校园服务、资料和同学交流为主要场景。应用基于 CreaMakers 的开源校园项目二次开发，并保留相应开源 attribution。",
                 fontSize = 16.sp,
                 color = AppTheme.colors.primaryTextColor ,
                 modifier = Modifier.padding(bottom = 24.dp)

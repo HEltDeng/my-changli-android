@@ -21,6 +21,7 @@ import com.mychangli.app.common.redux.action.UserAction
 import com.mychangli.app.common.redux.store.UserStore
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.Route
+import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.databinding.ActivityBindingUserBinding
 import com.mychangli.app.utils.event.AppEventBus
 import com.mychangli.app.utils.event.FinishEvent
@@ -183,6 +184,9 @@ class BindingUserActivity : FullScreenActivity<ActivityBindingUserBinding>() {
         save.setOnClickListener { saveUserInfo() }
         back.setOnClickListener { finish() }
         webLoginBtn.setOnClickListener { webLogin() }
+        binding.bindingPrivacyPolicyLink.setOnClickListener {
+            Route.goReleaseInformation(this, ReleaseDocumentType.PRIVACY)
+        }
         updateInputHints()
         updateFormState()
     }

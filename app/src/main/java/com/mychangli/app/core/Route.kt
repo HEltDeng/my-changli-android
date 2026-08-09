@@ -31,6 +31,8 @@ import com.mychangli.app.freshNews.ui.LocalCampusPostDetailActivity
 import com.mychangli.app.freshNews.ui.LocalCampusPublishActivity
 import com.mychangli.app.freshNews.ui.UserHomeActivity
 import com.mychangli.app.profileSettings.ui.AboutActivity
+import com.mychangli.app.core.privacy.ReleaseDocumentType
+import com.mychangli.app.core.privacy.ReleaseInformationActivity
 import com.mychangli.app.settings.ui.BindingUserActivity
 import com.mychangli.app.skin.ui.SkinSelectionActivity
 
@@ -229,6 +231,10 @@ object Route {
     fun goAbout(context: Context) {
         val intent = Intent(context, AboutActivity::class.java)
         context.startActivity(intent)
+    }
+
+    fun goReleaseInformation(context: Context, type: ReleaseDocumentType) {
+        context.startActivity(ReleaseInformationActivity.intent(context, type))
     }
 
     fun goMooc(context: Context) {
