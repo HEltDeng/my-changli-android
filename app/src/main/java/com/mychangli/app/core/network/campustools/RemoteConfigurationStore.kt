@@ -2,6 +2,7 @@ package com.mychangli.app.core.network.campustools
 
 import android.util.Log
 import com.google.gson.Gson
+import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +50,7 @@ object RemoteConfigurationStore {
     suspend fun refresh(): PublicBootstrap? = refreshIfStale(0L)
 
     suspend fun refreshIfStale(minIntervalMs: Long = 30_000L): PublicBootstrap? {
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return mutableBootstrap.value
         val now = System.currentTimeMillis()
         if (now - lastSuccessfulRefreshAt < minIntervalMs) return mutableBootstrap.value
         return refreshMutex.withLock {
@@ -80,11 +82,18 @@ object RemoteConfigurationStore {
     }
 
     fun feature(key: String): FeatureAvailability {
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) {
+            return FeatureAvailability(
+                status = "CLOSED",
+                message = "服务暂未开放",
+            )
+        }
         val flag = mutableBootstrap.value?.flags?.firstOrNull { it.key == key }
         return resolveFeatureAvailability(flag)
     }
 
     suspend fun refreshServiceUpdates(): List<RemoteServiceUpdate> {
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return mutableServiceUpdates.value
         val response = try {
             CampusToolsApiClient.unauthenticated.serviceUpdates()
         } catch (error: Throwable) {

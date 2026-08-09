@@ -2,6 +2,9 @@ package com.mychangli.app.core.network.campustools
 
 import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.security.CredentialCipher
+import com.mychangli.app.core.network.ServiceEndpointPolicy
+import com.mychangli.app.core.network.ServiceUnavailableException
+import com.mychangli.app.core.network.UnavailableEndpointInterceptor
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.tencent.mmkv.MMKV
@@ -544,6 +547,12 @@ object CampusToolsSession {
             clearLocalSession()
             return@withLock
         }
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) {
+            mutableState.value = savedUser?.let {
+                AccountSessionState.SignedIn(it, offline = true)
+            } ?: AccountSessionState.SignedOut
+            return@withLock
+        }
         if (savedUser != null) {
             mutableState.value = AccountSessionState.SignedIn(savedUser, offline = true)
         }
@@ -696,6 +705,7 @@ object CampusToolsSession {
 }
 
 private fun Throwable.apiMessage(fallback: String): String {
+    if (this is ServiceUnavailableException) return message
     val http = this as? retrofit2.HttpException ?: return fallback
     return runCatching {
         JsonParser.parseString(http.response()?.errorBody()?.string().orEmpty())
@@ -719,6 +729,7 @@ object CampusToolsApiClient {
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
+            .addInterceptor(UnavailableEndpointInterceptor())
             .build()
 
     val unauthenticated: CampusToolsApi by lazy {
@@ -745,12 +756,16 @@ object CampusToolsApiClient {
     fun absoluteUrl(relative: String?): String? {
         if (relative.isNullOrBlank()) return null
         if (relative.startsWith("http://") || relative.startsWith("https://")) return relative
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return null
         val root = BuildConfig.CAMPUS_TOOLS_API_BASE_URL.substringBefore("/api/v1/")
         return root + relative
     }
 }
 
 suspend fun <T> authenticatedCall(block: suspend (CampusToolsApi) -> ApiEnvelope<T>): T {
+    if (!ServiceEndpointPolicy.isCampusToolsConfigured()) {
+        throw ServiceUnavailableException()
+    }
     CampusToolsSession.requireToken()
     val response = try {
         block(CampusToolsApiClient.authenticated)

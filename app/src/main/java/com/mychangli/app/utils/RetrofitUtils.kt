@@ -6,6 +6,7 @@ import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.network.OkHttpHelper.AuthInterceptor
 import com.mychangli.app.core.network.interceptor.NetworkLogger
+import com.mychangli.app.core.network.UnavailableEndpointInterceptor
 import com.mychangli.app.feature.mooc.cookie.PersistentCookieJar
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -27,7 +28,7 @@ object RetrofitUtils {
      * 真实值由 Gradle 通过 `BuildConfig.PLANET_API_BASE_URL` 注入，来源优先级：
      *   1. `local.properties` 的 `planet.apiBaseUrl.debug` / `planet.apiBaseUrl.release`
      *   2. 环境变量 `PLANET_API_BASE_URL_DEBUG` / `PLANET_API_BASE_URL_RELEASE`
-     *   3. 代码内兜底默认值（见 app/build.gradle.kts）
+     *   3. 代码内 `.invalid` fail-closed 默认值（见 app/build.gradle.kts）
      *
      */
     private val PlanetIp: String = BuildConfig.PLANET_API_BASE_URL
@@ -38,6 +39,7 @@ object RetrofitUtils {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
+            .addInterceptor(UnavailableEndpointInterceptor())
             .addInterceptor(NetworkLogger.getLoggingInterceptor())
             .addInterceptor(AuthInterceptor(object : AuthInterceptor.TokenExpiredHandler {
                 override fun onTokenExpired() {
@@ -56,6 +58,7 @@ object RetrofitUtils {
             .connectTimeout(30, TimeUnit.SECONDS)  // MOOC 系统可能较慢，增加超时时间
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(UnavailableEndpointInterceptor())
             .addInterceptor(NetworkLogger.getLoggingInterceptor())
             .cookieJar(PersistentCookieJar())
             .build()
@@ -111,9 +114,7 @@ object RetrofitUtils {
             .build()
     }
 
-    /**
-     * 上游 Go 服务端（v1），用于校历、应用版本检查等 config 接口。
-     */
+    /** Legacy-compatible map/calendar endpoint; `.invalid` defaults are blocked before DNS. */
     val instancePlanet: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(PlanetIp)

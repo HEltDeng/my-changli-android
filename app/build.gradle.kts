@@ -38,14 +38,14 @@ val releaseSigningKeys = listOf(
 val hasReleaseSigningConfig = releaseSigningConfigFile?.isFile == true &&
     releaseSigningKeys.all { key -> releaseSigningProperties.getProperty(key).orEmpty().isNotBlank() }
 
-// 长理星球 Go 服务端 BaseUrl：优先 local.properties，其次环境变量，最后兜底默认值。
+// 历史兼容接口 BaseUrl。没有明确环境配置时必须 fail closed，禁止回连上游项目服务。
 // 值需以 "/" 结尾（Retrofit BaseUrl 要求）。
 val planetApiBaseUrlDebug: String = localProperties.getProperty("planet.apiBaseUrl.debug")
     ?: System.getenv("PLANET_API_BASE_URL_DEBUG")
-    ?: "https://api-dev.planet.zhelearn.com/v1/"
+    ?: "https://planet-api-debug.invalid/v1/"
 val planetApiBaseUrlRelease: String = localProperties.getProperty("planet.apiBaseUrl.release")
     ?: System.getenv("PLANET_API_BASE_URL_RELEASE")
-    ?: "https://api.planet.zhelearn.com/v1/"
+    ?: "https://planet-api.invalid/v1/"
 val adsEnabled: Boolean = (
     localProperties.getProperty("ads.enabled")
         ?: System.getenv("ADS_ENABLED")
@@ -71,6 +71,31 @@ val campusToolsApiBaseUrlRelease: String =
     localProperties.getProperty("campusTools.apiBaseUrl.release")
         ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_RELEASE")
         ?: "https://campus-tools.invalid/api/v1/"
+
+tasks.register("verifyReleaseEndpointSafety") {
+    group = "verification"
+    description = "Fails when a Release endpoint can reconnect to inherited production services."
+    doLast {
+        val releaseEndpoints = listOf(
+            planetApiBaseUrlRelease,
+            campusToolsApiBaseUrlRelease,
+            communityApiBaseUrl,
+            communityCommentsBaseUrl,
+            communityUserBaseUrl,
+            toolsApiBaseUrl,
+        )
+        val forbiddenHosts = listOf(
+            "api.planet.zhelearn.com",
+            "api-dev.planet.zhelearn.com",
+        )
+        check(releaseEndpoints.none { endpoint ->
+            forbiddenHosts.any { forbidden -> endpoint.contains(forbidden, ignoreCase = true) }
+        }) { "Release endpoints must not use inherited Planet services" }
+        check(releaseEndpoints.all { it.startsWith("https://") }) {
+            "Release endpoints must use HTTPS or an HTTPS .invalid placeholder"
+        }
+    }
+}
 
 android {
     namespace = "com.mychangli.app"

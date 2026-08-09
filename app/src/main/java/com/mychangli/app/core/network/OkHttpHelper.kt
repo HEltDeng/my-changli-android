@@ -3,6 +3,7 @@ package com.mychangli.app.core.network
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.network.interceptor.NetworkLogger
 import com.mychangli.app.core.network.listener.RequestCallback
@@ -38,6 +39,7 @@ object OkHttpHelper {
         companion object {
             private const val MAX_RETRY_ATTEMPTS = 2
             private const val MAX_BACKOFF_DELAY = 200L // 最大延迟0.2秒
+            private const val MAX_JSON_PEEK_BYTES = 64L * 1024L
         }
 
         interface TokenExpiredHandler {
@@ -82,8 +84,8 @@ object OkHttpHelper {
                 return response
             }
 
-            val jsonString = response.peekBody(Long.MAX_VALUE).string()
-            Log.d(TAG, jsonString)
+            // Bounded parsing only. Never log response bodies in either build type.
+            val jsonString = response.peekBody(MAX_JSON_PEEK_BYTES).string()
 
             val realResponse = runCatching {
                 gson.fromJson(jsonString, NormalResponse::class.java)
@@ -208,7 +210,9 @@ object OkHttpHelper {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 callback.onFailure("error")
-                e.printStackTrace()
+                if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "request failed (${e.javaClass.simpleName})")
+                }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -240,8 +244,6 @@ object OkHttpHelper {
 
                     else -> {
                         Log.w("Token Refresh", "Failed to refresh token: ${response.code}")
-                        val errorBody = response.body.string()
-                        Log.w("Token Refresh", "Error response: $errorBody")
                     }
                 }
                 response.headers["Authorization"]

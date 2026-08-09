@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.network.campustools.CampusToolsApiClient
 import com.mychangli.app.core.network.campustools.RemoteAppVersion
+import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.mychangli.app.core.theme.AppTheme
 
 sealed interface VersionCheckResult {
@@ -59,11 +60,14 @@ data class UpdatePromptCooldownPolicy(
 }
 
 object AppUpdateChecker {
-    suspend fun check(): VersionCheckResult = runCatching {
+    suspend fun check(): VersionCheckResult {
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return VersionCheckResult.Unavailable
+        return runCatching {
         val envelope = CampusToolsApiClient.unauthenticated.versionCheck(BuildConfig.VERSION_CODE)
         val data = envelope.data.takeIf { envelope.ok } ?: return@runCatching VersionCheckResult.Unavailable
         VersionPolicy.evaluate(BuildConfig.VERSION_CODE, data.updateAvailable, data.latestVersion)
-    }.getOrDefault(VersionCheckResult.Unavailable)
+        }.getOrDefault(VersionCheckResult.Unavailable)
+    }
 }
 
 /**
