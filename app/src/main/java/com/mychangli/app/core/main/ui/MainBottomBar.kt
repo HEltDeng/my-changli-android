@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -52,13 +52,13 @@ fun MainBottomBar(
 ) {
     val selectedKey = selectedDestination.index
     val colors = AppTheme.colors
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val currentColors by rememberUpdatedState(colors)
     val currentSelectionPosition by rememberUpdatedState(selectionPosition)
     val currentOnDestinationSelected by rememberUpdatedState(onDestinationSelected)
-    val itemContentDescriptions = remember(context) {
+    val itemContentDescriptions = remember(resources) {
         bottomBarItems.associate { item ->
-            item.destination.index to context.getString(item.destination.labelResId)
+            item.destination.index to resources.getString(item.destination.labelResId)
         }
     }
     val hazeModifier = remember(hazeState) {

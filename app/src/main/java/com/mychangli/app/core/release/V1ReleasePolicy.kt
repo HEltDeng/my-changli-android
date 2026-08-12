@@ -7,8 +7,6 @@ object V1ReleasePolicy {
     private val hardClosedFeatures = setOf(
         "sports_reservation",
         "real_payment",
-        "school_official_api",
-        "school_credentials",
         "campus_map",
     )
 

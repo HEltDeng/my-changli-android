@@ -8,10 +8,14 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.provider.Settings
 import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.mychangli.app.BuildConfig
+import com.mychangli.app.core.security.SchoolSessionState
 import com.mychangli.app.feature.common.data.local.room.database.CoursesDataBase
+import com.mychangli.app.feature.mooc.viewmodel.MoocViewModel
 import com.mychangli.app.skin.SkinManager
 import com.mychangli.app.skin.data.cache.SkinCache
 import com.mychangli.app.utils.StartupTimeTracker
@@ -42,7 +46,12 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
         var deviceId: String = ""
         lateinit var appContext: Context
 
+        /** Legacy helper calls are redirected to the owner's configured community service. */
+        val UserIp: String
+            get() = BuildConfig.COMMUNITY_USER_BASE_URL.trimEnd('/')
+
         fun clearCacheAll() {
+            SchoolSessionState.invalidate()
             CoroutineScope(Dispatchers.IO).launch {
                 accessToken = ""
                 MMKV.mmkvWithID("education_cache").clearAll()
@@ -87,6 +96,17 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
     private val _appViewModelStore = ViewModelStore()
     override val viewModelStore: ViewModelStore get() = _appViewModelStore
 
+    private val moocViewModelFactory = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return MoocViewModel(this@PlanetApplication) as T
+        }
+    }
+
+    val moocViewModel: MoocViewModel by lazy {
+        ViewModelProvider(this, moocViewModelFactory)[MoocViewModel::class.java]
+    }
+
     private val fpsHandlerThread = HandlerThread("fpsHandlerThread").apply { start() }
     private val fpsHandler by lazy(LazyThreadSafetyMode.NONE) { Handler(fpsHandlerThread.looper) }
 
@@ -97,6 +117,7 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
 
         initMMKV()
         migrateLegacyCacheIfNeeded()
+        prepareTransientCsustDataGetStores()
         if (BuildConfig.DEBUG) {
             StartupTimeTracker.initialize(applicationContext as Application)
         }
@@ -136,6 +157,25 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
     }
     private fun initMMKV() {
         MMKV.initialize(this@PlanetApplication)
+    }
+
+    /**
+     * CSUSTDataGet 1.1.4 hard-codes plaintext MMKV stores for credentials and cookies.
+     * Delete any previous files, then open those IDs read-only before the dependency can access
+     * them. Its CookieJar keeps the active session in memory, but cannot persist it to disk.
+     */
+    private fun prepareTransientCsustDataGetStores() {
+        resetAndOpenReadOnly("education_cache", MMKV.SINGLE_PROCESS_MODE)
+        resetAndOpenReadOnly("csust_cookie_jar", MMKV.MULTI_PROCESS_MODE)
+    }
+
+    private fun resetAndOpenReadOnly(storeId: String, mode: Int) {
+        MMKV.mmkvWithID(storeId, mode).apply {
+            clearAll()
+            sync()
+            close()
+        }
+        MMKV.mmkvWithID(storeId, mode or MMKV.READ_ONLY_MODE)
     }
 
     private fun migrateLegacyCacheIfNeeded() {

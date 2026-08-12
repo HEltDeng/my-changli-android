@@ -18,7 +18,7 @@
             android:layout_width="@dimen/dp40"
             android:layout_height="@dimen/dp40"
             android:padding="@dimen/dp10"
-            android:tint = "@color/color_title_top"
+            app:tint = "@color/color_title_top"
             tools:src="@drawable/ic_back" />
         <TextView
             android:id="@+id/tv_title"
@@ -94,7 +94,7 @@
             android:layout_height="@dimen/dp35"
             android:src="@drawable/ic_send"
             tools:srcCompat="@drawable/ic_send"
-            android:tint = "@color/color_icon_primary"
+            app:tint = "@color/color_icon_primary"
             />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

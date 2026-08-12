@@ -1,5 +1,10 @@
 package com.mychangli.app.common.cache
 
+import com.mychangli.app.feature.calendar.data.local.SemesterCalendarCache
+import com.mychangli.app.feature.calendar.data.repository.SemesterCalendarRepository
+import com.dcelysia.csust_spider.education.data.remote.EducationHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -10,8 +15,9 @@ import java.util.TimeZone
  * 学期与周次相关工具。
  *
  * 重构说明：
- *  - V1 只使用随应用提供的本地学期日期，不连接学校或旧项目校历接口；
- *  - 所有业务统一通过 [getTermStartDate] 获取开学日期；
+ *  - 原先的硬编码 [termMap] 仅作为**网络数据未就绪时的兜底**；
+ *  - 所有业务统一通过 [getTermStartDate] 获取开学日期，内部按
+ *    **内存/本地缓存（由 [SemesterCalendarRepository] 回写） → 内置 termMap** 顺序查找；
  *  - 学期切换规则、当前周计算也统一收敛到本 object，避免全仓库 5+ 份副本不一致。
  */
 object CommonInfo {
@@ -112,7 +118,13 @@ object CommonInfo {
     private fun resolveCurrentTermByDate(): String? {
         val nowStr = formatNowForTermComparison()
 
-        val merged = termMap
+        val merged = HashMap<String, String>(termMap.size + 4).apply {
+            putAll(termMap)
+            SemesterCalendarRepository.getListSync()?.forEach { item ->
+                val start = SemesterCalendarRepository.getTermStartDate(item.semesterCode)
+                if (!start.isNullOrBlank()) put(item.semesterCode, start)
+            }
+        }
 
         val started = merged.entries
             .asSequence()
@@ -143,12 +155,44 @@ object CommonInfo {
      */
     fun getTermStartDate(term: String): String? {
         if (term.isBlank()) return null
+        SemesterCalendarRepository.getTermStartDate(term)?.let { return it }
         return termMap[term]
     }
 
-    /** V1 has no school API client; return only locally cached or built-in term data. */
+    /**
+     * 通过网络库 [EducationHelper.getSemesterStartDate] 拉取学期开学日，
+     * 归一化后回写本地缓存（[SemesterCalendarCache.saveTermStartDate]）并返回。
+     *
+     * 向 [SemesterCalendarRepository] 内存层同样回写一份 detail（仅含 [SemesterCalendarDetail.semesterStart]），
+     * 以便同步读 [getTermStartDate] 立即命中。
+     *
+     * 在 IO 上执行；失败返回 null，不抛异常。
+     *
+     * @return 开学日（`yyyy-MM-dd HH:mm:ss`），或 null
+     */
     suspend fun fetchTermStartDate(term: String): String? {
-        return getTermStartDate(term)
+        if (term.isBlank()) return null
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val dateStr = EducationHelper.getSemesterStartDate(term) ?: return@withContext null
+
+                val parser = SimpleDateFormat(TERM_DATE_FORMAT, Locale.CHINA).apply {
+                    isLenient = false
+                    timeZone = shanghaiTz
+                }
+                val parsed = parser.parse(dateStr) ?: return@withContext null
+                val nextDay = Calendar.getInstance(shanghaiTz).apply {
+                    time = parsed
+                    add(Calendar.DAY_OF_MONTH, 1)
+                }
+                val formatted = SimpleDateFormat(TERM_DATE_TIME_FORMAT, Locale.CHINA).apply {
+                    timeZone = shanghaiTz
+                }.format(nextDay.time)
+
+                SemesterCalendarCache.saveTermStartDate(term, formatted)
+                formatted
+            }.getOrNull()
+        }
     }
 
     // ---------------- 当前周（文本 & 数值统一入口） ----------------
@@ -201,7 +245,16 @@ object CommonInfo {
     fun getCurrentWeekAuto(): String {
         val nowStr = formatNowForTermComparison()
 
-        val best = termMap.entries
+        // 合并内置 termMap 与已缓存的学期列表（缓存优先覆盖）
+        val merged = HashMap<String, String>(termMap.size + 4).apply {
+            putAll(termMap)
+            SemesterCalendarRepository.getListSync()?.forEach { item ->
+                val start = SemesterCalendarRepository.getTermStartDate(item.semesterCode)
+                if (!start.isNullOrBlank()) put(item.semesterCode, start)
+            }
+        }
+
+        val best = merged.entries
             .asSequence()
             .sortedByDescending { it.value }
             .firstOrNull { it.value <= nowStr }

@@ -247,7 +247,7 @@ fun AccountGateScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "V1 账号仅用于我的长理自有服务。首发版不提供学校账号绑定、学校官方接口、真实体育预约或真实支付，也不会采集学校密码、验证码、Cookie 或会话。",
+                        text = "本页账号仅用于“我的长理”自有服务，与学校账号相互独立。学校账号绑定仅用于用户主动访问学校服务；学校密码、验证码、Cookie 或会话不会发送至“我的长理”自有后端。V1 不提供校园地图、真实体育预约或真实支付。",
                         color = AppTheme.colors.secondaryTextColor,
                         fontSize = 13.sp,
                         lineHeight = 19.sp,

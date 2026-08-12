@@ -6,4 +6,14 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+
+    <!--
+        KNOWN_V1_RISK: these two official legacy school services currently require HTTP.
+        Cleartext remains denied for every other host; TLS and hostname verification are not
+        weakened. Remove this compatibility block when the school exposes equivalent HTTPS.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">xk.csust.edu.cn</domain>
+        <domain includeSubdomains="false">pt.csust.edu.cn</domain>
+    </domain-config>
 </network-security-config>

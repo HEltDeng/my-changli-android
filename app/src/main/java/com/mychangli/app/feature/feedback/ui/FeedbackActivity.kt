@@ -74,6 +74,7 @@ private data class FeedbackCategory(val value: String, val label: String)
 
 private val feedbackCategories = listOf(
     FeedbackCategory("FEATURE_SUGGESTION", "功能建议"),
+    FeedbackCategory("RESERVATION", "预约问题"),
     FeedbackCategory("LOST_FOUND", "失物招领"),
     FeedbackCategory("RESOURCE_LIBRARY", "资料库"),
     FeedbackCategory("ACCOUNT_SECURITY", "账号与安全"),

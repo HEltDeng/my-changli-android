@@ -57,6 +57,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.mychangli.app.R
 import com.mychangli.app.TimeTableAppWidget
 import com.mychangli.app.common.cache.CommonInfo
+import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.core.MainActivity
 import com.mychangli.app.core.Route
 import com.mychangli.app.core.network.ApiResponse
@@ -81,7 +82,8 @@ class TimeTableActivity : AppCompatActivity() {
 
     private val viewModel: TimeTableViewModel by viewModels()
     private val mmkv by lazy { MMKV.defaultMMKV() }
-    private val localScheduleOwner = ""
+    private val studentId by lazy { StudentInfoManager.studentId }
+    private val studentPassword by lazy { StudentInfoManager.studentPassword }
 
     private lateinit var termList: List<String>
     private val weekList by lazy { (1..20).map { "第${it}周" } }
@@ -110,8 +112,15 @@ class TimeTableActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (studentId.isEmpty() || studentPassword.isEmpty()) {
+            showMessage(getString(R.string.bind_notification))
+            Route.goBindingUser(this)
+            finish()
+            return
+        }
+
         viewModel.initFirstLaunch()
-        setTermListById(localScheduleOwner)
+        setTermListById(studentId)
         initObservers()
         setBack()
 
@@ -162,7 +171,7 @@ class TimeTableActivity : AppCompatActivity() {
         }
 
         TimeTableComposeScreen(
-            termText = AcademicTermDisplayFormatter.format(term, localScheduleOwner),
+            termText = AcademicTermDisplayFormatter.format(term, studentId),
             weekText = state.weekInfo,
             displayWeek = displayWeek,
             currentWeek = currentWeek,
@@ -456,7 +465,7 @@ class TimeTableActivity : AppCompatActivity() {
         )
         if (!isWeekPicker) {
             dialog.setItemLabelProvider { rawTerm ->
-                AcademicTermDisplayFormatter.format(rawTerm, localScheduleOwner)
+                AcademicTermDisplayFormatter.format(rawTerm, studentId)
             }
         }
         dialog.show(supportFragmentManager, "TimetableWheel")

@@ -22,7 +22,7 @@
             android:layout_height="32dp"
             android:layout_gravity="center_vertical"
             android:src="@drawable/blue_left_back"
-            android:tint = "@color/color_title_top"/>
+            app:tint = "@color/color_title_top"/>
 
         <TextView
             android:layout_width="0dp"
@@ -42,7 +42,7 @@
             android:layout_gravity="center|end"
             android:layout_marginEnd="4dp"
             android:src="@drawable/shuaxin"
-            android:tint = "@color/color_title_top"/>
+            app:tint = "@color/color_title_top"/>
 
     </LinearLayout>
 

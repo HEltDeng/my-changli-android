@@ -52,7 +52,7 @@
                 android:layout_height="24dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_expand"
-                android:tint = "@color/color_icon_secondary"/>
+                app:tint = "@color/color_icon_secondary"/>
 
         </LinearLayout>
         <!-- 课程列表 -->

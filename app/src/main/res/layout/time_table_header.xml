@@ -35,7 +35,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:tint = "@color/color_title_top"/>
+        app:tint = "@color/color_title_top"/>
         <ProgressBar
             android:id="@+id/courseRefreshLoading"
             android:layout_width="@dimen/dp30"

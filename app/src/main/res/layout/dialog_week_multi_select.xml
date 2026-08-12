@@ -36,7 +36,7 @@
             android:focusable="true"
             android:padding="4dp"
             android:src="@drawable/ic_add_course_exit"
-            android:tint="@color/color_icon_secondary" />
+            app:tint="@color/color_icon_secondary" />
     </LinearLayout>
 
     <TextView

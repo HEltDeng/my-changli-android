@@ -29,7 +29,7 @@
             android:layout_height="28dp"
             android:layout_gravity="center_vertical"
             android:src="@drawable/ic_normal_back"
-            android:tint="@color/color_title_top"/>
+            app:tint="@color/color_title_top"/>
 
         <TextView
             android:layout_width="0dp"
@@ -109,7 +109,7 @@
                     android:layout_alignParentEnd="true"
                     android:src="@drawable/baseline_arrow_forward_ios_24"
                     android:layout_gravity="center"
-                    android:tint = "@color/color_icon_secondary"/>
+                    app:tint = "@color/color_icon_secondary"/>
             </RelativeLayout>
 
             <View
@@ -150,7 +150,7 @@
                     android:layout_centerVertical="true"
                     android:src="@drawable/baseline_arrow_forward_ios_24"
                     android:layout_gravity="center"
-                    android:tint = "@color/color_icon_secondary"/>
+                    app:tint = "@color/color_icon_secondary"/>
             </RelativeLayout>
 
             <View
@@ -191,7 +191,7 @@
                     android:layout_centerVertical="true"
                     android:src="@drawable/baseline_arrow_forward_ios_24"
                     android:layout_gravity="center"
-                    android:tint = "@color/color_icon_secondary"/>
+                    app:tint = "@color/color_icon_secondary"/>
             </RelativeLayout>
 
 
@@ -233,7 +233,7 @@
                     android:layout_centerVertical="true"
                     android:src="@drawable/baseline_arrow_forward_ios_24"
                     android:layout_gravity="center"
-                    android:tint = "@color/color_icon_secondary"/>
+                    app:tint = "@color/color_icon_secondary"/>
             </RelativeLayout>
             <View
                 android:layout_width="match_parent"

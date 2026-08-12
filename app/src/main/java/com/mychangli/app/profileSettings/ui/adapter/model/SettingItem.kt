@@ -1,6 +1,6 @@
 package com.mychangli.app.profileSettings.ui.adapter.model
 
-import androidx.annotation.DrawableRes
+import android.support.annotation.DrawableRes
 
 data class SettingItem(
     val title: String,

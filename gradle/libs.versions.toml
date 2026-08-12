@@ -6,6 +6,7 @@ coilCompose = "2.7.0"
 common = "4.0.1"
 converterGson = "3.0.0"
 crashreport = "4.1.9.3"
+csustdataget = "1.1.4"
 flexbox = "3.0.0"
 fragmentKtx = "1.8.9"
 glide = "5.0.7"
@@ -71,6 +72,7 @@ common = { module = "com.github.gzu-liyujiang.AndroidPicker:Common", version.ref
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "converterGson" }
 crashreport = { module = "com.tencent.bugly:crashreport", version.ref = "crashreport" }
+csustdataget = { module = "com.github.CreaMakers:CSUSTDataGet", version.ref = "csustdataget" }
 flexbox = { module = "com.google.android.flexbox:flexbox", version.ref = "flexbox" }
 glide-ksp = { module = "com.github.bumptech.glide:ksp", version.ref = "glide" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }

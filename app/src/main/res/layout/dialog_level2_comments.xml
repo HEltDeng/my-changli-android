@@ -59,7 +59,7 @@
             android:layout_width="@dimen/dp35"
             android:layout_height="@dimen/dp35"
             android:src="@drawable/ic_send"
-            android:tint = "@color/color_icon_primary"
+            app:tint = "@color/color_icon_primary"
             tools:srcCompat="@drawable/ic_send"
             />
     </LinearLayout>

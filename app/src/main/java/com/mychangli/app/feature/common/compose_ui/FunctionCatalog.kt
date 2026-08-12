@@ -4,10 +4,15 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Assessment
+import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ElectricBolt
+import androidx.compose.material.icons.outlined.EventNote
 import androidx.compose.material.icons.outlined.FindInPage
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.runtime.Immutable
@@ -29,6 +34,12 @@ data class FunctionShortcut(
 
 enum class FunctionDestination {
     Timetable,
+    ScoreInquiry,
+    Classroom,
+    Homework,
+    Electronic,
+    ExamArrangement,
+    Calendar,
     Cet,
     LostFound,
     AccountBook,
@@ -42,6 +53,12 @@ enum class FunctionDestination {
 fun primaryFunctionShortcuts(): List<FunctionShortcut> =
     functionCatalog().selectById(
         "schedule",
+        "grade",
+        "classroom",
+        "homework",
+        "electric",
+        "exam",
+        "calendar",
     )
 
 /**
@@ -58,6 +75,10 @@ fun secondaryFunctionShortcuts(): List<FunctionShortcut> =
 fun learningFunctionShortcuts(): List<FunctionShortcut> =
     functionCatalog().selectById(
         "schedule",
+        "grade",
+        "classroom",
+        "homework",
+        "exam",
         "document",
         "cet",
         "mandarin",
@@ -68,6 +89,8 @@ fun sportsFunctionShortcuts(): List<FunctionShortcut> =
 
 fun lifeFunctionShortcuts(): List<FunctionShortcut> =
     functionCatalog().selectById(
+        "electric",
+        "calendar",
         "lost_found",
     )
 
@@ -84,6 +107,12 @@ fun FunctionShortcut.toFunctionItemData(context: Context): FunctionItemData =
 fun openFunctionShortcut(context: Context, destination: FunctionDestination) {
     when (destination) {
         FunctionDestination.Timetable -> Route.goTimetable(context)
+        FunctionDestination.ScoreInquiry -> Route.goScoreInquiry(context)
+        FunctionDestination.Classroom -> Route.goClassInfo(context)
+        FunctionDestination.Homework -> Route.goMooc(context)
+        FunctionDestination.Electronic -> Route.goElectronic(context)
+        FunctionDestination.ExamArrangement -> Route.goExamArrangement(context)
+        FunctionDestination.Calendar -> Route.goCalendar(context)
         FunctionDestination.Cet -> Route.goCet(context)
         FunctionDestination.LostFound -> Route.goLostFound(context)
         FunctionDestination.AccountBook -> Route.goAccountBook(context)
@@ -99,6 +128,48 @@ private fun functionCatalog(): List<FunctionShortcut> = listOf(
         icon = Icons.Outlined.CalendarMonth,
         tintColor = FunctionColors.Schedule,
         destination = FunctionDestination.Timetable,
+    ),
+    FunctionShortcut(
+        id = "grade",
+        titleRes = R.string.feature_function_grade_query,
+        icon = Icons.Outlined.Assessment,
+        tintColor = FunctionColors.Grade,
+        destination = FunctionDestination.ScoreInquiry,
+    ),
+    FunctionShortcut(
+        id = "classroom",
+        titleRes = R.string.feature_function_classroom_availability,
+        icon = Icons.Outlined.MeetingRoom,
+        tintColor = FunctionColors.Classroom,
+        destination = FunctionDestination.Classroom,
+    ),
+    FunctionShortcut(
+        id = "homework",
+        titleRes = R.string.inquiry_homework,
+        icon = Icons.Outlined.Assignment,
+        tintColor = FunctionColors.Homework,
+        destination = FunctionDestination.Homework,
+    ),
+    FunctionShortcut(
+        id = "electric",
+        titleRes = R.string.feature_function_electricity_query,
+        icon = Icons.Outlined.ElectricBolt,
+        tintColor = FunctionColors.Electric,
+        destination = FunctionDestination.Electronic,
+    ),
+    FunctionShortcut(
+        id = "exam",
+        titleRes = R.string.feature_function_exam_schedule,
+        icon = Icons.Outlined.EventNote,
+        tintColor = FunctionColors.Exam,
+        destination = FunctionDestination.ExamArrangement,
+    ),
+    FunctionShortcut(
+        id = "calendar",
+        titleRes = R.string.feature_function_school_calendar,
+        icon = Icons.Outlined.MenuBook,
+        tintColor = FunctionColors.Calendar,
+        destination = FunctionDestination.Calendar,
     ),
     FunctionShortcut(
         id = "cet",

@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.mychangli.app.R
+import com.mychangli.app.core.ads.AdPlacement
+import com.mychangli.app.core.ads.AdSlot
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.overview.ui.model.OverviewCourseUiModel
@@ -129,6 +131,54 @@ private fun OverviewScreen(
                 emptyMessage = state.todayCourseMessage,
                 onClick = { onQuickActionClick("schedule") }
             )
+        }
+
+        item {
+            MetricRow(
+                metrics = state.metrics,
+                onMetricClick = onMetricClick
+            )
+        }
+
+        item {
+            AdSlot(placement = AdPlacement.HOME_BANNER)
+        }
+
+        item {
+            SectionTitle("待提交作业", "查看全部") { onQuickActionClick("homework") }
+        }
+
+        if (state.pendingHomeworks.isEmpty()) {
+            item {
+                NeutralCard(state.pendingHomeworkMessage)
+            }
+        } else {
+            items(state.pendingHomeworks, key = { it.id }) { homework ->
+                HomeworkCard(homework, onClick = { onQuickActionClick("homework") })
+            }
+        }
+
+        if (state.pendingTests.isNotEmpty()) {
+            item {
+                SectionTitle("待完成测试", "查看全部") { onQuickActionClick("homework") }
+            }
+            items(state.pendingTests, key = { it.id }) { test ->
+                TestCard(test, onClick = { onQuickActionClick("homework") })
+            }
+        }
+
+        item {
+            SectionTitle("考试安排", "查看全部") { onQuickActionClick("exam") }
+        }
+
+        if (state.upcomingExams.isEmpty()) {
+            item {
+                NeutralCard(state.examMessage)
+            }
+        } else {
+            items(state.upcomingExams, key = { it.id }) { exam ->
+                ExamCard(exam)
+            }
         }
 
     }

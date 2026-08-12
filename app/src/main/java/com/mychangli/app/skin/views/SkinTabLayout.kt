@@ -3,6 +3,7 @@ package com.mychangli.app.skin.views
 import android.content.Context
 import android.util.AttributeSet
 import androidx.core.content.withStyledAttributes
+import com.mychangli.app.R
 import com.mychangli.app.skin.SkinAttributeProvider
 import com.mychangli.app.skin.SkinManager
 import com.mychangli.app.skin.SkinSupportable
@@ -28,25 +29,21 @@ class SkinTabLayout @JvmOverloads constructor(
         // Index 0: android:background
         // Index 1: app:tabTextColor
         // Index 2: app:tabSelectedTextColor
-        context.withStyledAttributes(attrs, intArrayOf(
-            android.R.attr.background,
-            MaterialR.attr.tabTextColor,
-            MaterialR.attr.tabSelectedTextColor
-        )) {
+        context.withStyledAttributes(attrs, R.styleable.SkinTabLayout) {
             // 1. 背景
-            val bgResId = getResourceId(0, 0)
+            val bgResId = getResourceId(R.styleable.SkinTabLayout_android_background, 0)
             if (bgResId != 0) {
                 delegate.setAttr("view_background", bgResId)
             }
 
             // 2. 未选中文字颜色
-            val textColorResId = getResourceId(1, 0)
+            val textColorResId = getResourceId(R.styleable.SkinTabLayout_tabTextColor, 0)
             if (textColorResId != 0) {
                 delegate.setAttr("tab_text_color", textColorResId)
             }
 
             // 3. 选中文字颜色
-            val selectedColorResId = getResourceId(2, 0)
+            val selectedColorResId = getResourceId(R.styleable.SkinTabLayout_tabSelectedTextColor, 0)
             if (selectedColorResId != 0) {
                 delegate.setAttr("tab_selected_text_color", selectedColorResId)
             }

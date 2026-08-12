@@ -7,21 +7,20 @@ import org.junit.Test
 class FunctionCatalogTest {
 
     @Test
-    fun `removed tools are absent from user-facing shortcut groups`() {
+    fun `campus study and life tools are present while exclusions stay absent`() {
         val primaryIds = primaryFunctionShortcuts().map(FunctionShortcut::id)
-        val secondaryIds = secondaryFunctionShortcuts().map(FunctionShortcut::id)
+        val learningIds = learningFunctionShortcuts().map(FunctionShortcut::id)
         val lifeIds = lifeFunctionShortcuts().map(FunctionShortcut::id)
 
         assertFalse("map" in primaryIds)
-        assertFalse("calendar" in primaryIds)
-        assertFalse("electric" in lifeIds)
-        assertFalse("sports" in lifeIds)
-        assertFalse("account" in secondaryIds)
-        assertFalse("account" in lifeIds)
+        assertTrue(listOf("schedule", "grade", "classroom", "homework", "exam").all(primaryIds::contains))
+        assertTrue(listOf("schedule", "grade", "classroom", "homework", "exam", "document", "cet", "mandarin").all(learningIds::contains))
+        assertTrue(listOf("electric", "calendar", "lost_found").all(lifeIds::contains))
+        assertTrue(sportsFunctionShortcuts().isEmpty())
     }
 
     @Test
-    fun `retained life tools remain reachable`() {
+    fun `lost found remains reachable`() {
         val lifeIds = lifeFunctionShortcuts().map(FunctionShortcut::id)
 
         assertTrue("lost_found" in lifeIds)

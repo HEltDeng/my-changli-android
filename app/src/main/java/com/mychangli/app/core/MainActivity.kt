@@ -22,6 +22,8 @@ import androidx.lifecycle.lifecycleScope
 import com.mychangli.app.common.api.DrawerController
 import com.mychangli.app.common.cache.CommonInfo
 import com.mychangli.app.common.pool.TabAnimationPool
+import com.mychangli.app.common.redux.action.UserAction
+import com.mychangli.app.common.redux.store.UserStore
 import com.mychangli.app.core.main.navigation.MainTabNavigator
 import com.mychangli.app.core.main.ui.MainScreen
 import com.mychangli.app.core.network.campustools.AccountSessionState
@@ -47,11 +49,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), DrawerController {
+    private val store by lazy { UserStore() }
     private val mainTabNavigator by lazy(LazyThreadSafetyMode.NONE) { MainTabNavigator() }
 
     override fun onResume() {
         super.onResume()
         if (!PrivacyConsentManager.hasAppConsent(this)) return
+        store.dispatch(UserAction.initilaize())  //初始化用户信息，对游客模式无影响
         lifecycleScope.launch(Dispatchers.IO) {
             runCatching { RemoteConfigurationStore.refreshIfStale(30_000L) }
         }
@@ -194,12 +198,21 @@ class MainActivity : ComponentActivity(), DrawerController {
 
     override fun onStart() {
         super.onStart()
+        if (!PrivacyConsentManager.hasAppConsent(this)) return
+        // 账号系统已取消，不再拉取自研后端的用户资料。
+        // 但从老版本升级上来时，MMKV 中原本由自研后端写入的头像/昵称已被
+        // migrateLegacyCacheIfNeeded 清除，这里用已绑定的学号/密码做一次静默 SSO
+        // 重新登录 + getLoginUser，把 MOOC(网络教学平台) 的用户名/头像写回 UserInfoManager。
+        // 若未绑定、或 UserInfoManager.account 已有值，action 内部会直接跳过，无网络开销。
+        store.dispatch(UserAction.RefreshMoocProfileSilently)
     }
 
     private fun runConsentedLifecycleWork() {
+        store.dispatch(UserAction.initilaize())
         lifecycleScope.launch(Dispatchers.IO) {
             runCatching { RemoteConfigurationStore.refreshIfStale(30_000L) }
         }
+        store.dispatch(UserAction.RefreshMoocProfileSilently)
         notifyLocalScheduleComponents()
     }
 

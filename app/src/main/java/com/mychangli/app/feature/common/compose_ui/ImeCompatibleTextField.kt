@@ -137,7 +137,8 @@ fun ImeCompatibleTextField(
                 input.setTextColor(textColor)
                 input.setHintTextColor(hintColor)
                 input.hint = fieldHint(label, placeholder)
-                if (input.isSingleLine != singleLine) input.isSingleLine = singleLine
+                // The getter is API 29+, while this setter supports every app API level.
+                input.setSingleLine(singleLine)
                 if (input.minLines != minLines) input.setMinLines(minLines)
                 if (input.maxLines != maxLines) input.setMaxLines(maxLines)
                 val desiredType = desiredInputType(numeric, password, singleLine)

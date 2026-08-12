@@ -43,6 +43,7 @@ Thumbs.db
 
 # Local-only binaries with unclear redistribution rights
 app/libs/CSUSTDataGet-*.aar
+!app/libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar
 app/libs/csust_spider-*.aar
 app/libs/Lite3DMap.jar
 app/libs/develocity-*.jar

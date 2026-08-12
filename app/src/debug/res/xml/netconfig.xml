@@ -7,18 +7,12 @@
         </trust-anchors>
     </base-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain>127.0.0.1</domain>
-        <domain>localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
     </domain-config>
+    <!-- Release-first compatibility for the two exact legacy school service hosts. -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">pt.csust.edu.cn</domain>
-        <domain includeSubdomains="true">authserver.csust.edu.cn</domain>
-        <domain includeSubdomains="true">ehall.csust.edu.cn</domain>
-        <domain includeSubdomains="true">xk.csust.edu.cn</domain>
-        <domain includeSubdomains="true">yktwd.csust.edu.cn</domain>
-        <domain includeSubdomains="true">amap.com</domain>
-        <domain includeSubdomains="true">autonavi.com</domain>
-        <domain includeSubdomains="true">alicdn.com</domain>
-        <domain includeSubdomains="true">aliyuncs.com</domain>
+        <domain includeSubdomains="false">xk.csust.edu.cn</domain>
+        <domain includeSubdomains="false">pt.csust.edu.cn</domain>
     </domain-config>
 </network-security-config>

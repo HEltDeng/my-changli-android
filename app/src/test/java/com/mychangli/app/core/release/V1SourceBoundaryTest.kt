@@ -1,6 +1,8 @@
 package com.mychangli.app.core.release
 
 import java.io.File
+import java.security.MessageDigest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,21 +16,28 @@ class V1SourceBoundaryTest {
     }
 
     @Test
-    fun `unverified binaries and their package references are absent`() {
-        assertFalse(appPath("libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar").exists())
+    fun `authorized campus dependency is fixed while excluded binaries stay absent`() {
+        val csustDataGet = appFile("libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar")
         assertFalse(appPath("libs/Lite3DMap.jar").exists())
+
+        val sha256 = MessageDigest.getInstance("SHA-256")
+            .digest(csustDataGet.readBytes())
+            .joinToString("") { "%02X".format(it) }
+        assertEquals(
+            "9B03523FA04E9C8B3F5CAAAD49DC282B17EB2AC82E69A49E89764B21ABF71C29",
+            sha256,
+        )
 
         val sourceRoot = appFile("src/main/java")
         val source = sourceRoot.walkTopDown()
             .filter { it.isFile && it.extension in setOf("kt", "java") }
             .joinToString("\n") { it.readText() }
-        assertFalse(source.contains("com.dcelysia.csust_spider"))
-        assertFalse(source.contains("com.example.csustdataget"))
+        assertTrue(source.contains("com.dcelysia.csust_spider"))
         assertFalse(source.contains("com.amap.api"))
 
         val build = appFile("build.gradle.kts").readText()
-        assertFalse(build.contains("implementation(files("))
-        assertFalse(appFile("../settings.gradle.kts").readText().contains("flatDir"))
+        assertTrue(build.contains("CSUSTDataGet-1.1.4-no-sensitive-logs.aar"))
+        assertFalse(build.contains("Lite3DMap.jar"))
     }
 
     @Test
@@ -36,11 +45,16 @@ class V1SourceBoundaryTest {
         val manifest = appFile("src/main/AndroidManifest.xml").readText()
         listOf(
             "SportsReservationActivity",
-            "BindingUserActivity",
             "CampusMapActivity",
+            "SportsReservationActivity",
+        ).forEach { assertFalse(manifest.contains(it)) }
+        listOf(
+            "BindingUserActivity",
             "ElectronicActivity",
             "MoocActivity",
-        ).forEach { assertFalse(manifest.contains(it)) }
+            "ScoreInquiryActivity",
+            "ExamArrangementActivity",
+        ).forEach { assertTrue(manifest.contains(it)) }
         listOf(
             "ACCESS_FINE_LOCATION",
             "ACCESS_COARSE_LOCATION",
@@ -51,11 +65,17 @@ class V1SourceBoundaryTest {
         ).forEach { assertFalse(manifest.contains(it)) }
         assertFalse(manifest.contains("<data"))
         assertTrue(manifest.contains("LostFoundActivity"))
-        assertFalse(appPath("src/main/res/layout/activity_binding_user.xml").exists())
+        assertTrue(appPath("src/main/res/layout/activity_binding_user.xml").exists())
+
+        val networkConfig = appFile("src/main/res/xml/netconfig.xml").readText()
+        assertTrue(networkConfig.contains("<base-config cleartextTrafficPermitted=\"false\">"))
+        assertTrue(networkConfig.contains("xk.csust.edu.cn"))
+        assertTrue(networkConfig.contains("pt.csust.edu.cn"))
+        assertFalse(networkConfig.contains("includeSubdomains=\"true\""))
     }
 
     @Test
-    fun `account surfaces do not collect sports or school credentials`() {
+    fun `own account remains separate from school credentials`() {
         val accountCenter = appFile(
             "src/main/java/com/mychangli/app/core/account/ui/AccountCenterActivity.kt",
         ).readText()
@@ -70,8 +90,8 @@ class V1SourceBoundaryTest {
         val accountGate = appFile(
             "src/main/java/com/mychangli/app/core/account/ui/AccountGateScreen.kt",
         ).readText()
-        assertTrue(accountGate.contains("首发版不提供学校账号绑定"))
-        assertTrue(accountGate.contains("不会采集学校密码"))
+        assertTrue(accountGate.contains("学校账号相互独立"))
+        assertTrue(accountGate.contains("不会发送至“我的长理”自有后端"))
     }
 
     @Test

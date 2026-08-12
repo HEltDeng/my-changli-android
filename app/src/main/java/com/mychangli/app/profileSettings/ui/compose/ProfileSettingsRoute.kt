@@ -25,13 +25,17 @@ import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,7 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.mychangli.app.BuildConfig
 import com.mychangli.app.R
+import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.common.data.local.mmkv.UserInfoManager
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.Route
@@ -58,30 +65,70 @@ import com.mychangli.app.core.network.campustools.CampusToolsSession
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.profileSettings.ui.model.SettingItemUiModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 private const val OPEN_SOURCE_URL = "https://github.com/CreaMakers/changli-planet-app"
+
+private data class ProfileBindingSnapshot(
+    val studentId: String,
+    val isBound: Boolean
+)
+
+private fun readProfileBindingSnapshot(): ProfileBindingSnapshot {
+    val isBound = StudentInfoManager.hasCompleteBinding
+    return ProfileBindingSnapshot(
+        studentId = StudentInfoManager.studentId.takeIf { isBound }.orEmpty(),
+        isBound = isBound
+    )
+}
 
 @Composable
 fun ProfileSettingsRoute(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var bindingSnapshot by remember { mutableStateOf(readProfileBindingSnapshot()) }
+    val studentId = bindingSnapshot.studentId
+    val isBound = bindingSnapshot.isBound
+    val studentIdLabel = remember(studentId) { maskedStudentId(studentId) }
     val accountState by CampusToolsSession.state.collectAsState()
     val accountUser = (accountState as? AccountSessionState.SignedIn)?.user
     val avatarUrl = UserInfoManager.userAvatar.takeIf { it.isNotBlank() }
     var showCacheDialog by remember { mutableStateOf(false) }
 
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                bindingSnapshot = readProfileBindingSnapshot()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     ProfileSettingsScreen(
         modifier = modifier,
         items = createSettingItems(),
-        displayName = accountUser?.nickname ?: "我的长理用户",
+        studentIdLabel = studentIdLabel,
+        displayName = accountUser?.nickname ?: "长理同学",
         accountLabel = accountUser?.phoneMasked ?: "我的长理账号",
         avatarData = avatarUrl,
+        isBound = isBound,
         onItemClick = { item ->
             if (item.id == "4") {
                 showCacheDialog = true
             } else {
                 handleSettingItemClick(context, item)
+            }
+        },
+        onPrimaryClick = {
+            // 切换学号 / 绑定学号均直接跳转绑定页，旧数据等绑定成功后再清理。
+            if (isBound) {
+                Route.goBindingUser(context, isSwitchAccount = true)
+            } else {
+                Route.goBindingUser(context)
             }
         }
     )
@@ -102,9 +149,12 @@ fun ProfileSettingsRoute(
 @Composable
 private fun ProfileSettingsScreen(
     items: List<SettingItemUiModel>,
+    studentIdLabel: String,
     avatarData: Any?,
+    isBound: Boolean,
     onItemClick: (SettingItemUiModel.Option) -> Unit,
-    displayName: String = "我的长理用户",
+    onPrimaryClick: () -> Unit,
+    displayName: String = "长理同学",
     accountLabel: String = "我的长理账号",
     modifier: Modifier = Modifier
 ) {
@@ -133,15 +183,19 @@ private fun ProfileSettingsScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
         ProfileHeader(
+            studentIdLabel = studentIdLabel,
             displayName = displayName,
             accountLabel = accountLabel,
             avatarData = avatarData,
+            isBound = isBound
         )
 
         Spacer(modifier = Modifier.height(16.dp))
         SettingsCard(
             items = items,
+            isBound = isBound,
             onItemClick = onItemClick,
+            onPrimaryClick = onPrimaryClick
         )
         Spacer(modifier = Modifier.height(112.dp))
     }
@@ -149,9 +203,11 @@ private fun ProfileSettingsScreen(
 
 @Composable
 private fun ProfileHeader(
+    studentIdLabel: String,
     displayName: String,
     accountLabel: String,
     avatarData: Any?,
+    isBound: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -199,13 +255,21 @@ private fun ProfileHeader(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Text(
+                    text = studentIdLabel,
+                    color = AppTheme.colors.greyTextColor,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 3.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Surface(
                     color = AppTheme.colors.bgButtonLowlightColor,
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.padding(top = 10.dp)
                 ) {
                     Text(
-                        text = "个人开发者非官方 V1",
+                        text = if (isBound) "已绑定学号" else "未绑定学号",
                         color = AppTheme.colors.functionalTextColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -220,7 +284,9 @@ private fun ProfileHeader(
 @Composable
 private fun SettingsCard(
     items: List<SettingItemUiModel>,
+    isBound: Boolean,
     onItemClick: (SettingItemUiModel.Option) -> Unit,
+    onPrimaryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -240,6 +306,25 @@ private fun SettingsCard(
                         onClick = { onItemClick(item) }
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onPrimaryClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppTheme.colors.bgButtonColor,
+                    contentColor = AppTheme.colors.textButtonColor
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Text(
+                    text = if (isBound) "切换学号" else "绑定学号",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -348,6 +433,8 @@ private fun handleSettingItemClick(
 ) {
     when (item.id) {
         "11" -> Route.goAccountCenter(context)
+        "5" -> Route.goBindingUser(context)
+        "6" -> Route.goSkinSecletion(context)
         "9" -> Route.goWebView(context, OPEN_SOURCE_URL)
         "10" -> Route.goFeedback(context)
         "12" -> Route.goCourseReminders(context)
@@ -364,6 +451,7 @@ private fun createSettingItems(): List<SettingItemUiModel> = buildList {
     add(SettingItemUiModel.Header("主要设置"))
     add(SettingItemUiModel.Option("4", "清除缓存", Icons.Outlined.DeleteOutline))
     add(SettingItemUiModel.Option("11", "我的长理账号", Icons.Outlined.AccountCircle))
+    add(SettingItemUiModel.Option("5", "绑定学号", Icons.Outlined.AccountCircle))
     add(
         SettingItemUiModel.Option(
             id = "12",
@@ -371,6 +459,9 @@ private fun createSettingItems(): List<SettingItemUiModel> = buildList {
             icon = Icons.Outlined.NotificationsActive,
         )
     )
+    if (!BuildConfig.TOOLS_API_BASE_URL.contains(".invalid")) {
+        add(SettingItemUiModel.Option("6", "主题设置", Icons.Outlined.Palette))
+    }
     add(SettingItemUiModel.Option("10", "意见反馈", Icons.Outlined.Feedback))
     add(SettingItemUiModel.Header("隐私与合规"))
     add(SettingItemUiModel.Option("13", "关于我的长理", Icons.Outlined.Info))
@@ -381,14 +472,32 @@ private fun createSettingItems(): List<SettingItemUiModel> = buildList {
     add(SettingItemUiModel.Option("18", "账号与数据管理", Icons.Outlined.AccountCircle))
 }
 
+private fun maskedStudentId(studentId: String): String {
+    if (studentId.isBlank()) return "尚未绑定学号"
+    if (studentId.length <= 4) return "学号 ${"•".repeat(studentId.length)}"
+
+    val visiblePrefixLength = if (studentId.length >= 8) 4 else 2
+    val visibleSuffixLength = 2
+    val hiddenLength = (studentId.length - visiblePrefixLength - visibleSuffixLength).coerceAtLeast(2)
+    return buildString {
+        append("学号 ")
+        append(studentId.take(visiblePrefixLength))
+        append("•".repeat(hiddenLength))
+        append(studentId.takeLast(visibleSuffixLength))
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun ProfileSettingsRoutePreview() {
     AppSkinTheme {
         ProfileSettingsScreen(
             items = createSettingItems(),
+            studentIdLabel = "尚未绑定学号",
             avatarData = null,
+            isBound = false,
             onItemClick = {},
+            onPrimaryClick = {}
         )
     }
 }

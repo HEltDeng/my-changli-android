@@ -15,7 +15,7 @@
         android:src="@drawable/ic_back"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:tint = "@color/color_title_top"/>
+        app:tint = "@color/color_title_top"/>
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/mytab"
