@@ -1,74 +1,77 @@
-# 我的长理 V1 初代首发版功能范围矩阵
+# My Changli V1 Corrected Scope Matrix
 
-- 审计日期：2026-08-12
-- 完整版基线：`9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
-- V1 分支：`release/v1-initial`
-- 产品身份：个人开发者独立开发的非官方校园生活辅助工具
-- 固定声明：本应用由个人开发者独立开发，是面向校园生活场景的非官方辅助工具，与长沙理工大学不存在官方隶属或授权关系。
+- Date: 2026-08-12
+- Complete baseline: `9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
+- Remediation start: `b015791949dc8ce6770429b3b4f9dcaeac3f7132`
+- Previous scope result: `REJECTED_FOR_OVER_REMOVAL`
+- Reason: `STUDY_AND_LIFE_CAMPUS_FEATURES_WERE_INCORRECTLY_REMOVED`
+- Current execution gate: `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
 
-## 判定规则
+Fixed identity statement:
 
-- `OPEN`：V1 保留用户入口和实现；依赖自有 Backend 的能力在正式 HTTPS endpoint 未注入时安全失败。
-- `CLOSED`：V1 用户不可进入或触发真实业务；远端配置不能覆盖本地硬关闭。
-- `REMOVE_FROM_V1_BINARY`：完整历史由 main 与保护 tag 保存，相应实现或二进制不进入 V1 APK/AAB。
-- `FUTURE`：仅保留清晰 DTO、状态模型或抽象，等待授权、合作、商户与基础设施条件。
+> 本应用由个人开发者独立开发，是面向校园生活场景的非官方辅助工具，与长沙理工大学不存在官方隶属或授权关系。
+
+The corrected product rule is not `school-related => CLOSED`. Personal, user-authorized campus queries are product-OPEN. Only campus map, real sports reservation and real payment are explicit V1 exclusions.
+
+`OPEN / BLOCKED` means the feature belongs in V1 but cannot yet enter a distributable Release because the shared school integration has no proven redistribution right and a clean-room replacement is major work. It is not a product reclassification to CLOSED.
 
 ## OPEN
 
-| 能力 | V1 边界 | 代码依据 |
+| Capability | Product decision | Current implementation state |
 | --- | --- | --- |
-| 隐私首启门禁、非官方声明、隐私/协议/SDK/个人信息页 | 首次同意前不执行非必要联网 | `PrivacyConsentManager`、`MainActivity`、`ReleaseInformationV1Activity` |
-| Guest-first 首页、服务页、设置页 | 本地能力和公共页面不要求全局登录；云写操作再要求自有账号 | `MainScreen`、`AccountAccess` |
-| 我的长理自有账号 | 手机号账号与学校身份分离；V1 账号页不收集学校凭据或预约学号资料 | `CampusToolsSession`、`AccountCenterActivity`、auth contract tests |
-| 公告、服务更新、Feature Flags、版本检查与更新提示 | 仅走自有 Backend；默认 `https://campus-tools.invalid/api/v1/` 在 DNS 前 fail closed | `RemoteConfigurationStore`、`ServiceEndpointPolicy`、`AppUpdateChecker` |
-| 用户反馈 | 自有账号写入自有 Backend；不提供体育预约反馈类别 | `FeedbackActivity`、`POST /feedback` |
-| 失物招领 | 自有账号、用户内容、举报和后台治理；不依赖学校身份 | `LostFoundRepository`、`LostFoundActivity`、accepted Backend contract |
-| 自有资料库 | 公共浏览按 Backend flag；收藏/投诉等写操作按账号策略 | `ResourceLibraryRepository`、`ResourceLibraryActivity` |
-| 本地手动课表 | Room 与手动添加；不登录教务、不拉学校课表 | `CoursesDataBase`、`TimeTableActivity`、`AddCourseActivity` |
-| 课表组件与本地课程提醒 | 只读本地课表；通知/精确闹钟由用户主动启用并可降级 | `TimeTableAppWidget`、`NextCourseAppWidget`、`CourseReminderScheduler` |
-| 本地记账、日期/周次工具 | 不依赖学校授权接口 | ledger、`CourseScheduleEngine` |
-| 四六级、普通话及资料库公开网页 | 明确为外部网页，不代表学校合作，不提交学校统一认证凭据 | `CetActivity`、`MandeActivity`、`ResourceCatalog` |
-| 设置、关于、账号与数据清理、默认本地主题 | 保留自有账号和本地数据控制，无学校绑定入口 | profile/settings/privacy |
+| School account bind/switch/unbind | OPEN | BLOCKED |
+| SSO/CAS login, CAPTCHA, session/cookie, re-authentication and school logout | OPEN | BLOCKED |
+| School timetable sync/query, local timetable, course detail | OPEN | Local/manual subset present; school subset BLOCKED |
+| Grades and grade detail | OPEN | BLOCKED |
+| Exam arrangements | OPEN | BLOCKED |
+| Available classrooms | OPEN | BLOCKED |
+| MOOC courses/homework/tests | OPEN | BLOCKED |
+| Teaching/school calendar | OPEN | BLOCKED |
+| Electricity and campus-card-backed queries | OPEN | BLOCKED |
+| Self-operated lost-and-found | OPEN | Present |
+| Self-operated resource library | OPEN | Present |
+| CET and Mandarin web utilities | OPEN | Present |
+| My Changli own account | OPEN | Present and separate from school identity |
+| Announcements, version/update metadata and Feature Flags | OPEN | Present; own production endpoint remains fail-closed until externally configured |
+| Feedback | OPEN | Present |
+| Local account book/date/week tools | OPEN | Present |
+| Local timetable widgets and user-enabled reminders | OPEN | Present |
+| Privacy/agreements/personal-information/account-data controls | OPEN | Present; must be expanded when school integration is restored |
 
 ## CLOSED
 
-| 能力 | V1 关闭方式 | 原因 |
-| --- | --- | --- |
-| 学校账号绑定与学校凭据输入 | Activity、布局、导航、账号页入口和会话实现从 V1 分支移除；只保留升级清理旧数据 | 学校凭据与未授权依赖边界 |
-| 学校统一认证、教务、选课、MOOC | 不编译实现，不后台恢复，不直连学校接口 | 来源/授权和 HTTP/会话风险未闭合 |
-| 学校课表同步、成绩、考试、空教室、MOOC 作业 | Route、Manifest、UI、Repository/ViewModel 实现移除；本地课表独立保留 | 同上 |
-| 学校网络校历 | 网络 Repository、缓存预取和 UI 入口移除 | 不依赖学校接口的本地日期工具已足够首发 |
-| 宿舍电量/校园卡与电量小组件 | Receiver、Repository、UI、资源和入口移除 | 依赖不明学校二进制 |
-| 校园地图与定位 | Route、Activity、AMap 实现、metadata、location permission 和网络例外移除 | 地图二进制来源/授权未闭合 |
-| 体育真实预约、库存、履约 | 本地 policy 硬关闭；无页面、路由、服务分区或账号资料表单 | 无学校合作与真实履约 |
-| 真实支付、模拟支付按钮、退款 UI | 无付款页面和支付 SDK；仅允许未来 DTO/状态模型保留 | 首发不接真实支付 |
-| 旧社区/Buddy/旧新闻 API | 网络实现、页面、路由与导航移除；不属于 accepted Backend contract | 合同边界不成立 |
-| 远程皮肤下载 | 下载 UI/API 与导航移除；默认本地主题保留 | 生产 tools endpoint 未建立 |
-| Deep Link/Intent/Shortcut/Widget/通知 action 旁路 | CLOSED 目标没有 Route/Manifest/deep link；只有 Launcher Activity 导出 | 防止仅隐藏按钮 |
-
-## REMOVE_FROM_V1_BINARY
-
-| 项目 | 处置 |
+| Explicit V1 exclusion | Closure |
 | --- | --- |
-| `CSUSTDataGet-1.1.4-no-sensitive-logs.aar` | Gradle 和 catalog 声明删除；文件缺失是受测前提；preBuild 遇到文件出现立即失败 |
-| `Lite3DMap.jar` | Gradle 声明删除；文件缺失是受测前提；preBuild 遇到文件出现立即失败 |
-| `com.dcelysia.csust_spider.*` / `com.example.csustdataget.*` | 调用实现从 V1 分支删除，源码边界测试禁止重新出现 |
-| `com.amap.*` | 调用、Activity、隐私初始化、metadata、权限和网络例外从 V1 分支删除 |
-| 学校凭据输入/持久化/静默恢复 | 不进入 V1 classes/resources；遗留数据只能清理，不能读取或发送 |
-| 体育预约/支付 UI 与 Repository | 不进入 V1 classes；Backend DTO/未来状态模型不构成用户入口 |
-| 迁移前 baseline profile | 旧包名 profile 从 V1 分支移除；需以后按正式包名重新采集 |
+| Campus map | No Lite3DMap/AMap implementation, metadata, location permission, route or bypass |
+| Real sports reservation | No venue/inventory/order/fulfillment request or reachable entry |
+| Real payment/refund | No provider, SDK, merchant secret, callback or reachable payment UI |
+
+No other baseline Study/Life capability is product-CLOSED by this matrix.
+
+## REMOVE_FROM_RELEASE_BINARY
+
+| Item | Release status |
+| --- | --- |
+| `Lite3DMap.jar` and map SDK implementation | Permanently excluded from this V1 candidate |
+| Payment SDK/merchant implementation | Excluded |
+| Real sports fulfillment implementation | Excluded or unreachable; no real request path |
+| Current modified `CSUSTDataGet` AAR | Provisionally excluded because redistribution right is unproven; this is the core blocker, not a request to delete campus product scope |
+| Debug-only SDKs | Excluded from Release runtime |
 
 ## FUTURE
 
-| 能力 | 恢复条件 |
-| --- | --- |
-| 教务/MOOC/校园卡 Adapter | 合作或合法授权、HTTPS、隐私与凭据链路专项审计完成 |
-| 校园地图 | SDK 来源、版本、许可证、隐私字段和再分发权均可证明，或合法自研替代 |
-| 体育预约 | 场馆/库存/履约合作和规则真实成立 |
-| 支付 Provider | 适格主体、商户合同、密钥托管、退款/对账和专项合规完成 |
-| 正式覆盖更新 | 正式域名/TLS、同一 signing identity、size/hash/applicationId/签名校验完成 |
-| Production endpoint | 域名、备案、TLS 和部署完成后从仓库外注入 |
+- Explicit school cooperation/official authorization.
+- A legally distributable campus-map replacement.
+- Real sports fulfillment and inventory cooperation.
+- Merchant payment/refund/settlement integration.
+- Enterprise-entity-only features.
+- Legacy community/Buddy/remote-skin services that do not currently map to the accepted production Backend contract; these require a separate product/contract decision and are not silently treated as one of the three exclusions.
 
-## 结论
+## Stop-condition consequence
 
-失物招领为 `OPEN`，体育真实预约、真实支付、学校正式接口、学校账号绑定和校园地图为本地硬 `CLOSED`。远端 Feature Flag 只能进一步关闭 OPEN 能力，不能打开这些首发禁区。
+The current branch remains at the safer over-removed implementation instead of inserting an unlicensed AAR. Restoring all school Study/Life features is not complete. The next user decision is either:
+
+1. obtain explicit permission covering source modifications plus AAR/APK/AAB redistribution; or
+2. authorize and scope a clean-room `SchoolServiceAdapter` project with interactive on-device testing.
+
+Until one path is completed, this branch is not a full-campus V1 Release Candidate.

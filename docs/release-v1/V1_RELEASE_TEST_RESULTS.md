@@ -1,59 +1,71 @@
-# V1 Release Test Results
+# V1 Release Test Results — Full Campus Scope Remediation
 
 - Date: 2026-08-12
 - Java: Temurin 17.0.19
 - Android SDK: `C:\Users\HeVoi\AppData\Local\Android\Sdk`
-- Forbidden local binaries present: `NO`
+- Remediation execution: stopped at `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
 
-## Final automated result
+## Current safe branch verification
 
-Command group:
+Command group completed successfully:
 
 ```text
 :app:testDebugUnitTest
-:app:assembleDebug
+:app:verifyReleaseEndpointSafety
 :app:compileReleaseKotlin
 :app:compileReleaseJavaWithJavac
-:app:processReleaseResources
-:app:processReleaseManifest
-:app:verifyReleaseEndpointSafety
+:app:processReleaseMainManifest
 ```
 
-Result: `BUILD SUCCESSFUL`.
+JUnit XML: 23 suites, 70 tests, 0 failures, 0 errors, 0 skipped.
 
-JUnit XML result: 23 suites, 70 tests, 0 failures, 0 errors, 0 skipped.
+These tests validate the current dependency-reduced interim branch. They do not prove the requested school features were restored.
 
-## Required regression coverage
+## Corrected-scope test matrix
 
-| Requirement | Evidence | Result |
+| Requirement | Result | Evidence / reason |
 | --- | --- | --- |
-| CLOSED feature routing | `V1SourceBoundaryTest`, `FunctionCatalogTest` | PASS |
-| CSUSTDataGet absent build | forbidden-file task, source test, successful build without file | PASS |
-| Lite3DMap absent build | forbidden-file task, source test, successful build without file | PASS |
-| payment disabled | `SportsReservationRulesTest`, `V1ReleasePolicy` | PASS |
-| sports real booking disabled | `SportsReservationRulesTest`, empty sports catalog, account-surface source test | PASS |
-| school credential boundary | `SchoolSessionCoordinatorTest`, `CampusToolsAuthContractTest`, account-surface source test | PASS |
-| Feature Flag | `FeatureAvailabilityTest`, `ServiceDynamicsFilterTest`, local hard policy | PASS |
-| Deep Link CLOSED feature | Manifest/source boundary test; no `<data>` route | PASS |
-| Release network fail closed | `NetworkSecurityPolicyTest`, `verifyReleaseEndpointSafety`, Release BuildConfig `.invalid` | PASS |
-| package/app identity | `AppIdentityTest`, source boundary test, APK badging | PASS |
-| privacy gate | source boundary test for consent/declined screens | PASS |
-| OPEN lost-found path | `LostFoundRulesTest`, codec/model/filter suites, Manifest assertion | PASS |
+| School binding/login/wrong password | NOT RUN / BLOCKED | implementation cannot lawfully enter Release yet |
+| CAPTCHA | NOT RUN / BLOCKED | same gate; no live credential testing performed |
+| Session restore/logout/unbind | NOT RUN / BLOCKED | same gate |
+| School timetable/grades/exams/classroom/MOOC | NOT RUN / BLOCKED | same gate |
+| Electricity/campus card/school calendar | NOT RUN / BLOCKED | same gate |
+| Credentials not sent to own Backend | STATIC PASS FOR CURRENT INTERIM BRANCH | school input/session absent; source boundary rejects school credential fields |
+| Lost-and-found | PASS for existing unit/model/rules coverage | remains OPEN |
+| Map CLOSED | PASS for current boundary | map classes/route/metadata/location absent |
+| Real sports reservation CLOSED | PASS for current boundary | no route/UI/request path |
+| Real payment CLOSED | PASS for current boundary | no SDK/provider/merchant path |
+| Release endpoint fail-closed | PASS | `verifyReleaseEndpointSafety` |
+| Current package/privacy/identity | PASS in existing suite | unchanged by this documentation-only gate run |
 
-## Build artifacts and expected gate
+## Release lint
 
-- Debug APK: built successfully for engineering inspection only.
-- Release Kotlin/Java/resources/manifest compilation: successful.
-- `assembleRelease`: intentionally failed at `validateReleaseSigning` because `MY_CHANGLI_SIGNING_CONFIG` is absent.
-- Signed APK/AAB: not generated; status `WAITING_FOR_FORMAL_SIGNING`.
+`lintRelease` ran to completion in 2m25s and the Gradle process returned success only because the project sets `abortOnError = false` and `checkReleaseBuilds = false`.
 
-## Intermediate issues fixed
+Actual lint report: **169 errors, 1,397 warnings, 3 hints**.
 
-Two over-pruned legitimate dependencies were found by the final build: FlexboxLayout used by the OPEN lost-found publish page, and StateLayout used by the OPEN account page. Their traceable runtime dependencies were restored. An old support annotation import was migrated to AndroidX. Subsequent full verification passed.
+Error groups:
 
-## Skips and incomplete checks
+| ID | Count | Classification |
+| --- | ---: | --- |
+| `NewApi` | 125 | Java Time/API 26 use with minSdk 24; core-library desugaring/API policy must be fixed |
+| `UseAppTint` | 40 | AppCompat tint correctness |
+| `ResourceType` | 2 | custom styleable resource access |
+| `Suspicious0dp` | 1 | layout correctness |
+| `LocalContextGetResourceValueCall` | 1 | Compose resource access |
 
-- JUnit skipped tests: none.
-- `app/src/androidTest` contains no instrumented test files, so no connected test suite existed to run.
-- `lintRelease` reached `lintAnalyzeRelease` but did not finish within the bounded execution window and was stopped; no lint PASS is claimed. This should be rerun before store submission.
-- Physical-device installation, notification/alarm behavior, lifecycle/back navigation, network faults and visual acceptance remain user/manual RC checks.
+Warning groups include 844 unused resources, 173 hardcoded text issues, 72 content-description issues and two scoped-storage warnings caused by intentional manifest-removal markers. The complete report is at `app/build/reports/lint-results-release.html`.
+
+Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired because user Stop Condition 1 had already required work to stop and return the core dependency decision.
+
+## Builds and signing
+
+- Release Kotlin/Java/Manifest compile: PASS for the current interim branch.
+- Full-campus Release compile: NOT ATTEMPTED; blocked before restoration.
+- `MY_CHANGLI_SIGNING_CONFIG`: absent in this task environment; no value/path/password was printed.
+- No second keystore was created.
+- Signed APK/AAB: not generated.
+
+## Manual/E2E boundary
+
+No real school account, password, CAPTCHA, cookie or token was requested or used. After the core dependency decision and lint errors are resolved, real school-service testing must be user-interactive on device. Physical-device RC acceptance remains PENDING.

@@ -1,42 +1,41 @@
-# V1 Release SDK Audit
+# V1 Release SDK Audit — Scope Remediation
 
 - Date: 2026-08-12
-- Evidence: `releaseRuntimeClasspath` after V1 closure
+- Evidence: current `releaseRuntimeClasspath` plus local AAR/source audit
+- Current binary state: safe interim dependency set; full campus target is BLOCKED
 
-## Release runtime surface
+## Current Release runtime
 
-| Group | Included components | V1 use |
+| Group | Included | Use |
 | --- | --- | --- |
-| Android UI/runtime | AndroidX core/appcompat/activity/fragment/lifecycle, Compose BOM/UI/Material3, Material, ConstraintLayout, Navigation3 runtime | App UI and navigation |
-| Persistence/reactive | Room, MMKV, RxJava/RxAndroid | Local timetable, settings, cache and state |
-| Own-network stack | OkHttp, logging-interceptor, Retrofit, Gson | Accepted Backend contract and explicit public endpoints |
-| Image/document UI | Glide, Coil, PhotoView, Lottie, FlexboxLayout, StateLayout, Haze | OPEN lost-found, resources, account and presentation UI |
-| Local schedule UI | TimetableView, AndroidPicker Common/WheelPicker | Manual timetable/date selection |
-| Internal module | `:CP_Common` | Existing shared app code |
-| Profile support | AndroidX ProfileInstaller | Android runtime profile support; the stale old-package profile file itself was removed |
+| Android framework/UI | AndroidX core/appcompat/activity/fragment/lifecycle, Compose/Material, ConstraintLayout, Navigation | UI/navigation |
+| Persistence/reactive | Room, MMKV, RxJava/RxAndroid | local timetable/settings/cache/state |
+| Network/parsing | OkHttp, Retrofit, Gson | own Backend and explicit public endpoints |
+| Image/document UI | Glide, Coil, PhotoView, Lottie, FlexboxLayout, StateLayout, Haze | lost-found/resources/account/presentation |
+| Schedule UI | TimetableView, picker modules, ProfileInstaller | local schedule/reminder/runtime support |
+| Internal | `:CP_Common` | existing shared app code |
 
-## Debug-only, not Release
+## Debug-only
 
 - LeakCanary.
-- CodeLocator and its RestrictionBypass native library (`libnrb.so`).
-- Compose UI tooling and test manifest.
+- CodeLocator/RestrictionBypass and debug native `libnrb.so`.
+- Compose tooling/test manifest.
 
-Release dependency-tree filtering returned no `leakcanary` or `codelocator` match.
+They are not in `releaseRuntimeClasspath`.
 
-## Confirmed absent from Release dependency tree
+## Excluded
 
-- `CSUSTDataGet` and `Lite3DMap`.
-- AMap/location SDK.
-- Alipay, WeChat/Weixin or any payment SDK.
-- Bugly.
-- WorkManager.
-- uCrop, jsoup and other removed unused libraries.
-- Local AAR/JAR file dependency or `flatDir` repository.
+- Lite3DMap and AMap/location SDK: absent; map is CLOSED.
+- Alipay, WeChat/Weixin or other payment SDK: absent; real payment is CLOSED.
+- Bugly and other dormant/debug SDKs: absent from Release.
+- Real sports provider/merchant SDK: absent.
 
-## Native-library evidence
+## CSUSTDataGet
 
-The Debug APK contains `libmmkv.so`, `libandroidx.graphics.path.so`, and debug-only `libnrb.so`. `libmmkv.so` comes from MMKV, `libandroidx.graphics.path.so` from Compose/AndroidX graphics, and `libnrb.so` from debug-only CodeLocator's RestrictionBypass. A formal Release APK/AAB must be rescanned after signing to confirm only the Release set remains.
+The current Release dependency tree does not contain CSUSTDataGet. That absence is no longer the product objective; it is the safe consequence of `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`.
 
-## Audit conclusion
+The audited local AAR contains 162 classes, no native library and no license/notice metadata. It supplies school authentication/session, educational/MOOC parsers and campus-card/electricity access. Its exact provenance is identifiable, but modified-binary/App redistribution rights are unproven. It must not be added to Release until authorization is evidenced or a clean-room replacement is approved and completed.
 
-The two unverified binaries, payment SDKs, map SDKs and debug SDKs are absent from `releaseRuntimeClasspath`. Runtime components that remain have an identifiable OPEN feature or Android framework purpose. This is a dependency-tree result, not final formal-binary acceptance.
+## Result
+
+The present dependency set passes the current Release compile and contains no map/payment target. It does not implement the corrected full-campus scope. Re-run `releaseRuntimeClasspath`, SDK filing classification and final binary scan after the core school-service gate is resolved.

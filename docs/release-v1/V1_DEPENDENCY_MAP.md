@@ -9,7 +9,7 @@
 
 | Binary | 完整版基线 active declaration | Package/Class | V1 declaration | V1 结论 |
 | --- | --- | --- | --- | --- |
-| `CSUSTDataGet-1.1.4-no-sensitive-logs.aar` | `implementation(files(...))` | `com.dcelysia.csust_spider.*`、`com.example.csustdataget.CampusCard.CampusCardHelper` | 无；catalog 坐标亦删除 | `REMOVE_FROM_V1_BINARY` |
+| `CSUSTDataGet-1.1.4-no-sensitive-logs.aar` | `implementation(files(...))` | `com.dcelysia.csust_spider.*`、`com.example.csustdataget.CampusCard.CampusCardHelper` | 无；catalog 坐标亦删除 | `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`；当前暂不进入 binary |
 | `Lite3DMap.jar` | `implementation(files(...))` | `com.amap.api.location.*`、`com.amap.api.maps.*` | 无 | `REMOVE_FROM_V1_BINARY` |
 
 V1 另有 `verifyV1ForbiddenBinariesAbsent` preBuild task；任一目标文件重新出现在 `app/libs` 时，所有普通 build 在编译前失败。
@@ -44,7 +44,7 @@ V1 另有 `verifyV1ForbiddenBinariesAbsent` preBuild task；任一目标文件�
 | Wi-Fi 状态/变更 | 历史学校能力残留 | Release 移除 |
 | 学校 cleartext allowlist | `pt.csust.edu.cn`、`xk.csust.edu.cn`、校园卡等 | 全部移除；base cleartext 为 false |
 | 学校凭据 | 学号、密码、验证码、Cookie/session | 无输入 UI、无学校会话类、无自有 Backend payload 字段 |
-| Feature | 学校同步、成绩、考试、空教室、MOOC、电量 | `CLOSED` |
+| Feature | 学校同步、成绩、考试、空教室、MOOC、电量 | 产品目标 `OPEN`；当前因 dependency/rights gate `BLOCKED` |
 
 ## Lite3DMap dependency map
 
@@ -75,9 +75,10 @@ V1 另有 `verifyV1ForbiddenBinariesAbsent` preBuild task；任一目标文件�
 
 ## 闭环状态
 
-1. Gradle/local binary/catalog 声明已删除。
-2. 学校/校园卡/地图实现与所有入口已从 V1 分支移除。
-3. 本地课表、失物招领、自有账号和自有 Backend 能力独立保留。
-4. Manifest 的学校/地图入口、metadata、权限和 cleartext 例外已移除。
-5. 目标文件缺失条件下，单测、Debug APK、Release Kotlin/Java/resources/manifest compile 均成功。
-6. 正式 signed APK/AAB 尚受 Gate A 阻塞，最终正式二进制复核必须在签名后重跑。
+1. Lite3DMap 的 Gradle、本地二进制和地图入口闭环保持完成。
+2. CSUSTDataGet 的当前声明仍删除，但其角色已从“永久排除”纠偏为“发布权未证明导致的核心校园服务 blocker”。
+3. 学校/校园卡实现目前仍未进入 V1；这是 Stop Condition 后的安全中间态，不是最终产品 CLOSED 决策。
+4. 本地课表、失物招领、自有账号和自有 Backend 能力独立保留。
+5. Manifest 的地图入口、metadata、location 权限和网络例外保持移除；学校 hosts 只有在合法集成恢复后才能重新评估。
+6. 目标文件缺失条件下，70 项单测与 Release compile 再次成功。
+7. 正式 signed APK/AAB 同时受校园服务 dependency gate、外置 signing config 和正式 endpoint Gate 阻塞。

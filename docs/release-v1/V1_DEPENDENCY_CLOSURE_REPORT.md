@@ -1,38 +1,39 @@
-# V1 Dependency Closure Report
+# V1 Dependency Closure Report — Scope Remediation
 
 - Date: 2026-08-12
-- Baseline: `9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
+- Complete baseline: `9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
 - Branch: `release/v1-initial`
 
 ## Result
 
-`CSUSTDataGet-1.1.4-no-sensitive-logs.aar` and `Lite3DMap.jar` are not V1 build dependencies. Neither file exists in the V1 worktree, neither has a Gradle/catalog declaration, and `preBuild` fails if either filename reappears.
+- `Lite3DMap.jar`: dependency closure remains complete; it is absent and campus map remains CLOSED.
+- Payment SDK/merchant implementation: absent; real payment remains CLOSED.
+- Real sports transaction path: unreachable; real reservation remains CLOSED.
+- `CSUSTDataGet-1.1.4-no-sensitive-logs.aar`: no longer treated as a product requirement to be permanently absent, but it cannot be restored because its redistribution right is unproven.
 
-## Closure actions
+Overall result: `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`.
 
-- Removed `flatDir`, local `files(...)` dependencies and the dormant CSUST catalog coordinate.
-- Removed school authentication/session, education, grade, exam, MOOC and campus-card implementations from the V1 branch.
-- Kept local Room timetable/manual course flows without a school session.
-- Removed map/location classes, AMap privacy initialization, metadata, permissions and network exceptions.
-- Removed closed UI, Route targets, Manifest declarations, widget/receiver paths, stale school credential layouts and account reservation-profile collection.
-- Kept future Backend DTO/status structures only where they are unreachable from V1 UI/navigation.
-- Added `V1ReleasePolicy`, source-boundary tests and the forbidden-file build task.
+## Why the AAR was not restored
 
-## Verification
+The exact upstream source/tag/commit and local modified AAR were audited. No license or redistribution authorization was found in the tree, reachable history, source headers or AAR metadata. The AAR is a modified derivative. Inserting it into an APK/AAB would require rights that have not been evidenced.
 
-| Check | Result |
-| --- | --- |
-| Target files present in worktree | `NO` |
-| Target Gradle/catalog declarations | `NO` |
-| Target package imports in main source | `NO` |
-| Reflection/JNI loader for target packages | `NO` |
-| Release dependency-tree matches | `NONE` |
-| Debug APK target ZIP-entry matches | `0` |
-| Debug APK DEX target names/packages | `NONE` |
-| Build without target files | `PASS` |
+Clean reimplementation spans SSO/CAPTCHA, redirects, cookies, school sessions, timetable, grades, exams, classrooms, MOOC, campus-card/electricity, local credential security and HTTP transport policy. That is major work and triggers the user-defined Stop Condition.
 
-The Debug APK DEX scan found no `CSUSTDataGet`, `Lite3DMap`, `com/dcelysia/csust_spider`, `com/example/csustdataget` or `com/amap` strings after user-facing audit text was made implementation-neutral.
+## Current safe build boundary
 
-## Remaining gate
+- Neither local binary exists in the V1 worktree.
+- Existing Gradle declarations remain absent.
+- The current preBuild gate still rejects either filename if it reappears; for CSUSTDataGet this is a temporary safety gate until a lawful replacement/authorization is chosen.
+- Current V1 unit tests and Release compile pass without the two files.
+- Current Release runtime contains no map or payment SDK.
 
-A signed, minified Release APK/AAB does not yet exist because `MY_CHANGLI_SIGNING_CONFIG` is absent. The final formal-binary scan must be repeated after Gate A provides the existing signing identity. No replacement keystore was created.
+## Corrected product boundary
+
+The safe interim binary is not the desired full-campus product. School authentication and Study/Life queries are now documented as product-OPEN but release-BLOCKED. They must not be silently classified CLOSED or deleted as a final product decision.
+
+## Next closure options
+
+1. Obtain written authorization covering the upstream source, local modifications and distribution inside the App's APK/AAB; then complete transport, credential, privacy and device audits.
+2. Separately authorize a clean-room school adapter and test it through normal user-driven school login without bypassing CAPTCHA, access control or rate limits.
+
+No AAR/JAR, secret, credential or signing material was added to Git.
