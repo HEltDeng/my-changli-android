@@ -1,52 +1,31 @@
 # V1 School Credential Boundary Audit
 
-- Date: 2026-08-12
-- Target flow: user -> Android client -> school authentication/academic service
-- Forbidden flow: school password/CAPTCHA/cookie/token/academic record -> My Changli Backend
-- Rights state: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
-- Current Release state: school integration not restored due `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
+## Data classification
 
-## Baseline data flow
+- Secret: school password, CAPTCHA answer, Cookie, token and session.
+- Identifier: student ID/school account identifier.
+- Personal campus data: timetable, grades, exams, MOOC, calendar and electricity/campus-card result.
+- App account data: separate My Changli identity and Backend contract.
 
-| Data | Intended destination | Local handling in full baseline | Own Backend evidence | Result |
-| --- | --- | --- | --- | --- |
-| Student ID | school auth/service | stored locally; masked in settings | A future sports DTO can contain a student ID, but sports is excluded from V1; no active school-login payload to own Backend | Release boundary preserved while sports is closed |
-| School password | school auth/campus-card service | `StudentInfoManager` encrypts using Android Keystore AES-GCM; dependency also tries plaintext MMKV | no own Backend API field/call found | Correct intended boundary; dependency storage needs mitigation/audit |
-| CAPTCHA | school authserver only | transient login input | no own Backend payload found | Correct intended boundary |
-| School cookies/session | school hosts only | dependency cookie jar; full app attempts memory-only behavior by clearing/opening its MMKV read-only | no own Backend upload found | Correct destination, persistence mitigation not device-proven |
-| School/campus token | school service only | process/session state | no own Backend upload found | Correct intended boundary |
-| Timetable/grades/exams/MOOC data | display/cache on user device | Room/MMKV/local UI caches | no own Backend upload found | Correct intended boundary |
+## Allowed flow
 
-## Local storage
+```text
+User input / local encrypted credential
+  -> Android school client
+  -> applicable CSUST school host
+```
 
-- `CredentialCipher` uses an Android Keystore AES key with AES/GCM/NoPadding.
-- `StudentInfoManager` writes the encrypted password and deletes the legacy plaintext key; save verifies the encrypted value before accepting it.
-- The dependency's own `EducationData` implementation writes plaintext ID/password to an `education_cache` MMKV.
-- The full app mitigates that dependency behavior by clearing and opening `education_cache` and `csust_cookie_jar` read-only before library use, while keeping the active cookie jar in memory.
-- This mitigation has not been proven on the full Android process/device matrix. A future source integration must remove dependency password persistence and encrypt or avoid durable Cookie persistence rather than relying only on read-only MMKV behavior.
+The school password and CAPTCHA are used for the school SSO flow. School Cookies/tokens/sessions are used for direct school queries. They are not proxied through the My Changli Backend.
 
-## Logs and crash paths
+## Own Backend proof
 
-- Upstream source contains credential, cookie, HTML/body and exception logging.
-- The fixed local AAR bytecode shows `SafeLog` methods return without logging and the HTTP logging interceptor uses `Level.NONE`.
-- The app still contains unrelated `printStackTrace()` calls in legacy UI/repositories. No direct school password/cookie argument was found in those calls, but a future restored implementation must replace exception printing in school data paths and re-run a Release log scan.
-- No telemetry or analytics upload was found in the dependency.
+- Own account and school account have separate UI copy, stores and network stacks.
+- Static scans found no school password/CAPTCHA/Cookie/session/token fields in own-Backend DTO/service boundaries.
+- No CSUSTDataGet class contains an own-Backend host.
+- Source-boundary tests reject regression to mixed school/own-account handling.
 
-## Logout, unbind and data clear
+This is static and unit-test evidence. Final device traffic inspection remains a QA item; no real credentials were used by Codex.
 
-The complete baseline contains explicit paths to:
+## Delete/unbind
 
-- invalidate `SchoolSessionState`;
-- call/reset the library session and cookie jar;
-- clear `education_cache`, `csust_cookie_jar`, legacy `MoocCookiejar`, school content caches, timetable widget state and local course data;
-- clear encrypted school binding data through `StudentInfoManager`/account data management.
-
-These paths are currently absent from the V1 Release implementation because school binding was over-removed. They must be restored and device-tested only after the cleartext transport gate is closed.
-
-## Release assertion
-
-Current V1 code cannot send school credentials to the own Backend because there is no school credential input/session implementation in the branch, and the source-boundary tests reject school credential fields. That is a safe interim state, not completion of the corrected product scope.
-
-The transport follow-up made no credential-storage or logging code change: implementing encryption while the same secret-derived session would still cross HTTP would not close the higher-priority transport risk. No school password, CAPTCHA, Cookie, token or personal record was collected during the audit.
-
-Before campus features can ship, establish confidential service transport, then add regression/E2E evidence for wrong password, CAPTCHA, session expiry/restore, logout, unbind, process death, app-data clear and network logging. Real credentials must be entered by the user on-device and never sent through chat or test fixtures.
+Unbind/log-out clears encrypted school credentials, legacy plaintext keys, dependency credential/Cookie stores, session state and relevant caches. The user can separately delete My Changli account data without conflating the two identities.

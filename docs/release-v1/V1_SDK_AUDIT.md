@@ -1,41 +1,35 @@
-# V1 Release SDK Audit — Scope Remediation
+# V1 SDK and Dependency Audit
 
 - Date: 2026-08-12
-- Evidence: current `releaseRuntimeClasspath` plus local AAR/source audit
-- Current binary state: safe interim dependency set; full campus target is BLOCKED
+- Evidence: `releaseRuntimeClasspath`, Gradle configuration, AAR inspection and Debug APK scan
 
-## Current Release runtime
+## Included release/runtime groups
 
-| Group | Included | Use |
-| --- | --- | --- |
-| Android framework/UI | AndroidX core/appcompat/activity/fragment/lifecycle, Compose/Material, ConstraintLayout, Navigation | UI/navigation |
-| Persistence/reactive | Room, MMKV, RxJava/RxAndroid | local timetable/settings/cache/state |
-| Network/parsing | OkHttp, Retrofit, Gson | own Backend and explicit public endpoints |
-| Image/document UI | Glide, Coil, PhotoView, Lottie, FlexboxLayout, StateLayout, Haze | lost-found/resources/account/presentation |
-| Schedule UI | TimetableView, picker modules, ProfileInstaller | local schedule/reminder/runtime support |
-| Internal | `:CP_Common` | existing shared app code |
+- AndroidX UI/lifecycle/navigation/Room/WorkManager/ProfileInstaller and Compose/Material.
+- MMKV for non-secret app state plus guarded legacy integration stores.
+- OkHttp 5.3.2, Retrofit 3.0.0 and Gson for school, own-Backend and public services.
+- Glide/Coil/PhotoView/Lottie and existing document/schedule UI libraries.
+- `:CP_Common` internal module.
+- Authorized `CSUSTDataGet-1.1.4-no-sensitive-logs.aar`, fixed by SHA-256 and containing 162 Java/Kotlin classes, no native library.
+- `desugar_jdk_libs:2.1.5` through core-library desugaring so Java Time usage supports minSdk 24.
 
 ## Debug-only
 
 - LeakCanary.
-- CodeLocator/RestrictionBypass and debug native `libnrb.so`.
+- CodeLocator/RestrictionBypass and `libnrb.so`.
 - Compose tooling/test manifest.
 
-They are not in `releaseRuntimeClasspath`.
+The Debug QA APK contains three native libraries: AndroidX graphics path, MMKV and debug-only `libnrb.so`.
 
-## Excluded
+## Confirmed absent
 
-- Lite3DMap and AMap/location SDK: absent; map is CLOSED.
-- Alipay, WeChat/Weixin or other payment SDK: absent; real payment is CLOSED.
-- Bugly and other dormant/debug SDKs: absent from Release.
-- Real sports provider/merchant SDK: absent.
+- Lite3DMap and AMap SDK/classes/native libraries.
+- Alipay, WeChat/Weixin or other payment SDK classes.
+- Bugly.
+- Real sports provider/merchant SDK.
 
-## CSUSTDataGet
+The Debug class-descriptor scan confirmed CSUSTDataGet and restored school Activities are present while CampusMapActivity and SportsReservationActivity are absent.
 
-The current Release dependency tree does not contain CSUSTDataGet. That absence is no longer a rights requirement; project-specific authorization is recorded. It is the safe consequence of `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED` before source integration.
+## Release conclusion
 
-The audited local AAR contains 162 classes and no native library. The preferred authorized design is a reproducible source module, not the opaque local derivative. That integration was not added because the source uses authenticated cleartext education/MOOC services.
-
-## Result
-
-The transport follow-up changed no Gradle dependency. The present dependency set passes the previously recorded interim Release compile and contains no map/payment target. It does not implement the corrected full-campus scope. Re-run `releaseRuntimeClasspath`, SDK filing classification and final binary scan after safe school-service transport exists.
+Release dependency resolution and Release Kotlin/Java compilation pass. A final store APK/AAB still requires production endpoint, formal signing use, Release binary generation and a fresh binary/SDK audit; the Debug QA package is not that artifact.

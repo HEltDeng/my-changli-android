@@ -1,34 +1,27 @@
-# V1 Release Permission Audit — Scope Remediation
+# V1 Permission Audit
 
 - Date: 2026-08-12
-- Evidence: generated merged Release Manifest after `processReleaseMainManifest`
-- Campus feature restoration: BLOCKED before implementation by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
+- Evidence: final merged Release Manifest and Debug QA APK
 
-## Merged Release permissions
+## Release merged permissions
 
-| Permission | Current OPEN consumer | Decision |
+| Permission | Consumer / reason | Decision |
 | --- | --- | --- |
-| `INTERNET` | own Backend, lost-found, feedback, resource library, announcements/version data, public web utilities | Keep; future direct school HTTPS/HTTP review uses the same permission |
-| `ACCESS_NETWORK_STATE` | network failure-state handling | Keep |
-| `POST_NOTIFICATIONS` | user-enabled local class reminders | Keep; runtime request must remain user initiated |
-| `RECEIVE_BOOT_COMPLETED` | restore user-enabled reminders/widgets | Keep |
-| `SCHEDULE_EXACT_ALARM` | exact class reminder with fallback | Keep; store declaration and device behavior remain manual gates |
-| app-scoped dynamic receiver permission | AndroidX generated signature permission | Keep/generated |
+| `INTERNET` | school queries, own Backend, Lost & Found, resources, feedback and public utilities | keep |
+| `ACCESS_NETWORK_STATE` | offline/error state | keep |
+| `POST_NOTIFICATIONS` | user-enabled class reminders | keep; runtime consent required |
+| `RECEIVE_BOOT_COMPLETED` | restore user-enabled reminders/widgets | keep |
+| `SCHEDULE_EXACT_ALARM` | exact class reminder with fallback | keep; store-sensitive/manual review |
+| generated not-exported receiver signature permission | AndroidX runtime receiver isolation | generated/keep |
 
-## Confirmed absent from merged Release
+Release has no location, Wi-Fi-control, camera, media/legacy-storage, foreground-service or wake-lock permission in the final merged manifest.
 
-- Coarse/fine location: absent; campus map remains CLOSED.
-- Wi-Fi state/change: absent.
-- Camera: absent.
-- Broad media and legacy storage: absent from merged Manifest. Source-level `tools:node="remove"` markers intentionally suppress transitive legacy declarations and cause two lint warnings; they do not grant permission.
-- Foreground service: absent.
+## Debug QA additions
 
-## Corrected campus scope impact
+The Debug APK also has `WAKE_LOCK` and `FOREGROUND_SERVICE`, contributed by debug/runtime tooling and WorkManager dependencies. Debug additionally contains CodeLocator, LeakCanary and `libnrb.so`. These are accepted only for the explicitly non-store QA artifact and must be absent/re-audited on the final Release APK/AAB.
 
-School login, timetable, grades, exams, classroom, MOOC, electricity/campus-card and school calendar do not inherently require location, camera, media, Wi-Fi-control or foreground-service permissions. Their future restoration must not bring back map/location permissions.
+## Components and deep links
 
-Only `MainActivity` is exported as launcher. No business `<data>` deep link exists. The current interim branch has no school Activity/route to audit because restoration stopped at the transport gate; this is not evidence that the corrected campus scope is complete. No cleartext domain exception was added.
+Business Activities are non-exported. `MainActivity` is the app launcher. No app-owned campus business deep link was found. Dependency debug tools add their own exported diagnostic components, which reinforces `DEBUG ONLY / NOT RC` status.
 
-## Result
-
-Current merged permission surface is minimal and explainable. The transport follow-up added neither `usesCleartextTraffic=true` nor a domain-specific cleartext allowlist, permission, component or deep link. Re-run after confidential school integration is possible, and retain the explicit campus-map/location exclusion.
+Campus map does not add location, Wi-Fi or camera permissions.

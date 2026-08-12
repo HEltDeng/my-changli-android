@@ -1,81 +1,47 @@
-# V1 Release Test Results — Full Campus Scope Remediation
+# V1 Release-First Test Results
 
 - Date: 2026-08-12
 - Java: Temurin 17.0.19
 - Android SDK: `C:\Users\HeVoi\AppData\Local\Android\Sdk`
-- Rights gate: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
-- Runtime remediation execution: stopped at `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
+- Gradle result: `BUILD SUCCESSFUL`
 
-## Current safe branch verification
+## Automated result
 
-Command group completed successfully:
+Final command group:
 
 ```text
 :app:testDebugUnitTest
-:app:verifyReleaseEndpointSafety
+:app:assembleDebug
 :app:compileReleaseKotlin
 :app:compileReleaseJavaWithJavac
 :app:processReleaseMainManifest
+:app:verifyReleaseEndpointSafety
+:app:lintRelease
 ```
 
-JUnit XML: 23 suites, 70 tests, 0 failures, 0 errors, 0 skipped.
+- JUnit: 23 suites / 74 tests / 0 failures / 0 errors / 0 skipped.
+- Debug assemble: PASS.
+- Release Kotlin/Java compile and merged manifest: PASS.
+- Release endpoint fail-closed check: PASS.
+- Authorized AAR hash preBuild check: PASS.
+- Release lint: 0 errors / 1,378 warnings.
 
-These tests validate the current dependency-reduced interim branch. They do not prove the requested school features were restored.
+## Covered boundaries
 
-## Corrected-scope test matrix
+- Study catalog exposes timetable, grades, classroom, MOOC, exams, resources, CET and Mandarin.
+- Life catalog exposes electricity, calendar and Lost & Found.
+- School session coordinator covers single-flight login, session reuse/expiry and failure behavior.
+- Package/version/privacy/own-account separation and exact network policy source boundaries.
+- Authorized CSUSTDataGet present at the fixed hash; Lite3DMap and AMap absent.
+- Campus map, real sports and real payment remain closed.
+- No school credential/session fields appear in own-Backend service DTO boundaries.
 
-| Requirement | Result | Evidence / reason |
-| --- | --- | --- |
-| School binding/login/wrong password | NOT RUN / BLOCKED | authenticated downstream services require cleartext transport |
-| CAPTCHA | NOT RUN / BLOCKED | no live credential testing performed |
-| Session restore/logout/unbind | NOT RUN / BLOCKED | source integration stopped before implementation |
-| School timetable/grades/exams/classroom/MOOC | NOT RUN / BLOCKED | HTTP `xk`/`pt` transport gate |
-| Electricity/campus card/school calendar | NOT RUN / BLOCKED | shared source/runtime restoration stopped at transport gate |
-| Credentials not sent to own Backend | STATIC PASS FOR CURRENT INTERIM BRANCH | school input/session absent; source boundary rejects school credential fields |
-| Lost-and-found | PASS for existing unit/model/rules coverage | remains OPEN |
-| Map CLOSED | PASS for current boundary | map classes/route/metadata/location absent |
-| Real sports reservation CLOSED | PASS for current boundary | no route/UI/request path |
-| Real payment CLOSED | PASS for current boundary | no SDK/provider/merchant path |
-| Release endpoint fail-closed | PASS | `verifyReleaseEndpointSafety` |
-| Current package/privacy/identity | PASS in existing suite | unchanged by this documentation-only gate run |
+## Lint remediation
 
-## Release lint
+The restored code initially reproduced 174 errors. Core-library desugaring removed the Java Time minSdk failures; one API 29 getter was replaced with an API-compatible setter; custom styleable indices and a lost-item runtime layout weight were corrected; 40 AppCompat tint sites were migrated to `app:tint`; the Compose resource read now uses `LocalResources`. Final errors: **0**.
 
-`lintRelease` ran to completion in 2m25s and the Gradle process returned success only because the project sets `abortOnError = false` and `checkReleaseBuilds = false`.
+The 1,378 warnings are historical cleanup debt and are classified in `V1_RELEASE_LINT_REMEDIATION.md`; they did not block this Debug QA build.
 
-Actual lint report: **169 errors, 1,397 warnings, 3 hints**.
+## Not automated
 
-Error groups:
-
-| ID | Count | Classification |
-| --- | ---: | --- |
-| `NewApi` | 125 | Java Time/API 26 use with minSdk 24; core-library desugaring/API policy must be fixed |
-| `UseAppTint` | 40 | AppCompat tint correctness |
-| `ResourceType` | 2 | custom styleable resource access |
-| `Suspicious0dp` | 1 | layout correctness |
-| `LocalContextGetResourceValueCall` | 1 | Compose resource access |
-
-Warning groups include 844 unused resources, 173 hardcoded text issues, 72 content-description issues and two scoped-storage warnings caused by intentional manifest-removal markers. The complete report is at `app/build/reports/lint-results-release.html`.
-
-Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired because the user-defined transport Stop Condition required work to stop before campus runtime restoration.
-
-## Builds and signing
-
-- Release Kotlin/Java/Manifest compile: PASS for the current interim branch.
-- Full-campus Release compile: NOT ATTEMPTED; blocked before restoration.
-- Existing JKS SHA-256 was verified as `45BAE2FAEDF91FFD173FA699C79BB8DE9115AA6EA4AF45BFBDEF640EE969C066`; keygen/validation status files say `CREATED`/`VERIFIED`.
-- `MY_CHANGLI_SIGNING_CONFIG`: absent in this process; no value/path/password was printed.
-- No second keystore was created.
-- Signed APK/AAB: not generated.
-
-## Manual/E2E boundary
-
-No real school account, password, CAPTCHA, cookie or token was requested or used. After the core dependency decision and lint errors are resolved, real school-service testing must be user-interactive on device. Physical-device RC acceptance remains PENDING.
-
-## 59 transport follow-up
-
-- Runtime source change: none.
-- New unit/instrumentation execution: not run because the user-defined Stop Condition occurred before implementation.
-- Debug assemble: not run for a falsely restored campus target.
-- Campus QA APK: not generated. The older interim Debug artifact is not renamed or delivered as a campus-runtime QA build.
-- Prior 23 suites / 70 tests remain historical evidence for the safe interim branch only.
+No Android device was connected. Installation, launch smoke testing, visual regression and real school account/CAPTCHA/session E2E were not run. No user credential was requested. These items remain in `V1_CAMPUS_QA_CHECKLIST.md` and `user_acceptance` remains `PENDING`.

@@ -1,69 +1,59 @@
-# My Changli V1 Campus QA Checklist
+# My Changli V1 Full Campus QA Checklist
 
-- Date: 2026-08-12
-- Artifact status: `NOT_GENERATED`
-- Reason: `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
-- Intended artifact class: `DEBUG ONLY / NOT RELEASE / NOT RC`
+- Artifact: `MyChangli-V1.0.0-Full-QA-debug.apk`
+- Type: `DEBUG QA ONLY / NOT RELEASE / NOT RC`
+- Package: `com.mychangli.app.debug`
+- Version: `1.0.0` (`32`)
+- Size: 33,813,056 bytes (32.25 MiB)
+- SHA-256: `E8F3ED318633A075E5CD36F627CF25CEA284567F4291CF588B56691F657D433C`
+- Signing: Android Debug, certificate SHA-256 `8CE0AA11F57B7921BED57258461B1AAEE5D795E801DC49BCA8471CC7FAE77B15`
 
-This checklist is prepared for the future build produced only after confidential school-service transport exists and the campus runtime is restored. It is not evidence that a current Campus QA APK exists.
+## Install and launch
 
-## Artifact preflight
+- [ ] Install on a QA device; confirm it is the `.debug` package.
+- [ ] Launch, splash, icon, app name and first-run privacy gate.
+- [ ] Confirm no immediate crash, blank page or repeated consent loop.
 
-- [ ] Filename clearly contains `Campus-QA-debug`.
-- [ ] Package is the Debug application ID, not the Release package.
-- [ ] Version is `1.0.0` / versionCode `32` unless a documented monotonic increment is required.
-- [ ] SHA-256, byte size and Android Debug signing identity are recorded.
-- [ ] Artifact is labelled `DEBUG ONLY`, `NOT RELEASE`, `NOT RC`.
-- [ ] No formal JKS password or signing secret is required.
+## School account (user-operated only)
 
-## Transport and credential safety
+- [ ] Open school binding; check non-official and data-use notice.
+- [ ] Login with the user's own account; exercise wrong-password and CAPTCHA states.
+- [ ] Verify successful login, session reuse, expiry/re-login and account switch.
+- [ ] Logout and unbind; confirm credentials/session and school cache are cleared.
 
-- [ ] xk/pt traffic is HTTPS with valid hostname/certificate and no downgrade.
-- [ ] No password, CAPTCHA, Cookie, token or session crosses HTTP.
-- [ ] Global cleartext is disabled.
-- [ ] School secrets never enter the My Changli Backend.
-- [ ] Password and durable Cookie/session storage are Keystore-backed or intentionally memory-only.
-- [ ] Legacy plaintext MMKV values are migrated and deleted, or cleared with explicit re-login.
-- [ ] Debug and Release logs contain no school secret or sensitive body.
+## Study
 
-## User-operated school E2E
-
-The user enters real credentials directly on the device. Codex must not receive or automate them.
-
-- [ ] School account bind and account switch.
-- [ ] Correct login, wrong-password error and CAPTCHA path.
-- [ ] Session reuse, expiry, manual re-authentication and automatic re-authentication.
-- [ ] Logout and unbind clear credentials, cookies, sessions and cached academic data.
-- [ ] School timetable sync and local/manual timetable coexist.
-- [ ] Grades and grade detail.
-- [ ] Exams.
-- [ ] Empty classrooms.
+- [ ] All eight cards exist in the expected order: timetable, grades, classroom, MOOC, exams, resources, CET, Mandarin.
+- [ ] School timetable sync plus local/manual timetable.
+- [ ] Grades and grade details.
+- [ ] Exams and exam details.
+- [ ] Empty-classroom query.
 - [ ] MOOC courses, homework and tests.
-- [ ] School/teaching calendar and semester discovery.
-- [ ] Electricity and campus-card queries.
+- [ ] Semester/teaching week/network calendar.
 
-## Existing OPEN features
+## Life and existing features
 
-- [ ] Resource Library.
-- [ ] CET.
-- [ ] Mandarin.
-- [ ] Lost & Found through the My Changli Backend.
-- [ ] Own account, feedback, announcements and settings.
+- [ ] Electricity and campus-card query.
+- [ ] School calendar entry.
+- [ ] Lost & Found.
+- [ ] Resource Library, CET and Mandarin.
+- [ ] Own account, feedback, announcements, settings, widgets/reminders.
 
-## UI and navigation
+## UI regression
 
-- [ ] Study/Life cards, names, icons and ordering match the established experience.
-- [ ] Chinese text is valid UTF-8 with no mojibake.
-- [ ] No duplicated routes, overlapping cards, clipping, invisible text or dark-mode regression.
-- [ ] Loading, empty, offline and authentication-error states are understandable.
-- [ ] Back navigation, process restart and account switching do not show stale user data.
+- [ ] No Chinese mojibake, missing/duplicate cards, overlap, clipping or invisible text.
+- [ ] Icons, color, typography and layout match the established product.
+- [ ] Loading, empty, offline and error states are understandable.
+- [ ] Back navigation, dark mode and process restart behave normally.
 
-## Explicit exclusions
+## Closed features
 
-- [ ] Campus map is inaccessible; Lite3DMap/AMap and location permission are absent.
-- [ ] Real sports inventory/order/fulfilment is inaccessible.
-- [ ] Real payment/refund and payment SDKs are absent.
+- [ ] Campus map cannot be reached and no location permission is requested.
+- [ ] Real sports reservation cannot create inventory/order/fulfilment.
+- [ ] Real payment/refund cannot be initiated.
 
-## Acceptance boundary
+## Network notice
 
-Automated tests and this checklist support user acceptance but do not replace it. `user_acceptance` remains `PENDING` until the user completes the future device run.
+`xk.csust.edu.cn` and `pt.csust.edu.cn` use exact-host HTTP compatibility because the current school service does not offer an equivalent working HTTPS data plane. The Debug QA package also permits exact loopback hosts for the own-Backend test configuration. Do not treat this package as a store candidate.
+
+Final acceptance belongs to the user; automated results do not complete these checkboxes.

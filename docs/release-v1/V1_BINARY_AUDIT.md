@@ -1,44 +1,31 @@
-# V1 Binary Audit — Scope Remediation
+# V1 Debug QA Binary Audit
 
-- Date: 2026-08-12
-- Formal signed full-campus Release binary: `NOT_AVAILABLE`
-- Status: `BLOCKED — SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
+- Artifact: `MyChangli-V1.0.0-Full-QA-debug.apk`
+- Type: `DEBUG QA ONLY / NOT RELEASE / NOT RC`
+- Size: 33,813,056 bytes
+- SHA-256: `E8F3ED318633A075E5CD36F627CF25CEA284567F4291CF588B56691F657D433C`
+- Package: `com.mychangli.app.debug`
+- Version: `1.0.0` / `32`
+- Label: `我的长理 Debug`
+- minSdk / targetSdk: 24 / 36
+- Signing: Android Debug; certificate SHA-256 `8CE0AA11F57B7921BED57258461B1AAEE5D795E801DC49BCA8471CC7FAE77B15`
 
-## Existing engineering artifact
+## Runtime proof
 
-The previously built Debug APK remains an engineering artifact only:
+DEX descriptor audit confirms the authorized `com.dcelysia.csust_spider` classes plus BindingUser, grades, exams, classroom, MOOC and electricity Activities are packaged. The merged Manifest contains the restored school Activities as non-exported components.
 
-`app/build/outputs/apk/debug/MyChangli_debug_v1.0.0.apk`
+## Exclusion proof
 
-| Field | Existing audited value |
-| --- | --- |
-| applicationId | `com.mychangli.app.debug` |
-| versionCode / versionName | `32` / `1.0.0` |
-| label | `我的长理 Debug` |
-| SHA-256 | `37174DD12D43C954E0103F6253C4E78F773D2BC6BD096A71B13AEC8FA089739E` |
-| certificate | Android Debug certificate |
+No class descriptor matched Lite3DMap, AMap, CampusMapActivity, SportsReservationActivity, Alipay or WeChat/Weixin payment SDK packages. No location, camera, Wi-Fi-control or legacy storage permission is granted.
 
-It is debuggable, includes the Debug localhost endpoint and is not a Release Candidate.
+## Network policy
 
-## Current interim binary/dependency boundary
+The packaged Debug network config denies cleartext by default, permits exact xk/pt school hosts, and permits exact loopback hosts for Debug own-Backend QA. No map domain exception remains. The Release source config contains only exact xk/pt exceptions.
 
-- CSUSTDataGet and its packages are absent from the existing Debug artifact/current Release runtime.
-- Lite3DMap and AMap packages are absent.
-- Payment SDK/package paths are absent.
-- Current merged Release Manifest contains no location, Wi-Fi control, camera, media or legacy-storage grant.
-- Current Release endpoint remains `https://campus-tools.invalid/api/v1/` and fails closed.
+## Debug-only surface
 
-The CSUSTDataGet absence proves the safe interim build does not expose authenticated school traffic over cleartext. Project-specific dependency rights are resolved, but the binary does not satisfy the corrected requirement to restore school Study/Life features.
+The QA APK contains LeakCanary, CodeLocator/RestrictionBypass, WorkManager-generated components, `WAKE_LOCK`, `FOREGROUND_SERVICE` and `libnrb.so`. These are expected Debug diagnostics and prohibit treating the package as an RC/store binary.
 
-## Why no signed binary was produced
+## Pending final Release audit
 
-1. Authenticated `xk` and `pt` school services have no usable HTTPS endpoint in the bounded audit.
-2. Release lint completed with 169 errors.
-3. The existing formal JKS identity hash matches the user-provided value, but `MY_CHANGLI_SIGNING_CONFIG` is not available in this process.
-4. Formal production domain/endpoint is not configured.
-
-No Debug-signed package was renamed or represented as an RC. No `MyChangli-V1.0.0-Campus-QA-debug.apk` was generated because campus runtime was not safely restored; delivering the older interim APK under that name would misrepresent its feature surface.
-
-## Required final audit after blockers close
-
-Build the signed APK/AAB with the existing formal signing identity and re-audit application ID, version, label/icon, certificate/hashes, merged permissions, all SDK/classes/native libraries, school hosts and packages, AAR/JAR residue, payment/map/debug packages, localhost/`.invalid`, secrets/tokens/log strings, old brand/package/emblem and school credential persistence. A true final binary audit cannot be issued before that artifact exists.
+Formal signing, production own-Backend domain/configuration, minified Release APK/AAB generation, certificate/hashes and store-binary secret/domain/class/native-lib scans remain later gates. No real credential or user data is in this artifact or report.

@@ -1,77 +1,47 @@
-# My Changli V1 Corrected Scope Matrix
+# My Changli V1 Release-First Scope Matrix
 
 - Date: 2026-08-12
-- Complete baseline: `9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
-- Remediation start: `b015791949dc8ce6770429b3b4f9dcaeac3f7132`
-- Previous scope result: `REJECTED_FOR_OVER_REMOVAL`
-- Reason: `STUDY_AND_LIFE_CAMPUS_FEATURES_WERE_INCORRECTLY_REMOVED`
-- Rights gate: `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER = RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
-- Current execution gate: `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
+- Full baseline: `9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
+- Restoration start: `a3f31f5eaf12fd2bb21e0100033246d00c45dd6b`
+- Policy: `RELEASE-FIRST / FUNCTION-FIRST / MINIMUM-NECESSARY-COMPLIANCE`
+- CSUSTDataGet rights: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
+- School HTTP decision: `KNOWN_V1_RISK`, not a feature-closure gate
 
-Fixed identity statement:
+The non-official identity remains fixed:
 
 > 本应用由个人开发者独立开发，是面向校园生活场景的非官方辅助工具，与长沙理工大学不存在官方隶属或授权关系。
 
-The corrected product rule is not `school-related => CLOSED`. Personal, user-authorized campus queries are product-OPEN. Only campus map, real sports reservation and real payment are explicit V1 exclusions.
+## OPEN and restored for QA
 
-`OPEN / BLOCKED` means the feature belongs in V1 but cannot yet enter a distributable Release because required authenticated school services are available only over cleartext HTTP. It is not a product reclassification to CLOSED.
+| Area | Capability | Runtime state | Acceptance state |
+| --- | --- | --- | --- |
+| School identity | bind/switch/unbind, student ID, password, CAPTCHA, SSO/CAS, redirects, Cookie/session, re-login and logout | RESTORED | real-account E2E pending user QA |
+| Study | school timetable sync, grades/details, exams/details, empty classroom, MOOC, semester and teaching calendar | RESTORED | real-account E2E pending user QA |
+| Study | resource library, CET, Mandarin and local/manual timetable | PRESERVED | user QA pending |
+| Life | electricity/campus-card query and school calendar | RESTORED | real-account E2E pending user QA |
+| Life | self-operated Lost & Found | PRESERVED | own-Backend environment and user QA pending |
+| General | My Changli account, announcements, update checks, flags, feedback, local tools, widgets and reminders | PRESERVED | user QA pending |
 
-## OPEN
+School passwords, CAPTCHA values, school Cookies/tokens/sessions and academic data go directly from the Android client to the applicable school service. They are not fields in the My Changli Backend contract.
 
-| Capability | Product decision | Current implementation state |
-| --- | --- | --- |
-| School account bind/switch/unbind | OPEN | BLOCKED by cleartext school-service transport |
-| SSO/CAS login, CAPTCHA, session/cookie, re-authentication and school logout | OPEN | BLOCKED by cleartext downstream session transport |
-| School timetable sync/query, local timetable, course detail | OPEN | Local/manual subset present; school subset BLOCKED by HTTP `xk` |
-| Grades and grade detail | OPEN | BLOCKED by HTTP `xk` |
-| Exam arrangements | OPEN | BLOCKED by HTTP `xk` |
-| Available classrooms | OPEN | BLOCKED by HTTP `xk` |
-| MOOC courses/homework/tests | OPEN | BLOCKED by HTTP `pt` |
-| Teaching/school calendar | OPEN | BLOCKED by HTTP `xk` |
-| Electricity and campus-card-backed queries | OPEN | Source restoration stopped with the shared session chain; HTTPS service itself identified |
-| Self-operated lost-and-found | OPEN | Present |
-| Self-operated resource library | OPEN | Present |
-| CET and Mandarin web utilities | OPEN | Present |
-| My Changli own account | OPEN | Present and separate from school identity |
-| Announcements, version/update metadata and Feature Flags | OPEN | Present; own production endpoint remains fail-closed until externally configured |
-| Feedback | OPEN | Present |
-| Local account book/date/week tools | OPEN | Present |
-| Local timetable widgets and user-enabled reminders | OPEN | Present |
-| Privacy/agreements/personal-information/account-data controls | OPEN | Present; must be expanded when school integration is restored |
+## CLOSED in V1
 
-## CLOSED
-
-| Explicit V1 exclusion | Closure |
+| Capability | Enforced closure |
 | --- | --- |
-| Campus map | No Lite3DMap/AMap implementation, metadata, location permission, route or bypass |
-| Real sports reservation | No venue/inventory/order/fulfillment request or reachable entry |
-| Real payment/refund | No provider, SDK, merchant secret, callback or reachable payment UI |
+| Campus map | no Lite3DMap/AMap dependency, metadata, location permission, route or Activity |
+| Real sports reservation | no visible shortcut, route, Activity or live inventory/order/fulfilment path |
+| Real payment/refund | no SDK, merchant configuration, secret, payment route or live money path |
 
-No other baseline Study/Life capability is product-CLOSED by this matrix.
+## Binary decisions
 
-## REMOVE_FROM_RELEASE_BINARY
+- `CSUSTDataGet-1.1.4-no-sensitive-logs.aar`: included under project-specific authorization; exact SHA-256 is verified by Gradle before every build.
+- Lite3DMap/AMap: absent.
+- Alipay/WeChat payment SDKs: absent.
+- Debug diagnostic SDKs: Debug-only and explicitly make the QA APK unsuitable for store submission.
 
-| Item | Release status |
-| --- | --- |
-| `Lite3DMap.jar` and map SDK implementation | Permanently excluded from this V1 candidate |
-| Payment SDK/merchant implementation | Excluded |
-| Real sports fulfillment implementation | Excluded or unreachable; no real request path |
-| CSUSTDataGet source/binary | Project-specific use/modification/App-distribution authorization confirmed; still excluded from this branch because source integration stopped at the cleartext security gate |
-| Debug-only SDKs | Excluded from Release runtime |
+## Deferred, not silently closed
 
-## FUTURE
-
-- Explicit school cooperation/official authorization.
-- A legally distributable campus-map replacement.
-- Real sports fulfillment and inventory cooperation.
-- Merchant payment/refund/settlement integration.
-- Enterprise-entity-only features.
-- Legacy community/Buddy/remote-skin services that do not currently map to the accepted production Backend contract; these require a separate product/contract decision and are not silently treated as one of the three exclusions.
-
-## Stop-condition consequence
-
-The project-specific dependency-rights gate is resolved. The transport follow-up from start SHA `e02acf64957f1a6b97b47348d46766a99df84070` nevertheless confirmed that `xk.csust.edu.cn` and `pt.csust.edu.cn` do not expose a usable HTTPS service on the exact SSO/academic/MOOC paths while the exact implementation attaches authenticated school-session cookies and receives personal academic/MOOC data over those hosts.
-
-The school HTTPS front doors at `authserver.csust.edu.cn` and `ehall.csust.edu.cn` do not constitute a proven HTTPS proxy for the `xk`/`pt` data plane. The official public MOOC candidate at `mooc.csust.edu.cn/portal` failed hostname validation and is a different platform from the `pt` MEOL endpoints. No alternate secure route was established.
-
-The branch therefore remains at the safe interim implementation. It does not add a domain-specific cleartext exception, does not restore the source module and does not request a real school account. Resolution requires working HTTPS or an authorized school-side replacement; until then this branch is not a full-campus V1 Release Candidate and no Campus QA APK may claim restored runtime.
+- Migration from the authorized fixed AAR to a fully reproducible source module.
+- Removal of all legacy credential/cache implementation classes after equivalent runtime behavior is verified.
+- Migration of `xk` and `pt` to HTTPS when the school provides equivalent working endpoints.
+- Final own-Backend production endpoint, filing, formal signing and store-binary QA.

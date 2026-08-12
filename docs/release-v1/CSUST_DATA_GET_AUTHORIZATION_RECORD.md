@@ -30,3 +30,7 @@ Targeted filename searches in the project documentation, task-record and release
 ## Remaining independent gates
 
 Authorization resolves the dependency-rights question only. Credential storage, logging, HTTPS transport, school-session handling, privacy disclosure, tests and binary review remain independent release requirements. During the same restoration attempt, the HTTP transport audit triggered `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`; no authorized source or binary was therefore added to the V1 branch.
+
+## Implementation status update — 2026-08-12
+
+The authorization wording and evidence above are unchanged. A later explicit release-first product decision accepted the two exact school HTTP hosts as a disclosed V1 compatibility risk. The fixed authorized derivative was then integrated at SHA-256 `9B03523FA04E9C8B3F5CAAAD49DC282B17EB2AC82E69A49E89764B21ABF71C29`; Gradle verifies that hash before every build. This status update does not alter the authorization scope, invent an open-source license or imply school authorization.
