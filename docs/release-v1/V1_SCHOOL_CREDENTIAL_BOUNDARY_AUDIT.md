@@ -3,7 +3,8 @@
 - Date: 2026-08-12
 - Target flow: user -> Android client -> school authentication/academic service
 - Forbidden flow: school password/CAPTCHA/cookie/token/academic record -> My Changli Backend
-- Current Release state: school integration not restored due `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
+- Rights state: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
+- Current Release state: school integration not restored due `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
 
 ## Baseline data flow
 
@@ -22,7 +23,7 @@
 - `StudentInfoManager` writes the encrypted password and deletes the legacy plaintext key; save verifies the encrypted value before accepting it.
 - The dependency's own `EducationData` implementation writes plaintext ID/password to an `education_cache` MMKV.
 - The full app mitigates that dependency behavior by clearing and opening `education_cache` and `csust_cookie_jar` read-only before library use, while keeping the active cookie jar in memory.
-- This mitigation has not been proven on the full Android process/device matrix and is not sufficient to override the missing redistribution right.
+- This mitigation has not been proven on the full Android process/device matrix. A future source integration must remove dependency password persistence and encrypt or avoid durable Cookie persistence rather than relying only on read-only MMKV behavior.
 
 ## Logs and crash paths
 
@@ -40,7 +41,7 @@ The complete baseline contains explicit paths to:
 - clear `education_cache`, `csust_cookie_jar`, legacy `MoocCookiejar`, school content caches, timetable widget state and local course data;
 - clear encrypted school binding data through `StudentInfoManager`/account data management.
 
-These paths are currently absent from the V1 Release implementation because school binding was over-removed. They must be restored and device-tested only after the core dependency gate is closed.
+These paths are currently absent from the V1 Release implementation because school binding was over-removed. They must be restored and device-tested only after the cleartext transport gate is closed.
 
 ## Release assertion
 

@@ -3,7 +3,8 @@
 - Date: 2026-08-12
 - Java: Temurin 17.0.19
 - Android SDK: `C:\Users\HeVoi\AppData\Local\Android\Sdk`
-- Remediation execution: stopped at `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
+- Rights gate: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
+- Runtime remediation execution: stopped at `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
 
 ## Current safe branch verification
 
@@ -25,11 +26,11 @@ These tests validate the current dependency-reduced interim branch. They do not 
 
 | Requirement | Result | Evidence / reason |
 | --- | --- | --- |
-| School binding/login/wrong password | NOT RUN / BLOCKED | implementation cannot lawfully enter Release yet |
-| CAPTCHA | NOT RUN / BLOCKED | same gate; no live credential testing performed |
-| Session restore/logout/unbind | NOT RUN / BLOCKED | same gate |
-| School timetable/grades/exams/classroom/MOOC | NOT RUN / BLOCKED | same gate |
-| Electricity/campus card/school calendar | NOT RUN / BLOCKED | same gate |
+| School binding/login/wrong password | NOT RUN / BLOCKED | authenticated downstream services require cleartext transport |
+| CAPTCHA | NOT RUN / BLOCKED | no live credential testing performed |
+| Session restore/logout/unbind | NOT RUN / BLOCKED | source integration stopped before implementation |
+| School timetable/grades/exams/classroom/MOOC | NOT RUN / BLOCKED | HTTP `xk`/`pt` transport gate |
+| Electricity/campus card/school calendar | NOT RUN / BLOCKED | shared source/runtime restoration stopped at transport gate |
 | Credentials not sent to own Backend | STATIC PASS FOR CURRENT INTERIM BRANCH | school input/session absent; source boundary rejects school credential fields |
 | Lost-and-found | PASS for existing unit/model/rules coverage | remains OPEN |
 | Map CLOSED | PASS for current boundary | map classes/route/metadata/location absent |
@@ -56,13 +57,14 @@ Error groups:
 
 Warning groups include 844 unused resources, 173 hardcoded text issues, 72 content-description issues and two scoped-storage warnings caused by intentional manifest-removal markers. The complete report is at `app/build/reports/lint-results-release.html`.
 
-Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired because user Stop Condition 1 had already required work to stop and return the core dependency decision.
+Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired because user Stop Condition 2 required work to stop before campus runtime restoration.
 
 ## Builds and signing
 
 - Release Kotlin/Java/Manifest compile: PASS for the current interim branch.
 - Full-campus Release compile: NOT ATTEMPTED; blocked before restoration.
-- `MY_CHANGLI_SIGNING_CONFIG`: absent in this task environment; no value/path/password was printed.
+- Existing JKS SHA-256 was verified as `45BAE2FAEDF91FFD173FA699C79BB8DE9115AA6EA4AF45BFBDEF640EE969C066`; keygen/validation status files say `CREATED`/`VERIFIED`.
+- `MY_CHANGLI_SIGNING_CONFIG`: absent in this process; no value/path/password was printed.
 - No second keystore was created.
 - Signed APK/AAB: not generated.
 

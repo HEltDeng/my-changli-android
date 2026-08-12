@@ -9,7 +9,7 @@
 
 | Binary | 完整版基线 active declaration | Package/Class | V1 declaration | V1 结论 |
 | --- | --- | --- | --- | --- |
-| `CSUSTDataGet-1.1.4-no-sensitive-logs.aar` | `implementation(files(...))` | `com.dcelysia.csust_spider.*`、`com.example.csustdataget.CampusCard.CampusCardHelper` | 无；catalog 坐标亦删除 | `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`；当前暂不进入 binary |
+| `CSUSTDataGet-1.1.4-no-sensitive-logs.aar` | `implementation(files(...))` | `com.dcelysia.csust_spider.*`、`com.example.csustdataget.CampusCard.CampusCardHelper` | 无；catalog 坐标亦删除 | 项目专项授权已确认；源码集成因 `SCHOOL_CLEARTEXT_SECURITY_BLOCKER` 暂不进入 binary |
 | `Lite3DMap.jar` | `implementation(files(...))` | `com.amap.api.location.*`、`com.amap.api.maps.*` | 无 | `REMOVE_FROM_V1_BINARY` |
 
 V1 另有 `verifyV1ForbiddenBinariesAbsent` preBuild task；任一目标文件重新出现在 `app/libs` 时，所有普通 build 在编译前失败。
@@ -76,9 +76,9 @@ V1 另有 `verifyV1ForbiddenBinariesAbsent` preBuild task；任一目标文件�
 ## 闭环状态
 
 1. Lite3DMap 的 Gradle、本地二进制和地图入口闭环保持完成。
-2. CSUSTDataGet 的当前声明仍删除，但其角色已从“永久排除”纠偏为“发布权未证明导致的核心校园服务 blocker”。
+2. CSUSTDataGet 的项目专项使用、修改和 App 分发授权已确认；当前声明仍删除是因为已认证的 `xk`/`pt` HTTP 会话无法安全进入 Release。
 3. 学校/校园卡实现目前仍未进入 V1；这是 Stop Condition 后的安全中间态，不是最终产品 CLOSED 决策。
 4. 本地课表、失物招领、自有账号和自有 Backend 能力独立保留。
 5. Manifest 的地图入口、metadata、location 权限和网络例外保持移除；学校 hosts 只有在合法集成恢复后才能重新评估。
 6. 目标文件缺失条件下，70 项单测与 Release compile 再次成功。
-7. 正式 signed APK/AAB 同时受校园服务 dependency gate、外置 signing config 和正式 endpoint Gate 阻塞。
+7. 正式 signed APK/AAB 当前受 `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`、本进程缺少外置 signing config 和正式 endpoint Gate 阻塞；外置 JKS 身份本身已按指纹核验。

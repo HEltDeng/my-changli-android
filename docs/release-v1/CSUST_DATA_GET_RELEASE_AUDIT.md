@@ -11,11 +11,11 @@
 
 ## Final decision
 
-`CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
+`CORE_CAMPUS_SERVICE_RELEASE_BLOCKER = RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
 
-The exact source/tag is publicly viewable, but neither the checked tree nor reachable Git history contains a LICENSE, LICENCE, COPYING or NOTICE file, and no per-source license grant or redistribution authorization was found. The AAR itself contains only `AndroidManifest.xml`, `classes.jar`, `R.txt` and Android AAR metadata, with no license/notice. Public GitHub visibility does not establish the right to redistribute a modified derivative inside an APK/AAB. GitHub's licensing guidance states that without a license, default copyright applies and others may not reproduce, distribute or create derivatives beyond the platform terms.
+The user confirmed project-specific authorization from the original rightsholder covering use, necessary modification, dependency builds, APK/AAB distribution and security-hardened derivatives. This is recorded in `CSUST_DATA_GET_AUTHORIZATION_RECORD.md`. It is not represented as an upstream open-source license and does not imply school authorization.
 
-Because the locally used AAR is a modified build and the school-service integration spans authentication, session/cookies, timetable, grades, exams, classrooms, MOOC, electricity and campus-card access, a clean-room reimplementation is major work. This meets user Stop Condition 1. The artifact remains excluded from V1 Release until either explicit redistribution authorization is obtained or a separately approved clean-room implementation is completed and audited.
+The authorized source was not integrated because the independent transport audit then triggered `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`: `xk.csust.edu.cn` and `pt.csust.edu.cn` lack usable HTTPS while authenticated session cookies and personal education data traverse those services. No AAR or source module entered the V1 branch.
 
 This is an evidence-based release gate, not a final legal opinion.
 
@@ -30,8 +30,8 @@ This is an evidence-based release gate, not a final legal opinion.
 | AAR notice/license | No embedded license/notice | NOT FOUND |
 | Modification | Project records and bytecode show no-op `SafeLog` and HTTP logger level `NONE`; endpoints/auth remain | Modified derivative |
 | AAR reproducibility | Hash and upstream commit are fixed, but the exact patch/build recipe is not present in the V1 branch | Not independently reproducible from V1 |
-| Source redistribution | No explicit grant found | UNPROVEN |
-| Binary/App redistribution | No explicit grant found | UNPROVEN |
+| Source/project use and modification | User-confirmed rightsholder authorization for My Changli | AUTHORIZED FOR THIS PROJECT |
+| Binary/App redistribution | User-confirmed APK/AAB distribution authorization | AUTHORIZED FOR THIS PROJECT |
 
 Primary references:
 
@@ -71,7 +71,7 @@ Only five hard-coded hosts were found. All are under `csust.edu.cn`; no My Chang
 
 Redirect/cookie flow: Android requests the SSO login form, submits the user's credentials/CAPTCHA to the school auth server, follows redirects to eHall/educational/MOOC/campus-card services, and shares cookies through the library cookie jar. The library does not route this traffic through the My Changli Backend.
 
-Security blocker: two core academic hosts use cleartext HTTP in the implementation. Even with release redistribution permission, the HTTP transport, redirect/cookie exposure and current school policy would need explicit security review before publication.
+Security blocker: two core academic hosts use cleartext HTTP. Bounded public probes found no usable TLS service, while source inspection proves the authenticated CookieJar is attached to those requests. A cleartext allowlist would not protect the Cookie or response data, so Stop Condition 2 applies.
 
 ## Security behavior
 
@@ -89,11 +89,11 @@ Security blocker: two core academic hosts use cleartext HTTP in the implementati
 | WebView/JavaScript execution | No WebView or JavaScript bridge in AAR; a `javascript:openWindow` string is parsed as an academic detail URL, not executed |
 | Dynamic loading/JNI | None found |
 
-The local modifications materially reduce log leakage, but they do not themselves grant redistribution rights and do not make the dependency safe in isolation. The app-side read-only-MMKV mitigation also requires device/process testing before it could be accepted.
+The previous local modifications materially reduce log leakage, but authorization alone does not make the dependency safe. Source integration must remove plaintext dependency credential storage, encrypt or avoid durable Cookie persistence, disable sensitive logging and use confidential transport. Transport blocked that implementation before it began.
 
-## Clean reimplementation assessment
+## Source integration hardening assessment
 
-A clean-room adapter would need independently implemented and tested support for:
+An auditable source module would need modified and tested support for:
 
 1. SSO/CAS form discovery, CAPTCHA, redirect/ticket state and logout.
 2. Separate cookie jars and expiry/re-authentication behavior.
@@ -104,13 +104,13 @@ A clean-room adapter would need independently implemented and tested support for
 7. Safe HTTPS policy or an explicit determination for currently HTTP-only school services.
 8. Real-user, rate-limited, interactive E2E testing without sharing credentials in chat.
 
-This is a cross-cutting authentication and data integration project, not a small substitute class. It must be separately authorized/scoped before implementation.
+This is a cross-cutting authentication and data integration project, not a small substitute class. Project authorization is present, but implementation cannot proceed until confidential school-service transport exists.
 
 ## Release decision matrix
 
 | Option | Decision |
 | --- | --- |
-| A — ship current AAR | REJECTED until explicit source/modified-binary/App redistribution authorization and security closure exist |
-| B — clean reimplementation | Technically possible in principle, but MAJOR_WORK and not authorized by this continuation after the Stop Condition |
+| A — ship current AAR | REJECTED; rights are resolved but the opaque derivative is not the preferred auditable integration and transport security is open |
+| B — authorized source module | Preferred and authorized, but stopped before integration by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER` |
 | C — silently close all campus functions | REJECTED product interpretation |
-| Current safe action | Keep AAR out of Release, record campus functions as product-OPEN but release-BLOCKED, return to user for decision |
+| Current safe action | Keep dependency code out of Release, retain strict no-cleartext policy, record campus functions as product-OPEN but release-BLOCKED |

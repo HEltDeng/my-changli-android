@@ -32,10 +32,10 @@ They are not in `releaseRuntimeClasspath`.
 
 ## CSUSTDataGet
 
-The current Release dependency tree does not contain CSUSTDataGet. That absence is no longer the product objective; it is the safe consequence of `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`.
+The current Release dependency tree does not contain CSUSTDataGet. That absence is no longer a rights requirement; project-specific authorization is recorded. It is the safe consequence of `SCHOOL_CLEARTEXT_SECURITY_BLOCKER` before source integration.
 
-The audited local AAR contains 162 classes, no native library and no license/notice metadata. It supplies school authentication/session, educational/MOOC parsers and campus-card/electricity access. Its exact provenance is identifiable, but modified-binary/App redistribution rights are unproven. It must not be added to Release until authorization is evidenced or a clean-room replacement is approved and completed.
+The audited local AAR contains 162 classes and no native library. The preferred authorized design is a reproducible source module, not the opaque local derivative. That integration was not added because the source uses authenticated cleartext education/MOOC services.
 
 ## Result
 
-The present dependency set passes the current Release compile and contains no map/payment target. It does not implement the corrected full-campus scope. Re-run `releaseRuntimeClasspath`, SDK filing classification and final binary scan after the core school-service gate is resolved.
+The present dependency set passes the previously recorded interim Release compile and contains no map/payment target. It does not implement the corrected full-campus scope. Re-run `releaseRuntimeClasspath`, SDK filing classification and final binary scan after safe school-service transport exists.

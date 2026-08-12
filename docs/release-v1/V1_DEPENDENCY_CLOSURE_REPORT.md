@@ -9,21 +9,23 @@
 - `Lite3DMap.jar`: dependency closure remains complete; it is absent and campus map remains CLOSED.
 - Payment SDK/merchant implementation: absent; real payment remains CLOSED.
 - Real sports transaction path: unreachable; real reservation remains CLOSED.
-- `CSUSTDataGet-1.1.4-no-sensitive-logs.aar`: no longer treated as a product requirement to be permanently absent, but it cannot be restored because its redistribution right is unproven.
+- CSUSTDataGet: project-specific use, modification, build and APK/AAB distribution authorization is confirmed; no open-source license is asserted.
 
-Overall result: `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`.
+Rights result: `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER = RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`.
 
-## Why the AAR was not restored
+Runtime result: `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`.
 
-The exact upstream source/tag/commit and local modified AAR were audited. No license or redistribution authorization was found in the tree, reachable history, source headers or AAR metadata. The AAR is a modified derivative. Inserting it into an APK/AAB would require rights that have not been evidenced.
+## Why no CSUSTDataGet implementation was restored
 
-Clean reimplementation spans SSO/CAPTCHA, redirects, cookies, school sessions, timetable, grades, exams, classrooms, MOOC, campus-card/electricity, local credential security and HTTP transport policy. That is major work and triggers the user-defined Stop Condition.
+The exact upstream source/tag/commit and local modified AAR were audited. The user then confirmed project-specific rightsholder authorization, resolving the rights gate. The preferred integration changed to a reproducible, auditable source module rather than reinserting the opaque derivative.
+
+Before source integration, public transport probes and source inspection established that `xk.csust.edu.cn` and `pt.csust.edu.cn` lack usable HTTPS while authenticated school-session cookies and personal academic/MOOC data use those hosts. This triggers the user-defined cleartext Stop Condition.
 
 ## Current safe build boundary
 
 - Neither local binary exists in the V1 worktree.
 - Existing Gradle declarations remain absent.
-- The current preBuild gate still rejects either filename if it reappears; for CSUSTDataGet this is a temporary safety gate until a lawful replacement/authorization is chosen.
+- The current preBuild gate still rejects the old opaque AAR filename and Lite3DMap. A future authorized source module would be a distinct, auditable dependency only after transport safety is resolved.
 - Current V1 unit tests and Release compile pass without the two files.
 - Current Release runtime contains no map or payment SDK.
 
@@ -33,7 +35,7 @@ The safe interim binary is not the desired full-campus product. School authentic
 
 ## Next closure options
 
-1. Obtain written authorization covering the upstream source, local modifications and distribution inside the App's APK/AAB; then complete transport, credential, privacy and device audits.
-2. Separately authorize a clean-room school adapter and test it through normal user-driven school login without bypassing CAPTCHA, access control or rate limits.
+1. The school provides working HTTPS endpoints for the legacy education and MOOC services; then complete the authorized source module, credential/privacy and device audits.
+2. The school provides an authorized HTTPS replacement contract. No Android-only configuration can make authenticated HTTP confidential.
 
 No AAR/JAR, secret, credential or signing material was added to Git.

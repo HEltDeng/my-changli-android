@@ -2,7 +2,7 @@
 
 - Date: 2026-08-12
 - Formal signed full-campus Release binary: `NOT_AVAILABLE`
-- Status: `BLOCKED — CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
+- Status: `BLOCKED — SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
 
 ## Existing engineering artifact
 
@@ -28,13 +28,13 @@ It is debuggable, includes the Debug localhost endpoint and is not a Release Can
 - Current merged Release Manifest contains no location, Wi-Fi control, camera, media or legacy-storage grant.
 - Current Release endpoint remains `https://campus-tools.invalid/api/v1/` and fails closed.
 
-The CSUSTDataGet absence proves the safe interim build does not distribute the unlicensed artifact. It does not satisfy the corrected requirement to restore school Study/Life features.
+The CSUSTDataGet absence proves the safe interim build does not expose authenticated school traffic over cleartext. Project-specific dependency rights are resolved, but the binary does not satisfy the corrected requirement to restore school Study/Life features.
 
 ## Why no signed binary was produced
 
-1. CSUSTDataGet modified-binary/App redistribution rights are unproven and clean reimplementation is major work.
+1. Authenticated `xk` and `pt` school services have no usable HTTPS endpoint in the bounded audit.
 2. Release lint completed with 169 errors.
-3. `MY_CHANGLI_SIGNING_CONFIG` is not available in this task environment.
+3. The existing formal JKS identity hash matches the user-provided value, but `MY_CHANGLI_SIGNING_CONFIG` is not available in this process.
 4. Formal production domain/endpoint is not configured.
 
 No Debug-signed package was renamed or represented as an RC.

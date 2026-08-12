@@ -2,7 +2,7 @@
 
 - Date: 2026-08-12
 - Evidence: generated merged Release Manifest after `processReleaseMainManifest`
-- Campus feature restoration: BLOCKED before implementation by `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER`
+- Campus feature restoration: BLOCKED before implementation by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
 
 ## Merged Release permissions
 
@@ -27,7 +27,7 @@
 
 School login, timetable, grades, exams, classroom, MOOC, electricity/campus-card and school calendar do not inherently require location, camera, media, Wi-Fi-control or foreground-service permissions. Their future restoration must not bring back map/location permissions.
 
-Only `MainActivity` is exported as launcher. No business `<data>` deep link exists. The current interim branch has no school Activity/route to audit because restoration stopped at the dependency gate; this is not evidence that the corrected campus scope is complete.
+Only `MainActivity` is exported as launcher. No business `<data>` deep link exists. The current interim branch has no school Activity/route to audit because restoration stopped at the transport gate; this is not evidence that the corrected campus scope is complete. No cleartext domain exception was added.
 
 ## Result
 

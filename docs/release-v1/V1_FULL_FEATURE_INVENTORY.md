@@ -4,6 +4,8 @@
 - Read-only source: original `main` at `9afec16ef5f8095a4c949f08ac1426bf2cd916d1`
 - Remediation start: `b015791949dc8ce6770429b3b4f9dcaeac3f7132`
 - Source surfaces checked: `FunctionCatalog`, Overview, `FeatureFragment`, `Route`, Manifest, profile/settings, repositories, ViewModels, widgets and receivers
+- Rights status: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
+- Runtime restoration gate: `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
 
 This is an inventory of the complete product baseline, not a claim that every item is currently present in the V1 Release branch. The previous V1 scope result is formally recorded as `REJECTED_FOR_OVER_REMOVAL` because study and life campus features were incorrectly removed.
 
@@ -12,7 +14,7 @@ This is an inventory of the complete product baseline, not a claim that every it
 | Baseline feature | Source / route | Corrected V1 product decision | Current remediation state |
 | --- | --- | --- | --- |
 | Guest-first overview | `OverviewFragment`, `OverviewScreen` | OPEN | Present |
-| School account binding prompt | `Route.goBindingUser` | OPEN | BLOCKED by core school-service dependency gate |
+| School account binding prompt | `Route.goBindingUser` | OPEN | BLOCKED by authenticated cleartext downstream services |
 | Today/tomorrow timetable | `OverviewRepository`, timetable Room data | OPEN | Local-only subset present; school sync blocked |
 | Pending MOOC homework/tests | `MoocDataHelper`, Overview | OPEN | BLOCKED |
 | Exam arrangement summary | `ExamArrangeService`, Overview | OPEN | BLOCKED |
@@ -67,7 +69,7 @@ Other campus-life/support capabilities found in the complete baseline:
 | Baseline item | Decision / status |
 | --- | --- |
 | My Changli account center | OPEN; present |
-| Bind/switch school account | OPEN; BLOCKED by core school-service dependency gate |
+| Bind/switch school account | OPEN; BLOCKED by authenticated cleartext downstream services |
 | Clear local tool cache | OPEN; present |
 | Class reminder and timetable widgets | OPEN; present for local timetable |
 | Theme settings / remote skin download | Local theme present; remote download depends on an unconfigured endpoint |
@@ -86,7 +88,7 @@ Read-only inventory found:
 - Internal Routes for all visible features plus publishing, comments, user home, Buddy, map, sports, binding, privacy documents and WebView.
 - Only `MainActivity` is exported as the launcher; the baseline has no business `<data>` deep link.
 
-For the corrected V1 target, campus map, real sports reservation and real payment must remain unreachable through every route, Activity, widget, notification, receiver, worker, shortcut and debug entry. School study/life features are product-OPEN but cannot be restored into a distributable binary until the dependency gate is closed.
+For the corrected V1 target, campus map, real sports reservation and real payment must remain unreachable through every route, Activity, widget, notification, receiver, worker, shortcut and debug entry. School study/life features are product-OPEN but cannot be restored into a distributable binary until authenticated school services have confidential transport.
 
 ## Inventory counts used by handoff
 
