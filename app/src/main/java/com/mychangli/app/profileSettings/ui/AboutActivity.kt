@@ -36,11 +36,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mychangli.app.R
+import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.privacy.NON_OFFICIAL_STATEMENT
 import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdatePrompt
+import com.mychangli.app.core.update.AppUpdateNavigator
 import com.mychangli.app.core.update.VersionCheckResult
 import kotlinx.coroutines.launch
 
@@ -224,7 +226,9 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
             BulletPoint(text = "课表定制：用户可以根据个人课表定制学习计划，方便日程管理。")
             BulletPoint(text = "资料库：集中访问往年试题、馆藏检索和学校官方资源。")
             BulletPoint(text = "失物招领：在本机浏览、发布和管理寻物与招领信息。")
-            BulletPoint(text = "场地预约：体验羽毛球和乒乓球的本地预约模拟流程。")
+            if (!BuildConfig.RELEASE_USER_SURFACE) {
+                BulletPoint(text = "场地预约：体验羽毛球和乒乓球的本地预约模拟流程。")
+            }
 
             Text(
                 text = "开源说明：本应用基于 CreaMakers/changli-planet-app（MIT License）修改，原作者版权与许可文件保留在项目中。长沙理工大学校名与校徽归学校相关权利人所有；本应用不代表学校官方立场。",
@@ -238,9 +242,21 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
         AppUpdatePrompt(
             update = update,
             onLater = { availableUpdate = null },
-            onSimulateUpdate = {
+            onPrimaryAction = {
                 availableUpdate = null
-                checkMessage = "本地体验版未配置真实 APK 下载，不会执行安装"
+                if (
+                    BuildConfig.RELEASE_USER_SURFACE &&
+                    activity != null &&
+                    AppUpdateNavigator.open(activity, update.version.download_url)
+                ) {
+                    checkMessage = ""
+                } else {
+                    checkMessage = if (BuildConfig.RELEASE_USER_SURFACE) {
+                        "暂时无法打开更新地址"
+                    } else {
+                        "本地体验版未配置真实 APK 下载，不会执行安装"
+                    }
+                }
             },
         )
     }

@@ -3,12 +3,22 @@ package com.mychangli.app.core.network
 import com.mychangli.app.core.network.campustools.RemoteAppVersion
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.core.update.VersionPolicy
+import com.mychangli.app.core.update.UpdateTargetPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppUpdatePolicyTest {
+    @Test
+    fun `release update target requires public https`() {
+        assertTrue(UpdateTargetPolicy.isSafeHttps("https://download.mychangliapp.cn/app.apk"))
+        assertFalse(UpdateTargetPolicy.isSafeHttps(null))
+        assertFalse(UpdateTargetPolicy.isSafeHttps("http://download.mychangliapp.cn/app.apk"))
+        assertFalse(UpdateTargetPolicy.isSafeHttps("https://campus-tools.invalid/app.apk"))
+        assertFalse(UpdateTargetPolicy.isSafeHttps("https://127.0.0.1/app.apk"))
+        assertFalse(UpdateTargetPolicy.isSafeHttps("https://192.168.1.20/app.apk"))
+    }
     private fun version(
         latest: Int,
         minimum: Int = 1,
@@ -40,7 +50,7 @@ class AppUpdatePolicyTest {
     }
 
     @Test
-    fun forceFlagOrMinimumVersionMarksLocalDemonstrationMandatory() {
+    fun forceFlagOrMinimumVersionMarksUpgradeMandatory() {
         assertTrue((VersionPolicy.evaluate(10, true, version(11, force = true)) as VersionCheckResult.Available).mandatory)
         assertTrue((VersionPolicy.evaluate(10, true, version(11, minimum = 11)) as VersionCheckResult.Available).mandatory)
     }

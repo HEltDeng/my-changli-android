@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,7 +25,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -279,43 +277,6 @@ fun InteractionButton(
                 text = " ", // Placeholder to keep height or just 0
                 fontSize = 14.sp,
                 color = AppTheme.colors.primaryTextColor
-            )
-        }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun NewsItemPreview() {
-    // 预览仅使用本地文本数据，不触发任何外部图片请求。
-    val mockItemWithImages = FreshNewsItem(
-        freshNewsId = 35,
-        userId = 24,
-        authorName = "长理吴彦祖", // JSON中没有，模拟一个名字
-        authorAvatar = "", // 模拟头像URL，为空则显示占位图
-        title = "你怎么知道我抽到一套安姐",
-        content = "如图",
-        images = emptyList(),
-        tags = emptyList(),
-        liked = 12, // 模拟点赞数
-        comments = 5, // 模拟评论数
-        createTime = "2025-12-10T13:37:30",
-        allowComments = 1,
-        favoritesCount = 0,
-        location = "湖南", // 对应 JSON 的 address
-        isLiked = true, // 模拟已点赞
-        isFavorited = false
-    )
-
-    MaterialTheme {
-        Column(
-            modifier = Modifier
-                .padding(vertical = 10.dp)
-        ) {
-            NewsItem(
-                item = mockItemWithImages,
-                onImageClick = { _, _ -> }, {}, {}, {}, {}, {}
             )
         }
     }

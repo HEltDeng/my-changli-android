@@ -1,4 +1,11 @@
 <resources>
+    <string name="release_document_title_privacy">隐私政策</string>
+    <string name="release_document_title_agreement">用户协议</string>
+    <string name="release_document_title_third_party">第三方 SDK / 服务</string>
+    <string name="release_document_title_personal_information">个人信息清单</string>
+    <string name="release_document_title_account_data">账号与数据管理</string>
+    <string name="release_document_footer">我的长理 · 版本 1.0.0</string>
+    <string name="release_third_party_android_components">本版本使用 AndroidX、Compose、Material、Room、MMKV、Retrofit、OkHttp、Coil、Glide 等应用运行与界面组件。</string>
     <string name="app_name">我的长理</string>
     <string name="chat">群聊</string>
     <string name="find">发现</string>
@@ -177,7 +184,7 @@
     <string name="feature_section_learning">学习</string>
     <string name="feature_section_learning_description">课程、考试与个人效率工具</string>
     <string name="feature_section_sports">体育</string>
-    <string name="feature_section_sports_description">本地场地预约模拟与运动服务</string>
+    <string name="feature_section_sports_description">运动服务</string>
     <string name="feature_section_life">生活</string>
     <string name="feature_section_life_description">在校生活所需的查询与指引</string>
     <string name="feature_section_entertainment">娱乐</string>
@@ -188,7 +195,7 @@
     <string name="feature_status_preparing">筹备中</string>
     <string name="campus_activity_preparing_title">功能筹备中</string>
     <string name="campus_activity_preparing_description">未来可在这里发现和参与搭子、组团与社团活动。</string>
-    <string name="campus_activity_local_notice">当前页面仅为本地静态占位，不会发布内容、创建账号或连接活动服务。</string>
+    <string name="campus_activity_local_notice">该能力当前暂不开放。</string>
     <string name="common_back">返回</string>
     <string name="network_error">网络错误</string>
     <string name="reminder_area_not_found">未找到提醒区域</string>

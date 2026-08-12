@@ -106,4 +106,26 @@ class V1SourceBoundaryTest {
         assertTrue(main.contains("PrivacyConsentScreen"))
         assertTrue(main.contains("PrivacyDeclinedScreen"))
     }
+
+    @Test
+    fun `release user surface removes local demo components and draft labels`() {
+        val releaseManifest = appFile("src/release/AndroidManifest.xml").readText()
+        listOf(
+            "BuddyClubActivity",
+            "CampusActivityPlaceholderActivity",
+            "LocalCampusPublishActivity",
+            "LocalCampusPostDetailActivity",
+        ).forEach { activity ->
+            assertTrue(releaseManifest.contains(activity))
+        }
+        assertEquals(4, Regex("tools:node=\"remove\"").findAll(releaseManifest).count())
+
+        val releaseStrings = appFile("src/main/res/values/strings.xml").readText()
+        assertTrue(releaseStrings.contains("<string name=\"app_name\">我的长理</string>"))
+        assertTrue(releaseStrings.contains("<string name=\"release_document_title_privacy\">隐私政策</string>"))
+        assertFalse(releaseStrings.contains("发布前审阅稿"))
+
+        val debugStrings = appFile("src/debug/res/values/strings.xml").readText()
+        assertTrue(debugStrings.contains("<string name=\"app_name\">我的长理 QA</string>"))
+    }
 }

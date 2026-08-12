@@ -156,6 +156,7 @@ android {
             "CAMPUS_TOOLS_API_BASE_URL",
             "\"$campusToolsApiBaseUrlRelease\""
         )
+        buildConfigField("boolean", "RELEASE_USER_SURFACE", "false")
     }
 
     buildTypes {
@@ -176,6 +177,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("boolean", "ADS_ENABLED", "false")
+            buildConfigField("boolean", "RELEASE_USER_SURFACE", "true")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -199,6 +201,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
             buildConfigField("boolean", "ADS_ENABLED", "false")
+            buildConfigField("boolean", "RELEASE_USER_SURFACE", "true")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

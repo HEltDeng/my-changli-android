@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.mychangli.app.common.api.DrawerController
+import com.mychangli.app.BuildConfig
 import com.mychangli.app.common.cache.CommonInfo
 import com.mychangli.app.common.pool.TabAnimationPool
 import com.mychangli.app.common.redux.action.UserAction
@@ -40,6 +41,7 @@ import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdateCooldown
 import com.mychangli.app.core.update.AppUpdatePrompt
+import com.mychangli.app.core.update.AppUpdateNavigator
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.utils.event.AppEventBus
 import androidx.lifecycle.Lifecycle
@@ -172,11 +174,22 @@ class MainActivity : ComponentActivity(), DrawerController {
                                     )
                                     availableUpdate = null
                                 },
-                                onSimulateUpdate = {
+                                onPrimaryAction = {
                                     availableUpdate = null
+                                    if (
+                                        BuildConfig.RELEASE_USER_SURFACE &&
+                                        AppUpdateNavigator.open(
+                                            this@MainActivity,
+                                            update.version.download_url,
+                                        )
+                                    ) return@AppUpdatePrompt
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "本地体验版未配置真实 APK 下载，不会执行安装",
+                                        if (BuildConfig.RELEASE_USER_SURFACE) {
+                                            "暂时无法打开更新地址"
+                                        } else {
+                                            "本地体验版未配置真实 APK 下载，不会执行安装"
+                                        },
                                         Toast.LENGTH_LONG,
                                     ).show()
                                 },

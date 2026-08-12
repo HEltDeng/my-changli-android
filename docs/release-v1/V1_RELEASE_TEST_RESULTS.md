@@ -7,24 +7,28 @@
 
 ## Automated result
 
-Final command group:
+Freeze command group:
 
 ```text
 :app:testDebugUnitTest
 :app:assembleDebug
+:app:mergeDebugResources
+:app:mergeReleaseResources
+:app:processDebugMainManifest
 :app:compileReleaseKotlin
 :app:compileReleaseJavaWithJavac
 :app:processReleaseMainManifest
 :app:verifyReleaseEndpointSafety
-:app:lintRelease
 ```
 
-- JUnit: 23 suites / 74 tests / 0 failures / 0 errors / 0 skipped.
+- JUnit: 23 suites / 76 tests / 0 failures / 0 errors / 0 skipped.
 - Debug assemble: PASS.
-- Release Kotlin/Java compile and merged manifest: PASS.
+- Debug/Release resource and manifest merge: PASS.
+- Release Kotlin/Java compile: PASS.
 - Release endpoint fail-closed check: PASS.
 - Authorized AAR hash preBuild check: PASS.
-- Release lint: 0 errors / 1,378 warnings.
+- New freeze-stage P0/build blockers: 0.
+- Historical lint baseline: 0 errors / 1,378 warnings; not rerun because this freeze introduced no lint-policy or broad UI change.
 
 ## Covered boundaries
 
@@ -35,6 +39,7 @@ Final command group:
 - Authorized CSUSTDataGet present at the fixed hash; Lite3DMap and AMap absent.
 - Campus map, real sports and real payment remain closed.
 - No school credential/session fields appear in own-Backend service DTO boundaries.
+- Release clean-surface checks cover the formal label/package, clean privacy/agreement titles, Debug/Release build flag separation, safe HTTPS update target policy and Release manifest removal of local demo Activities.
 
 ## Lint remediation
 
@@ -42,6 +47,6 @@ The restored code initially reproduced 174 errors. Core-library desugaring remov
 
 The 1,378 warnings are historical cleanup debt and are classified in `V1_RELEASE_LINT_REMEDIATION.md`; they did not block this Debug QA build.
 
-## Not automated
+## User acceptance and remaining non-automated release work
 
-No Android device was connected. Installation, launch smoke testing, visual regression and real school account/CAPTCHA/session E2E were not run. No user credential was requested. These items remain in `V1_CAMPUS_QA_CHECKLIST.md` and `user_acceptance` remains `PENDING`.
+The user completed physical-device QA and explicitly accepted the runtime, UI, campus paths and final Launcher icon at accepted QA SHA `cda0300e7c306d98cc54d8b4a4a5f60e1e52974d`. No credential was requested or used by automation. Final signed-package smoke testing remains pending after production deployment, endpoint, filing and formal signing steps.

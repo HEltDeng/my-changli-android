@@ -29,20 +29,22 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import com.mychangli.app.R
 import com.mychangli.app.core.Route
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 
-enum class ReleaseDocumentType(val value: String, val title: String) {
-    PRIVACY("privacy", "隐私政策（V1 发布前审阅稿）"),
-    AGREEMENT("agreement", "用户协议（V1 发布前审阅稿）"),
-    THIRD_PARTY("third_party", "第三方 SDK / 服务"),
-    PERSONAL_INFORMATION("personal_information", "个人信息清单"),
-    ACCOUNT_DATA("account_data", "账号与数据管理");
+enum class ReleaseDocumentType(val value: String, @param:StringRes val titleRes: Int) {
+    PRIVACY("privacy", R.string.release_document_title_privacy),
+    AGREEMENT("agreement", R.string.release_document_title_agreement),
+    THIRD_PARTY("third_party", R.string.release_document_title_third_party),
+    PERSONAL_INFORMATION("personal_information", R.string.release_document_title_personal_information),
+    ACCOUNT_DATA("account_data", R.string.release_document_title_account_data);
 
     companion object {
         fun from(value: String?): ReleaseDocumentType =
@@ -74,7 +76,7 @@ private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocume
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(type.title, color = AppTheme.colors.titleTopColor) },
+                title = { Text(stringResource(type.titleRes), color = AppTheme.colors.titleTopColor) },
                 navigationIcon = {
                     IconButton(onClick = activity::finish) {
                         Icon(
@@ -112,7 +114,12 @@ private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocume
                     modifier = Modifier.padding(18.dp),
                 )
             }
-            v1InformationSections(type).forEach { section ->
+            v1InformationSections(
+                type = type,
+                androidComponentsDescription = stringResource(
+                    R.string.release_third_party_android_components,
+                ),
+            ).forEach { section ->
                 Text(
                     text = section.title,
                     color = AppTheme.colors.primaryTextColor,
@@ -142,7 +149,7 @@ private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocume
                 ) { Text("清除本地课表与学习缓存") }
             }
             Text(
-                text = "V1.0 发布前审阅稿 · privacyConsentVersion ${PrivacyConsentManager.CURRENT_APP_CONSENT_VERSION}",
+                text = stringResource(R.string.release_document_footer),
                 color = AppTheme.colors.greyTextColor,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 10.dp, bottom = 28.dp),
@@ -151,7 +158,10 @@ private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocume
     }
 }
 
-private fun v1InformationSections(type: ReleaseDocumentType): List<V1InformationSection> =
+private fun v1InformationSections(
+    type: ReleaseDocumentType,
+    androidComponentsDescription: String,
+): List<V1InformationSection> =
     when (type) {
         ReleaseDocumentType.PRIVACY -> listOf(
             V1InformationSection(
@@ -188,7 +198,7 @@ private fun v1InformationSections(type: ReleaseDocumentType): List<V1Information
         ReleaseDocumentType.THIRD_PARTY -> listOf(
             V1InformationSection(
                 "Android 本地组件",
-                "本版本使用 AndroidX、Compose、Material、Room、MMKV、Retrofit、OkHttp、Coil、Glide 等应用运行与界面组件。调试工具不进入 Release。",
+                androidComponentsDescription,
             ),
             V1InformationSection(
                 "校园服务依赖",

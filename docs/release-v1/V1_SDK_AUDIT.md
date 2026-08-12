@@ -1,7 +1,7 @@
 # V1 SDK and Dependency Audit
 
 - Date: 2026-08-12
-- Evidence: `releaseRuntimeClasspath`, Gradle configuration, AAR inspection and Debug APK scan
+- Evidence: freeze-stage `releaseRuntimeClasspath`, Gradle configuration, AAR inspection and accepted Debug QA APK scan
 
 ## Included release/runtime groups
 
@@ -27,9 +27,10 @@ The Debug QA APK contains three native libraries: AndroidX graphics path, MMKV a
 - Alipay, WeChat/Weixin or other payment SDK classes.
 - Bugly.
 - Real sports provider/merchant SDK.
+- LeakCanary, CodeLocator/RestrictionBypass, Compose UI test manifest, MockWebServer and JUnit from `releaseRuntimeClasspath`.
 
 The Debug class-descriptor scan confirmed CSUSTDataGet and restored school Activities are present while CampusMapActivity and SportsReservationActivity are absent.
 
 ## Release conclusion
 
-Release dependency resolution and Release Kotlin/Java compilation pass. A final store APK/AAB still requires production endpoint, formal signing use, Release binary generation and a fresh binary/SDK audit; the Debug QA package is not that artifact.
+Release dependency resolution and Release Kotlin/Java compilation pass. The Release manifest also removes retained local demo/placeholder Activities. A final store APK/AAB still requires production endpoint, formal signing use, Release binary generation and a fresh binary/SDK audit; the accepted Debug QA package is evidence, not the store artifact.

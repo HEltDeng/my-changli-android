@@ -1,7 +1,9 @@
 package com.mychangli.app.core.update
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -12,6 +14,7 @@ import com.mychangli.app.core.network.campustools.CampusToolsApiClient
 import com.mychangli.app.core.network.campustools.RemoteAppVersion
 import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.mychangli.app.core.theme.AppTheme
+import java.net.URI
 
 sealed interface VersionCheckResult {
     data object Latest : VersionCheckResult
@@ -63,10 +66,66 @@ object AppUpdateChecker {
     suspend fun check(): VersionCheckResult {
         if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return VersionCheckResult.Unavailable
         return runCatching {
-        val envelope = CampusToolsApiClient.unauthenticated.versionCheck(BuildConfig.VERSION_CODE)
-        val data = envelope.data.takeIf { envelope.ok } ?: return@runCatching VersionCheckResult.Unavailable
-        VersionPolicy.evaluate(BuildConfig.VERSION_CODE, data.updateAvailable, data.latestVersion)
+            val envelope = CampusToolsApiClient.unauthenticated.versionCheck(BuildConfig.VERSION_CODE)
+            val data = envelope.data.takeIf { envelope.ok }
+                ?: return@runCatching VersionCheckResult.Unavailable
+            val result = VersionPolicy.evaluate(
+                BuildConfig.VERSION_CODE,
+                data.updateAvailable,
+                data.latestVersion,
+            )
+            if (
+                BuildConfig.RELEASE_USER_SURFACE &&
+                result is VersionCheckResult.Available &&
+                !UpdateTargetPolicy.isSafeHttps(result.version.download_url)
+            ) {
+                VersionCheckResult.Unavailable
+            } else {
+                result
+            }
         }.getOrDefault(VersionCheckResult.Unavailable)
+    }
+}
+
+/** Release builds only expose update actions backed by a public HTTPS target. */
+object UpdateTargetPolicy {
+    fun isSafeHttps(rawUrl: String?): Boolean {
+        val value = rawUrl?.trim().orEmpty()
+        if (value.isEmpty()) return false
+        val uri = runCatching { URI(value) }.getOrNull() ?: return false
+        val host = uri.host?.lowercase().orEmpty()
+        if (uri.scheme?.lowercase() != "https" || host.isBlank()) return false
+        if (!uri.userInfo.isNullOrBlank()) return false
+        if (host == "localhost" || host.endsWith(".localhost") || host.endsWith(".invalid")) {
+            return false
+        }
+        if (
+            host == "0.0.0.0" || host == "::1" || host.startsWith("127.") ||
+            host.startsWith("10.") || host.startsWith("192.168.") ||
+            host.startsWith("169.254.") || isPrivate172(host)
+        ) {
+            return false
+        }
+        return true
+    }
+
+    private fun isPrivate172(host: String): Boolean {
+        val parts = host.split('.')
+        if (parts.size != 4 || parts[0] != "172") return false
+        return parts[1].toIntOrNull() in 16..31
+    }
+}
+
+object AppUpdateNavigator {
+    fun open(context: Context, rawUrl: String?): Boolean {
+        if (!UpdateTargetPolicy.isSafeHttps(rawUrl)) return false
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(rawUrl)).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+        }
+        return runCatching {
+            context.startActivity(intent)
+            true
+        }.getOrDefault(false)
     }
 }
 
@@ -120,8 +179,9 @@ object AppUpdateCooldown {
 fun AppUpdatePrompt(
     update: VersionCheckResult.Available,
     onLater: () -> Unit,
-    onSimulateUpdate: () -> Unit,
+    onPrimaryAction: () -> Unit,
 ) {
+    val releaseSurface = BuildConfig.RELEASE_USER_SURFACE
     AlertDialog(
         onDismissRequest = onLater,
         containerColor = AppTheme.colors.bgCardColor,
@@ -130,12 +190,21 @@ fun AppUpdatePrompt(
             Text(
                 buildString {
                     append(update.version.update_message.ifBlank { "包含体验与稳定性改进。" })
-                    if (update.mandatory) append("\n\n当前为本地规则演示，不会锁定或替换应用。")
-                    append("\n\n更新来源：我的长理本地后端。")
+                    if (!releaseSurface && update.mandatory) {
+                        append("\n\n当前为本地规则演示，不会锁定或替换应用。")
+                    }
+                    append(
+                        if (releaseSurface) "\n\n更新信息由我的长理服务提供。"
+                        else "\n\n更新来源：我的长理本地后端。",
+                    )
                 }
             )
         },
-        confirmButton = { TextButton(onClick = onSimulateUpdate) { Text("立即更新") } },
+        confirmButton = {
+            TextButton(onClick = onPrimaryAction) {
+                Text(if (releaseSurface) "获取更新" else "立即更新")
+            }
+        },
         dismissButton = { TextButton(onClick = onLater) { Text("稍后再说") } },
     )
 }
