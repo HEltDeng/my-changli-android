@@ -2,7 +2,7 @@
 
 - Date: 2026-08-12
 - Formal signed full-campus Release binary: `NOT_AVAILABLE`
-- Status: `BLOCKED — SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
+- Status: `BLOCKED — SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
 
 ## Existing engineering artifact
 
@@ -37,7 +37,7 @@ The CSUSTDataGet absence proves the safe interim build does not expose authentic
 3. The existing formal JKS identity hash matches the user-provided value, but `MY_CHANGLI_SIGNING_CONFIG` is not available in this process.
 4. Formal production domain/endpoint is not configured.
 
-No Debug-signed package was renamed or represented as an RC.
+No Debug-signed package was renamed or represented as an RC. No `MyChangli-V1.0.0-Campus-QA-debug.apk` was generated because campus runtime was not safely restored; delivering the older interim APK under that name would misrepresent its feature surface.
 
 ## Required final audit after blockers close
 

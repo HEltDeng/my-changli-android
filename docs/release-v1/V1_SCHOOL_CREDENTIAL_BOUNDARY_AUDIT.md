@@ -4,7 +4,7 @@
 - Target flow: user -> Android client -> school authentication/academic service
 - Forbidden flow: school password/CAPTCHA/cookie/token/academic record -> My Changli Backend
 - Rights state: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
-- Current Release state: school integration not restored due `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
+- Current Release state: school integration not restored due `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
 
 ## Baseline data flow
 
@@ -47,4 +47,6 @@ These paths are currently absent from the V1 Release implementation because scho
 
 Current V1 code cannot send school credentials to the own Backend because there is no school credential input/session implementation in the branch, and the source-boundary tests reject school credential fields. That is a safe interim state, not completion of the corrected product scope.
 
-Before campus features can ship, add regression/E2E evidence for wrong password, CAPTCHA, session expiry/restore, logout, unbind, process death, app-data clear and network logging. Real credentials must be entered by the user on-device and never sent through chat or test fixtures.
+The transport follow-up made no credential-storage or logging code change: implementing encryption while the same secret-derived session would still cross HTTP would not close the higher-priority transport risk. No school password, CAPTCHA, Cookie, token or personal record was collected during the audit.
+
+Before campus features can ship, establish confidential service transport, then add regression/E2E evidence for wrong password, CAPTCHA, session expiry/restore, logout, unbind, process death, app-data clear and network logging. Real credentials must be entered by the user on-device and never sent through chat or test fixtures.

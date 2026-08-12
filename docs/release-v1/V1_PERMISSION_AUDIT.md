@@ -2,7 +2,7 @@
 
 - Date: 2026-08-12
 - Evidence: generated merged Release Manifest after `processReleaseMainManifest`
-- Campus feature restoration: BLOCKED before implementation by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
+- Campus feature restoration: BLOCKED before implementation by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
 
 ## Merged Release permissions
 
@@ -31,4 +31,4 @@ Only `MainActivity` is exported as launcher. No business `<data>` deep link exis
 
 ## Result
 
-Current merged permission surface is minimal and explainable. Re-run after lawful school integration is restored, and retain the explicit campus-map/location exclusion.
+Current merged permission surface is minimal and explainable. The transport follow-up added neither `usesCleartextTraffic=true` nor a domain-specific cleartext allowlist, permission, component or deep link. Re-run after confidential school integration is possible, and retain the explicit campus-map/location exclusion.

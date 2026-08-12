@@ -4,7 +4,7 @@
 - Java: Temurin 17.0.19
 - Android SDK: `C:\Users\HeVoi\AppData\Local\Android\Sdk`
 - Rights gate: `RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
-- Runtime remediation execution: stopped at `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
+- Runtime remediation execution: stopped at `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
 
 ## Current safe branch verification
 
@@ -57,7 +57,7 @@ Error groups:
 
 Warning groups include 844 unused resources, 173 hardcoded text issues, 72 content-description issues and two scoped-storage warnings caused by intentional manifest-removal markers. The complete report is at `app/build/reports/lint-results-release.html`.
 
-Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired because user Stop Condition 2 required work to stop before campus runtime restoration.
+Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired because the user-defined transport Stop Condition required work to stop before campus runtime restoration.
 
 ## Builds and signing
 
@@ -71,3 +71,11 @@ Result: `COMPLETED_WITH_ERRORS` — not PASS. The errors were not repaired becau
 ## Manual/E2E boundary
 
 No real school account, password, CAPTCHA, cookie or token was requested or used. After the core dependency decision and lint errors are resolved, real school-service testing must be user-interactive on device. Physical-device RC acceptance remains PENDING.
+
+## 59 transport follow-up
+
+- Runtime source change: none.
+- New unit/instrumentation execution: not run because the user-defined Stop Condition occurred before implementation.
+- Debug assemble: not run for a falsely restored campus target.
+- Campus QA APK: not generated. The older interim Debug artifact is not renamed or delivered as a campus-runtime QA build.
+- Prior 23 suites / 70 tests remain historical evidence for the safe interim branch only.

@@ -2,11 +2,11 @@
 
 - Date: 2026-08-12
 - Starting evidence: 169 errors, 1,397 warnings, 3 hints
-- Current result: `NOT_STARTED_AFTER_REQUIRED_SECURITY_STOP`
+- Current result: `NOT_STARTED_AFTER_CONFIRMED_SECURITY_STOP`
 
 ## Why remediation did not proceed
 
-The required order was campus runtime restoration followed by a complete lint repair. Source restoration stopped before code changes when `SCHOOL_CLEARTEXT_SECURITY_BLOCKER` was proven. Continuing a broad 169-error source rewrite after the security Stop Condition would violate the instruction to stop and would produce lint evidence for an implementation that is not the intended full-campus runtime.
+The required order was campus runtime restoration followed by a complete lint repair. Source restoration stopped before code changes when `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED` was proven on the actual xk/pt paths. Continuing a broad 169-error source rewrite after the security Stop Condition would violate the instruction to stop and would produce lint evidence for an implementation that is not the intended full-campus runtime.
 
 ## Preserved error inventory
 

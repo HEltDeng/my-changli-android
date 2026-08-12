@@ -15,7 +15,7 @@
 
 The user confirmed project-specific authorization from the original rightsholder covering use, necessary modification, dependency builds, APK/AAB distribution and security-hardened derivatives. This is recorded in `CSUST_DATA_GET_AUTHORIZATION_RECORD.md`. It is not represented as an upstream open-source license and does not imply school authorization.
 
-The authorized source was not integrated because the independent transport audit then triggered `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`: `xk.csust.edu.cn` and `pt.csust.edu.cn` lack usable HTTPS while authenticated session cookies and personal education data traverse those services. No AAR or source module entered the V1 branch.
+The authorized source was not integrated because the independent transport audit confirmed `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`: `xk.csust.edu.cn` and `pt.csust.edu.cn` lack usable HTTPS on the real service paths while authenticated session cookies and personal education data traverse those services. No AAR or source module entered the V1 branch.
 
 This is an evidence-based release gate, not a final legal opinion.
 
@@ -71,7 +71,7 @@ Only five hard-coded hosts were found. All are under `csust.edu.cn`; no My Chang
 
 Redirect/cookie flow: Android requests the SSO login form, submits the user's credentials/CAPTCHA to the school auth server, follows redirects to eHall/educational/MOOC/campus-card services, and shares cookies through the library cookie jar. The library does not route this traffic through the My Changli Backend.
 
-Security blocker: two core academic hosts use cleartext HTTP. Bounded public probes found no usable TLS service, while source inspection proves the authenticated CookieJar is attached to those requests. A cleartext allowlist would not protect the Cookie or response data, so Stop Condition 2 applies.
+Security blocker: two core academic hosts use cleartext HTTP. Bounded public probes of `/sso.jsp`, `/jsxsd/kscj/cjcx_query`, `/meol/homepage/common/sso_login.jsp` and `/meol/personal.do` found no usable TLS service, while source inspection proves the authenticated CookieJar is attached to those requests. The SSO API itself encodes `service=http://xk.csust.edu.cn/sso.jsp`. A cleartext allowlist would not protect the Cookie or response data, so the user-defined Stop Condition 1 applies.
 
 ## Security behavior
 
@@ -111,6 +111,6 @@ This is a cross-cutting authentication and data integration project, not a small
 | Option | Decision |
 | --- | --- |
 | A — ship current AAR | REJECTED; rights are resolved but the opaque derivative is not the preferred auditable integration and transport security is open |
-| B — authorized source module | Preferred and authorized, but stopped before integration by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER` |
+| B — authorized source module | Preferred and authorized, but stopped before integration by `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED` |
 | C — silently close all campus functions | REJECTED product interpretation |
 | Current safe action | Keep dependency code out of Release, retain strict no-cleartext policy, record campus functions as product-OPEN but release-BLOCKED |

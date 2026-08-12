@@ -6,7 +6,7 @@
 - Previous scope result: `REJECTED_FOR_OVER_REMOVAL`
 - Reason: `STUDY_AND_LIFE_CAMPUS_FEATURES_WERE_INCORRECTLY_REMOVED`
 - Rights gate: `CORE_CAMPUS_SERVICE_RELEASE_BLOCKER = RESOLVED_BY_RIGHTSHOLDER_AUTHORIZATION`
-- Current execution gate: `SCHOOL_CLEARTEXT_SECURITY_BLOCKER`
+- Current execution gate: `SCHOOL_CLEARTEXT_SECURITY_BLOCKER_CONFIRMED`
 
 Fixed identity statement:
 
@@ -70,6 +70,8 @@ No other baseline Study/Life capability is product-CLOSED by this matrix.
 
 ## Stop-condition consequence
 
-The project-specific dependency-rights gate is resolved. The attempted source-based restoration nevertheless proved that `xk.csust.edu.cn` and `pt.csust.edu.cn` do not expose a usable HTTPS service while the exact implementation attaches authenticated school-session cookies and receives personal academic/MOOC data over those hosts.
+The project-specific dependency-rights gate is resolved. The transport follow-up from start SHA `e02acf64957f1a6b97b47348d46766a99df84070` nevertheless confirmed that `xk.csust.edu.cn` and `pt.csust.edu.cn` do not expose a usable HTTPS service on the exact SSO/academic/MOOC paths while the exact implementation attaches authenticated school-session cookies and receives personal academic/MOOC data over those hosts.
 
-The branch therefore remains at the safe interim implementation. It does not add a domain-specific cleartext exception, does not restore the source module and does not request a real school account. Resolution requires working HTTPS or an authorized school-side replacement; until then this branch is not a full-campus V1 Release Candidate.
+The school HTTPS front doors at `authserver.csust.edu.cn` and `ehall.csust.edu.cn` do not constitute a proven HTTPS proxy for the `xk`/`pt` data plane. The official public MOOC candidate at `mooc.csust.edu.cn/portal` failed hostname validation and is a different platform from the `pt` MEOL endpoints. No alternate secure route was established.
+
+The branch therefore remains at the safe interim implementation. It does not add a domain-specific cleartext exception, does not restore the source module and does not request a real school account. Resolution requires working HTTPS or an authorized school-side replacement; until then this branch is not a full-campus V1 Release Candidate and no Campus QA APK may claim restored runtime.
