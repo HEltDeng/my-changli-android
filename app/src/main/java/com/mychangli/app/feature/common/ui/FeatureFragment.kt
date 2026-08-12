@@ -60,7 +60,6 @@ import com.mychangli.app.feature.common.compose_ui.ServiceDynamicsSection
 import com.mychangli.app.feature.common.compose_ui.filterServiceUpdatesForClient
 import com.mychangli.app.feature.common.compose_ui.learningFunctionShortcuts
 import com.mychangli.app.feature.common.compose_ui.lifeFunctionShortcuts
-import com.mychangli.app.feature.common.compose_ui.sportsFunctionShortcuts
 import com.mychangli.app.feature.common.compose_ui.toFunctionItemData
 import com.mychangli.app.profileSettings.ui.AboutActivity
 import com.mychangli.app.feature.common.ui.AnnouncementDetailActivity
@@ -105,9 +104,6 @@ fun FeatureScreen(
     val lifeItems = remember(context) {
         lifeFunctionShortcuts().map { it.toFunctionItemData(context) }
     }
-    val sportsItems = remember(context) {
-        sportsFunctionShortcuts().map { it.toFunctionItemData(context) }
-    }
 
     LaunchedEffect(Unit) {
         runCatching { RemoteConfigurationStore.refresh() }
@@ -142,7 +138,6 @@ fun FeatureScreen(
                             }
                             "FEATURE" -> {
                                 val moduleLabel = when (update.moduleKey) {
-                                    "sports_reservation" -> "体育预约"
                                     "lost_found" -> "失物招领"
                                     "resource_library" -> "资料库"
                                     else -> "该服务"
@@ -179,11 +174,6 @@ fun FeatureScreen(
                 title = stringResource(R.string.feature_section_learning),
                 description = stringResource(R.string.feature_section_learning_description),
                 items = learningItems,
-            )
-            FunctionSection(
-                title = stringResource(R.string.feature_section_sports),
-                description = stringResource(R.string.feature_section_sports_description),
-                items = sportsItems,
             )
             FunctionSection(
                 title = stringResource(R.string.feature_section_life),

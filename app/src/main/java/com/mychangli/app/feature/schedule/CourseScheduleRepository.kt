@@ -2,7 +2,6 @@ package com.mychangli.app.feature.schedule
 
 import android.content.Context
 import com.mychangli.app.common.cache.CommonInfo
-import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.feature.common.data.local.entity.TimeTableMySubject
 import com.mychangli.app.feature.common.data.local.room.database.CoursesDataBase
 import java.time.LocalDate
@@ -14,12 +13,7 @@ object CourseScheduleRepository {
     suspend fun loadCourses(context: Context, term: String = CommonInfo.getCurrentTerm()): List<ScheduleCourse> {
         val dao = CoursesDataBase.getDatabase(context.applicationContext).courseDao()
         migrateLegacySundayWeeks(dao)
-        val all = dao.getCoursesByTerm(term)
-        val studentId = StudentInfoManager.studentId
-        val selected = if (studentId.isBlank()) all else {
-            all.filter { it.studentId == studentId || it.studentId.isBlank() }.ifEmpty { all }
-        }
-        return selected.distinctBy {
+        return dao.getCoursesByTerm(term).distinctBy {
             listOf(it.courseName, it.teacher, it.classroom, it.weekday, it.start, it.step, it.weeks).joinToString("|")
         }.map(TimeTableMySubject::toScheduleCourse)
     }

@@ -11,7 +11,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.mychangli.app.base.FullScreenActivity
-import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.noOpDelegate
 import com.mychangli.app.databinding.ActivityAddCourseInTimetableBinding
@@ -37,8 +36,6 @@ class AddCourseActivity : FullScreenActivity<ActivityAddCourseInTimetableBinding
     private var curWeek: Int = 0
     private var selectedWeekDay: Int = 1
     private val selectedWeeks = linkedSetOf<Int>()
-    private val studentId by lazy { StudentInfoManager.studentId }
-    private val studentPassword by lazy { StudentInfoManager.studentPassword }
     private val weekDayMap = mapOf(
         1 to "周一",
         2 to "周二",
@@ -120,7 +117,7 @@ class AddCourseActivity : FullScreenActivity<ActivityAddCourseInTimetableBinding
 
         binding.addCourseBtn.setOnClickListener {
             val mySubject =
-                TimeTableMySubject(isCustom = true, studentId = studentId)
+                TimeTableMySubject(isCustom = true, studentId = "")
             if (courseName.text.isNotEmpty()) {
                 mySubject.courseName = courseName.text.toString()
             } else {

@@ -38,31 +38,11 @@ val releaseSigningKeys = listOf(
 val hasReleaseSigningConfig = releaseSigningConfigFile?.isFile == true &&
     releaseSigningKeys.all { key -> releaseSigningProperties.getProperty(key).orEmpty().isNotBlank() }
 
-// 历史兼容接口 BaseUrl。没有明确环境配置时必须 fail closed，禁止回连上游项目服务。
-// 值需以 "/" 结尾（Retrofit BaseUrl 要求）。
-val planetApiBaseUrlDebug: String = localProperties.getProperty("planet.apiBaseUrl.debug")
-    ?: System.getenv("PLANET_API_BASE_URL_DEBUG")
-    ?: "https://planet-api-debug.invalid/v1/"
-val planetApiBaseUrlRelease: String = localProperties.getProperty("planet.apiBaseUrl.release")
-    ?: System.getenv("PLANET_API_BASE_URL_RELEASE")
-    ?: "https://planet-api.invalid/v1/"
 val adsEnabled: Boolean = (
     localProperties.getProperty("ads.enabled")
         ?: System.getenv("ADS_ENABLED")
         ?: "false"
     ).trim().equals("true", ignoreCase = true)
-val communityApiBaseUrl: String = localProperties.getProperty("community.apiBaseUrl")
-    ?: System.getenv("MY_CHANGLI_COMMUNITY_API_BASE_URL")
-    ?: "https://community-api.invalid/app/"
-val communityCommentsBaseUrl: String = localProperties.getProperty("community.commentsBaseUrl")
-    ?: System.getenv("MY_CHANGLI_COMMUNITY_COMMENTS_BASE_URL")
-    ?: "https://community-api.invalid/app/fresh_news/"
-val communityUserBaseUrl: String = localProperties.getProperty("community.userBaseUrl")
-    ?: System.getenv("MY_CHANGLI_COMMUNITY_USER_BASE_URL")
-    ?: "https://community-api.invalid/users/"
-val toolsApiBaseUrl: String = localProperties.getProperty("tools.apiBaseUrl")
-    ?: System.getenv("MY_CHANGLI_TOOLS_API_BASE_URL")
-    ?: "https://tools-api.invalid/app/tools/"
 val campusToolsApiBaseUrlDebug: String =
     localProperties.getProperty("campusTools.apiBaseUrl.debug")
         ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_DEBUG")
@@ -72,19 +52,15 @@ val campusToolsApiBaseUrlRelease: String =
         ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_RELEASE")
         ?: "https://campus-tools.invalid/api/v1/"
 
+// Closed school, map, sports, payment, and legacy community implementations are removed only
+// from this V1 branch. The complete code remains on main and the protected baseline tag.
+
 tasks.register("verifyReleaseEndpointSafety") {
     group = "verification"
     description = "Fails when a Release endpoint can reconnect to inherited production services."
     inputs.property(
         "releaseEndpoints",
-        listOf(
-            planetApiBaseUrlRelease,
-            campusToolsApiBaseUrlRelease,
-            communityApiBaseUrl,
-            communityCommentsBaseUrl,
-            communityUserBaseUrl,
-            toolsApiBaseUrl,
-        ).joinToString("\n"),
+        campusToolsApiBaseUrlRelease,
     )
     doLast {
         val releaseEndpoints = inputs.properties
@@ -130,30 +106,15 @@ android {
         applicationId = "com.mychangli.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 31
-        versionName = "2.0.9"
-        val amapKeyFromLocal: String = localProperties.getProperty("amap.apiKey")
-            ?: System.getenv("AMAP_API_KEY")
-            ?: ""
-        manifestPlaceholders["amapApiKey"] = amapKeyFromLocal
+        versionCode = 32
+        versionName = "1.0.0"
 
         ndk {
             // 设置支持的SO库架构
             abiFilters.add("arm64-v8a")
         }
 
-        // 兜底值：保证任何未显式覆盖的 variant 都拿得到 BaseUrl。
-        // debug / release / benchmark 会在各自 buildType 内再覆盖为对应环境值。
-        buildConfigField(
-            "String",
-            "PLANET_API_BASE_URL",
-            "\"$planetApiBaseUrlRelease\""
-        )
         buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
-        buildConfigField("String", "COMMUNITY_API_BASE_URL", "\"$communityApiBaseUrl\"")
-        buildConfigField("String", "COMMUNITY_COMMENTS_BASE_URL", "\"$communityCommentsBaseUrl\"")
-        buildConfigField("String", "COMMUNITY_USER_BASE_URL", "\"$communityUserBaseUrl\"")
-        buildConfigField("String", "TOOLS_API_BASE_URL", "\"$toolsApiBaseUrl\"")
         buildConfigField(
             "String",
             "CAMPUS_TOOLS_API_BASE_URL",
@@ -164,11 +125,6 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            buildConfigField(
-                "String",
-                "PLANET_API_BASE_URL",
-                "\"$planetApiBaseUrlDebug\""
-            )
             buildConfigField(
                 "String",
                 "CAMPUS_TOOLS_API_BASE_URL",
@@ -188,11 +144,6 @@ android {
             }
             buildConfigField(
                 "String",
-                "PLANET_API_BASE_URL",
-                "\"$planetApiBaseUrlRelease\""
-            )
-            buildConfigField(
-                "String",
                 "CAMPUS_TOOLS_API_BASE_URL",
                 "\"$campusToolsApiBaseUrlRelease\""
             )
@@ -207,11 +158,6 @@ android {
                 "proguard-rules.pro"
             )
             // benchmark 贴近线上环境，走 release 域名
-            buildConfigField(
-                "String",
-                "PLANET_API_BASE_URL",
-                "\"$planetApiBaseUrlRelease\""
-            )
             buildConfigField(
                 "String",
                 "CAMPUS_TOOLS_API_BASE_URL",
@@ -245,6 +191,26 @@ android {
     buildFeatures {
         viewBinding = true
     }
+}
+
+val verifyV1ForbiddenBinariesAbsent by tasks.registering {
+    group = "verification"
+    description = "Fails if an unverified local Android binary is present in the V1 worktree."
+    val forbidden = listOf(
+        layout.projectDirectory.file("libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar"),
+        layout.projectDirectory.file("libs/Lite3DMap.jar"),
+    )
+    inputs.files(forbidden)
+    doLast {
+        val present = forbidden.map { it.asFile }.filter(File::exists)
+        check(present.isEmpty()) {
+            "V1 must build without unverified local binaries: ${present.joinToString()}"
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(verifyV1ForbiddenBinariesAbsent)
 }
 
 val validateReleaseSigning by tasks.registering {
@@ -292,11 +258,9 @@ dependencies {
     // OkHttp
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
-    implementation(libs.okhttp.urlconnection)
     //Retrofit
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation(libs.converter.scalars)
     // Gson
     implementation(libs.gson)
     //TimetableView
@@ -305,12 +269,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
-    // 图片裁剪库
-    implementation(libs.ucrop)
-    // PhotoView
-
-    // SubsamplingScaleImageView
-    implementation(libs.subsampling.scale.image.view)
     // PhotoView
     implementation(libs.photoview)
     // ViewModel
@@ -324,12 +282,9 @@ dependencies {
     implementation(libs.wheelpicker)
     //FlexboxLayout
     implementation(libs.flexbox)
+    implementation(libs.statelayout)
     //lottie
     implementation(libs.lottie)
-    // 缺省页
-    implementation(libs.statelayout)
-    // jsoup
-    implementation(libs.jsoup)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -351,28 +306,15 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // workmanager
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.work.rxjava2)
     implementation(project(":CP_Common"))
     //CodeLocator
     debugImplementation(libs.codelocator.core)
     debugImplementation(libs.codelocator.lancet.all)
     // Coil for image loading
     implementation(libs.coil.compose)
-    //csustDataGet
-    // Local 1.1.4 security build: authentication and request behavior are unchanged;
-    // dependency-internal logs that could expose credentials/cookies are disabled.
-    implementation(files("libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar"))
-//    implementation(libs.csustdataget)
-//    implementation(files("libs/csust_spider-release.aar"))
     implementation(libs.androidx.constraintlayout.compose)
     implementation(libs.haze)
     implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
-
-    // 高德地图 Android 轻量版 SDK（本地 jar，含地图 + 定位）
-    implementation(files("libs/Lite3DMap.jar"))
 }
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")

@@ -76,13 +76,13 @@ fun PrivacyConsentScreen(
                     lineHeight = 24.sp,
                 )
                 Text(
-                    text = "同意后，应用才会执行远程配置、版本检查、自有账号恢复等非必要联网。定位、相机、图片和通知仍只在你主动使用对应功能时另行申请。",
+                    text = "同意后，应用才会执行远程配置、版本检查、自有账号恢复等非必要联网。通知权限仍只在你主动启用提醒时另行申请。",
                     color = AppTheme.colors.secondaryTextColor,
                     fontSize = 14.sp,
                     lineHeight = 21.sp,
                 )
                 Text(
-                    text = "教务账号用于你主动连接学校服务。根据当前可审计客户端逻辑，教务账号、密码、验证码和学校会话不会发送到“我的长理”自有后端；本地依赖与生产后端仍需在正式发布前继续审计。",
+                    text = "V1 不提供学校账号输入或学校接口入口；学号、学校密码、验证码、学校 Cookie 和学校 token 不会发送到“我的长理”自有后端。",
                     color = AppTheme.colors.secondaryTextColor,
                     fontSize = 14.sp,
                     lineHeight = 21.sp,

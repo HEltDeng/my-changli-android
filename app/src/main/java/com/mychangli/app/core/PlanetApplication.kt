@@ -8,15 +8,10 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.provider.Settings
 import android.util.Log
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.mychangli.app.BuildConfig
-import com.mychangli.app.core.security.SchoolSessionState
 import com.mychangli.app.feature.common.data.local.room.database.CoursesDataBase
-import com.mychangli.app.feature.mooc.viewmodel.MoocViewModel
-import com.mychangli.app.core.privacy.PrivacyConsentManager
 import com.mychangli.app.skin.SkinManager
 import com.mychangli.app.skin.data.cache.SkinCache
 import com.mychangli.app.utils.StartupTimeTracker
@@ -47,12 +42,7 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
         var deviceId: String = ""
         lateinit var appContext: Context
 
-        /** Legacy helper calls are redirected to the owner's configured community service. */
-        val UserIp: String
-            get() = BuildConfig.COMMUNITY_USER_BASE_URL.trimEnd('/')
-
         fun clearCacheAll() {
-            SchoolSessionState.invalidate()
             CoroutineScope(Dispatchers.IO).launch {
                 accessToken = ""
                 MMKV.mmkvWithID("education_cache").clearAll()
@@ -97,17 +87,6 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
     private val _appViewModelStore = ViewModelStore()
     override val viewModelStore: ViewModelStore get() = _appViewModelStore
 
-    private val moocViewModelFactory = object : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return MoocViewModel(this@PlanetApplication) as T
-        }
-    }
-
-    val moocViewModel: MoocViewModel by lazy {
-        ViewModelProvider(this, moocViewModelFactory)[MoocViewModel::class.java]
-    }
-
     private val fpsHandlerThread = HandlerThread("fpsHandlerThread").apply { start() }
     private val fpsHandler by lazy(LazyThreadSafetyMode.NONE) { Handler(fpsHandlerThread.looper) }
 
@@ -118,7 +97,6 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
 
         initMMKV()
         migrateLegacyCacheIfNeeded()
-        prepareTransientCsustDataGetStores()
         if (BuildConfig.DEBUG) {
             StartupTimeTracker.initialize(applicationContext as Application)
         }
@@ -130,28 +108,6 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
         appContext = applicationContext
         setSkin()
         saveDefaultSkin()
-        if (PrivacyConsentManager.hasAppConsent(this)) {
-            initAMapPrivacy()
-        }
-    }
-
-    /**
-     * 高德定位 SDK 隐私合规声明。
-     *
-     * 必须在 [com.amap.api.location.AMapLocationClient] 任何 API 被调用前执行；只有用户在
-     * 校园地图页明确同意后才会同步为 true。
-     * 轻量版地图 SDK 本身基于 WebView 实现，不需要 privacy 声明（`MapsInitializer`
-     * 未提供对应方法），所以这里只对定位 SDK 声明即可。
-     *
-     * 失败不会阻塞 app 启动，但会导致 `AMapLocationClient` 构造抛异常；
-     * 失败原因通过 Log.e 打出，便于线上定位。
-     */
-    private fun initAMapPrivacy() {
-        try {
-            PrivacyConsentManager.syncAmapLocationConsent(this)
-        } catch (t: Throwable) {
-            Log.e("AMap", "privacy init failed - location will be unavailable", t)
-        }
     }
 
     private fun setSkin() {
@@ -180,25 +136,6 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
     }
     private fun initMMKV() {
         MMKV.initialize(this@PlanetApplication)
-    }
-
-    /**
-     * CSUSTDataGet 1.1.4 hard-codes plaintext MMKV stores for credentials and cookies.
-     * Delete any previous files, then open those IDs read-only before the dependency can access
-     * them. Its CookieJar keeps the active session in memory, but cannot persist it to disk.
-     */
-    private fun prepareTransientCsustDataGetStores() {
-        resetAndOpenReadOnly("education_cache", MMKV.SINGLE_PROCESS_MODE)
-        resetAndOpenReadOnly("csust_cookie_jar", MMKV.MULTI_PROCESS_MODE)
-    }
-
-    private fun resetAndOpenReadOnly(storeId: String, mode: Int) {
-        MMKV.mmkvWithID(storeId, mode).apply {
-            clearAll()
-            sync()
-            close()
-        }
-        MMKV.mmkvWithID(storeId, mode or MMKV.READ_ONLY_MODE)
     }
 
     private fun migrateLegacyCacheIfNeeded() {

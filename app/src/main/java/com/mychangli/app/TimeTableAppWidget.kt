@@ -15,7 +15,6 @@ import com.mychangli.app.feature.schedule.CourseScheduleRepository
 import com.mychangli.app.feature.schedule.CourseScheduleSnapshot
 import com.mychangli.app.feature.schedule.CourseScheduleStatus
 import com.mychangli.app.feature.timetable.ui.TimeTableActivity
-import com.mychangli.app.settings.ui.BindingUserActivity
 import com.mychangli.app.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -156,7 +155,7 @@ object WidgetUpdateCoordinator {
     }
 
     private fun openScheduleIntent(context: Context, requestCode: Int, snapshot: CourseScheduleSnapshot): PendingIntent {
-        val destination = if (snapshot.status == CourseScheduleStatus.NO_LOCAL_COURSES) BindingUserActivity::class.java else TimeTableActivity::class.java
+        val destination = TimeTableActivity::class.java
         return PendingIntent.getActivity(
             context,
             requestCode,

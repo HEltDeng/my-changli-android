@@ -187,7 +187,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
 
             FeatureItem(
                 title = "资源共享",
-                description = "提供资料库入口，逐步汇集课程资料、考试资料和学校官方服务。"
+                description = "提供资料库入口，逐步汇集课程资料、考试资料和公开网页链接。"
             )
 
             FeatureItem(
@@ -222,7 +222,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
             // 功能列表
             BulletPoint(text = "成绩查询：学生可以直接在App内查看学期成绩。")
             BulletPoint(text = "课表定制：用户可以根据个人课表定制学习计划，方便日程管理。")
-            BulletPoint(text = "资料库：集中访问往年试题、馆藏检索和学校官方资源。")
+            BulletPoint(text = "资料库：集中访问往年试题、馆藏检索和公开资源链接。")
             BulletPoint(text = "失物招领：在本机浏览、发布和管理寻物与招领信息。")
             BulletPoint(text = "场地预约：体验羽毛球和乒乓球的本地预约模拟流程。")
 

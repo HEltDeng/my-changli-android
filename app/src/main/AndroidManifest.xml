@@ -4,18 +4,15 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
 
     <application
         android:name="com.mychangli.app.core.PlanetApplication"
@@ -29,15 +26,10 @@
         android:networkSecurityConfig="@xml/netconfig"
         android:roundIcon="@mipmap/my_changli_icon"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Changliplanetapp"
-        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.MyChangli"
+        android:usesCleartextTraffic="false"
         tools:replace="android:networkSecurityConfig"
         tools:targetApi="31">
-
-        <!-- 高德地图 Android 轻量版 SDK Key（通过 manifestPlaceholders 从 local.properties 注入） -->
-        <meta-data
-            android:name="com.amap.api.v2.apikey"
-            android:value="${amapApiKey}" />
 
         <activity
             android:name="com.mychangli.app.core.account.ui.AccountCenterActivity"
@@ -62,44 +54,12 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name="com.mychangli.app.feature.common.ui.CalendarActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.mychangli.app.feature.sports.ui.SportsReservationActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.feature.buddy.ui.BuddyClubActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
             android:name="com.mychangli.app.feature.lostfound.ui.LostFoundActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name="com.mychangli.app.freshNews.ui.LostFoundChannelActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.feature.common.ui.CampusActivityPlaceholderActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
             android:name="com.mychangli.app.feature.resources.ResourceLibraryActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.feature.calendar.ui.compose.SemesterCalendarDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.mychangli.app.feature.mooc.ui.MoocActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.feature.mooc.ui.MoocCoursePageActivity"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|keyboardHidden|keyboard|locale|layoutDirection|fontScale|density"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
@@ -165,21 +125,6 @@
         </receiver>
 
 
-        <receiver
-            android:name="com.mychangli.app.ElectronicAppWidget"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/electronic_app_widget_info" />
-        </receiver>
-
-        <activity
-            android:name="com.mychangli.app.freshNews.ui.UserHomeActivity"
-            android:exported="false" />
         <activity
             android:name="com.mychangli.app.feature.common.ui.ContractActivity"
             android:exported="false" />
@@ -193,33 +138,9 @@
             android:name="com.mychangli.app.feature.ledger.ui.AccountBookActivity"
             android:exported="false" />
         <activity
-            android:name="com.mychangli.app.freshNews.ui.PublishFreshNewsActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.mychangli.app.freshNews.ui.LocalCampusPublishActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name="com.mychangli.app.freshNews.ui.LocalCampusPostDetailActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.feature.common.ui.CampusMapActivity"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|keyboardHidden|keyboard|locale|layoutDirection|fontScale|density"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
             android:name="com.mychangli.app.base.FullScreenActivity"
             android:exported="false" />
-        <activity
-            android:name="com.mychangli.app.feature.common.ui.ClassInfoActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.feature.common.ui.ScoreInquiryActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" /> <!-- FileProvider 仍保留给其它文件分享场景使用 -->
+        <!-- FileProvider 保留给用户主动选择与分享图片的开放功能。 -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -239,21 +160,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
-            android:name="com.mychangli.app.settings.ui.BindingUserActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
             android:name="com.mychangli.app.feature.common.ui.MandeActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
             android:name="com.mychangli.app.feature.common.ui.CetActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:usesCleartextTraffic="true" />
-        <activity
-            android:name="com.mychangli.app.feature.common.ui.ExamArrangementActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
@@ -266,21 +177,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name="com.mychangli.app.feature.common.ui.ElectronicActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name="com.mychangli.app.freshNews.ui.CommentsActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" >
-        </activity>
-        <activity
-            android:name="com.mychangli.app.skin.ui.SkinSelectionActivity"
-            android:exported="false"
-            android:screenOrientation="portrait">
         </activity>
     </application>
 

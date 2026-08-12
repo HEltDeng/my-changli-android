@@ -5,42 +5,26 @@ import android.content.Intent
 import com.mychangli.app.common.ui.WebViewActivity
 import com.mychangli.app.core.account.ui.AccountCenterActivity
 import com.mychangli.app.core.account.AccountAccess
-import com.mychangli.app.feature.common.ui.CalendarActivity
-import com.mychangli.app.feature.common.ui.CampusActivityPlaceholderActivity
-import com.mychangli.app.feature.common.ui.CampusMapActivity
 import com.mychangli.app.feature.common.ui.CetActivity
-import com.mychangli.app.feature.common.ui.ClassInfoActivity
 import com.mychangli.app.feature.common.ui.ContractActivity
-import com.mychangli.app.feature.common.ui.ElectronicActivity
-import com.mychangli.app.feature.common.ui.ExamArrangementActivity
 import com.mychangli.app.feature.common.ui.MandeActivity
-import com.mychangli.app.feature.common.ui.ScoreInquiryActivity
 import com.mychangli.app.feature.ledger.ui.AccountBookActivity
-import com.mychangli.app.feature.buddy.ui.BuddyClubActivity
 import com.mychangli.app.feature.lostfound.ui.LostFoundActivity
 import com.mychangli.app.feature.feedback.ui.FeedbackActivity
 import com.mychangli.app.feature.ledger.ui.AddSomethingAccountActivity
 import com.mychangli.app.feature.ledger.ui.FixSomethingAccountActivity
-import com.mychangli.app.feature.mooc.ui.MoocActivity
-import com.mychangli.app.feature.mooc.ui.MoocCoursePageActivity
 import com.mychangli.app.feature.resources.ResourceLibraryActivity
-import com.mychangli.app.feature.sports.ui.SportsReservationActivity
 import com.mychangli.app.feature.schedule.reminder.CourseReminderSettingsActivity
 import com.mychangli.app.feature.timetable.ui.TimeTableActivity
-import com.mychangli.app.freshNews.ui.LocalCampusPostDetailActivity
-import com.mychangli.app.freshNews.ui.LocalCampusPublishActivity
-import com.mychangli.app.freshNews.ui.UserHomeActivity
 import com.mychangli.app.profileSettings.ui.AboutActivity
 import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.core.privacy.ReleaseInformationActivity
-import com.mychangli.app.settings.ui.BindingUserActivity
-import com.mychangli.app.skin.ui.SkinSelectionActivity
 
 /**
  * 所有页面跳转逻辑都应卸载Route中，方便统一管理
  * 使用方法：Route.goxx()
  *
- * 目前应用唯一的登录入口为 BindingUserActivity（绑定学号）。
+ * 学校绑定、学校接口、校园地图、体育预约和支付在 V1 均没有路由目标。
  */
 object Route {
 
@@ -65,53 +49,6 @@ object Route {
         AccountAccess.openOrRequestLogin(context, LostFoundActivity.listIntent(context))
     }
 
-    fun goCampusActivityPlaceholder(context: Context) {
-        val intent = Intent(context, CampusActivityPlaceholderActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    fun goSportsReservation(context: Context) {
-        AccountAccess.openOrRequestLogin(context, Intent(context, SportsReservationActivity::class.java))
-    }
-
-    fun goBuddyClub(context: Context, campusMode: Boolean = false) {
-        context.startActivity(BuddyClubActivity.intent(context, campusMode = campusMode))
-    }
-
-    fun goBuddyActivityDetail(context: Context, activityId: String) {
-        if (activityId.isNotBlank()) context.startActivity(BuddyClubActivity.intent(context, activityId))
-    }
-
-    fun goCampusMap(context: Context) {
-        val intent = Intent(context, CampusMapActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    fun goUserHomeActivity(context: Context) {
-        val intent = Intent(context, UserHomeActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    fun goUserHomeActivity(context: Context, userId: Int) {
-        val intent = Intent(context, UserHomeActivity::class.java)
-        intent.putExtra("userId", userId)
-        context.startActivity(intent)
-    }
-
-    fun goClassInfo(context: Context) {
-        val intent = Intent(context, ClassInfoActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    fun goElectronic(context: Context) {
-        try {
-            val intent = Intent(context, ElectronicActivity::class.java)
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     fun goHome(context: Context) {
         val intent = Intent(context, MainActivity::class.java)
         context.startActivity(intent)
@@ -130,16 +67,6 @@ object Route {
         context.startActivity(intent)
     }
 
-    fun goScoreInquiry(context: Context) {
-        val intent = Intent(context, ScoreInquiryActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    fun goExamArrangement(context: Context) {
-        val intent = Intent(context, ExamArrangementActivity::class.java)
-        context.startActivity(intent)
-    }
-
     fun goCet(context: Context) {
         val intent = Intent(context, CetActivity::class.java)
         context.startActivity(intent)
@@ -150,46 +77,9 @@ object Route {
         context.startActivity(intent)
     }
 
-    /**
-     * 应用唯一登录入口：跳转到绑定学号页面。
-     *
-     * @param isSwitchAccount 是否是"切换学号"场景。true 时，绑定成功后会由 BindingUserActivity 负责
-     *   清理旧账号的内容缓存；进入绑定页前不会清除任何数据，避免中途放弃导致账号信息丢失。
-     */
-    fun goBindingUser(context: Context, isSwitchAccount: Boolean = false) {
-        val intent = Intent(context, BindingUserActivity::class.java)
-            .putExtra(BindingUserActivity.EXTRA_IS_SWITCH_ACCOUNT, isSwitchAccount)
-        context.startActivity(intent)
-    }
-
-    /**
-     * 强制清栈并跳转到绑定学号页面，用于 token 过期等场景。
-     */
-    fun goBindingUserForcibly(context: Context) {
-        val intent = Intent(context, BindingUserActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        context.startActivity(intent)
-    }
-
-    fun localCampusPublishIntent(context: Context): Intent =
-        Intent(context, LocalCampusPublishActivity::class.java)
-
-    fun goLocalCampusPublish(context: Context) {
-        context.startActivity(localCampusPublishIntent(context))
-    }
-
     fun goLocalCampusPostDetail(context: Context, postId: String) {
         if (postId.isBlank()) return
-        if (
-            com.mychangli.app.feature.lostfound.data.LostFoundRepository
-                .find(postId) != null
-        ) {
-            context.startActivity(LostFoundActivity.detailIntent(context, postId))
-            return
-        }
-        val intent = Intent(context, LocalCampusPostDetailActivity::class.java)
-            .putExtra(LocalCampusPostDetailActivity.EXTRA_POST_ID, postId)
-        context.startActivity(intent)
+        context.startActivity(LostFoundActivity.detailIntent(context, postId))
     }
 
     fun goContract(context: Context) {
@@ -237,31 +127,4 @@ object Route {
         context.startActivity(ReleaseInformationActivity.intent(context, type))
     }
 
-    fun goMooc(context: Context) {
-        val intent = Intent(context, MoocActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    /**
-     * 跳转到 Mooc 课程主页 WebView（自动注入 cookie，免登录）。
-     *
-     * @param courseId 课程 ID（已经 `cleanCourseId()` 后的纯数字/字母串）
-     */
-    fun goMoocCoursePage(context: Context, courseId: String) {
-        if (courseId.isBlank()) return
-        val intent = Intent(context, MoocCoursePageActivity::class.java).apply {
-            putExtra(MoocCoursePageActivity.EXTRA_COURSE_ID, courseId)
-        }
-        context.startActivity(intent)
-    }
-
-    fun goCalendar(context: Context) {
-        val intent = Intent(context, CalendarActivity::class.java)
-        context.startActivity(intent)
-    }
-
-    fun goSkinSecletion(context: Context) {
-        val intent = Intent(context, SkinSelectionActivity::class.java)
-        context.startActivity(intent)
-    }
 }

@@ -24,11 +24,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.mychangli.app.core.Route
 import com.mychangli.app.core.main.navigation.MainTabDestination
 import com.mychangli.app.core.main.navigation.MainTabNavigator
 import com.mychangli.app.core.theme.AppTheme
-import com.mychangli.app.feature.common.compose_ui.FunctionDestination
 import com.mychangli.app.feature.common.compose_ui.openFunctionShortcut
 import com.mychangli.app.feature.common.compose_ui.primaryFunctionShortcuts
 import com.mychangli.app.feature.common.ui.FeatureScreen
@@ -165,14 +163,10 @@ private fun OverviewTabRoute() {
 
     OverviewScreen(
         viewModel = viewModel,
-        onBindClick = { Route.goBindingUser(context) },
+        onBindClick = { },
         onQuickActionClick = { actionId ->
             val shortcut = primaryFunctionShortcuts().firstOrNull { it.id == actionId }
-            when {
-                shortcut != null -> openFunctionShortcut(context, shortcut.destination)
-                actionId == FunctionDestination.ScoreInquiry.name -> Route.goScoreInquiry(context)
-                actionId == FunctionDestination.Electronic.name -> Route.goElectronic(context)
-            }
+            if (shortcut != null) openFunctionShortcut(context, shortcut.destination)
         }
     )
 }

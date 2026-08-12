@@ -59,7 +59,7 @@ fun AccountGateScreen(
     onRegister: suspend (phone: String, password: String, nickname: String) -> Unit,
     onAuthenticated: () -> Unit = {},
     onContinueAsGuest: (() -> Unit)? = null,
-    reasonText: String = "登录后即可使用体育预约、失物招领、资料库和其他个人服务。课表与上课提醒可继续本地使用。",
+    reasonText: String = "登录后即可使用失物招领、资料库、反馈和其他我的长理自有服务。课表与上课提醒可继续本地使用。",
 ) {
     var registerMode by rememberSaveable { mutableStateOf(false) }
     var phone by rememberSaveable { mutableStateOf("") }
@@ -247,7 +247,7 @@ fun AccountGateScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "教务绑定只用于你主动查询课表、成绩与考试信息。学校账号密码、验证码、Cookie 和会话不会上传到我的长理后端，也不影响体育预约、失物招领或资料库使用。",
+                        text = "V1 账号仅用于我的长理自有服务。首发版不提供学校账号绑定、学校官方接口、真实体育预约或真实支付，也不会采集学校密码、验证码、Cookie 或会话。",
                         color = AppTheme.colors.secondaryTextColor,
                         fontSize = 13.sp,
                         lineHeight = 19.sp,

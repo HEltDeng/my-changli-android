@@ -533,7 +533,7 @@ private fun ResourceDetailScreen(
                         singleLine = false,
                     )
                     Text(
-                        "投诉会关联当前我的长理账号，后台不会公开你的手机号或预约识别学号。",
+                        "投诉会关联当前我的长理账号，后台不会公开你的手机号。",
                         color = AppTheme.colors.secondaryTextColor,
                         fontSize = 12.sp,
                     )

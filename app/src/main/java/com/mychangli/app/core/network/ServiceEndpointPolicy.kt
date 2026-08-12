@@ -19,8 +19,6 @@ object ServiceEndpointPolicy {
     fun isCampusToolsConfigured(): Boolean =
         isConfigured(BuildConfig.CAMPUS_TOOLS_API_BASE_URL)
 
-    fun isPlanetConfigured(): Boolean =
-        isConfigured(BuildConfig.PLANET_API_BASE_URL)
 }
 
 /** Prevents placeholder hosts from ever reaching DNS or the network stack. */

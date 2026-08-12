@@ -1,26 +1,22 @@
 package com.mychangli.app.core.privacy
 
 import android.webkit.CookieManager
-import com.dcelysia.csust_spider.core.RetrofitUtils as CsustRetrofitUtils
-import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.core.PlanetApplication
-import com.mychangli.app.core.security.SchoolSessionState
 import com.tencent.mmkv.MMKV
 
-/** Local-only account and school-data operations exposed from Settings. */
+/** Local-only data operations exposed from Settings in V1. */
 object AccountDataManager {
+    /**
+     * Removes legacy school credentials/session data left by an upgrade from the full build.
+     * V1 has no code path that reads or uses these stores.
+     */
     fun clearSchoolBinding() {
-        StudentInfoManager.clear()
-        SchoolSessionState.invalidate()
-        runCatching { CsustRetrofitUtils.ClearClient("moocClient") }
-        runCatching { CsustRetrofitUtils.ClearClient("EducationClient") }
+        MMKV.mmkvWithID("stu_info_cache").clearAll()
         MMKV.mmkvWithID("education_cache").clearAll()
         MMKV.mmkvWithID("csust_cookie_jar", MMKV.MULTI_PROCESS_MODE).clearAll()
         MMKV.mmkvWithID("MoocCookiejar").clearAll()
-        MMKV.mmkvWithID("import_cache").clearAll()
         CookieManager.getInstance().removeAllCookies(null)
         CookieManager.getInstance().flush()
-        PlanetApplication.clearSchoolDataCacheAll()
     }
 
     fun clearLocalLearningData() {

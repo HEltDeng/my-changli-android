@@ -3,6 +3,7 @@ package com.mychangli.app.core.network.campustools
 import android.util.Log
 import com.google.gson.Gson
 import com.mychangli.app.core.network.ServiceEndpointPolicy
+import com.mychangli.app.core.release.V1ReleasePolicy
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,12 @@ object RemoteConfigurationStore {
     }
 
     fun feature(key: String): FeatureAvailability {
+        if (V1ReleasePolicy.isHardClosed(key)) {
+            return FeatureAvailability(
+                status = "CLOSED",
+                message = V1ReleasePolicy.CLOSED_MESSAGE,
+            )
+        }
         if (!ServiceEndpointPolicy.isCampusToolsConfigured()) {
             return FeatureAvailability(
                 status = "CLOSED",

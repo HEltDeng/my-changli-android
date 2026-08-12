@@ -13,7 +13,9 @@ class FunctionCatalogTest {
         val lifeIds = lifeFunctionShortcuts().map(FunctionShortcut::id)
 
         assertFalse("map" in primaryIds)
-        assertFalse("map" in lifeIds)
+        assertFalse("calendar" in primaryIds)
+        assertFalse("electric" in lifeIds)
+        assertFalse("sports" in lifeIds)
         assertFalse("account" in secondaryIds)
         assertFalse("account" in lifeIds)
     }
@@ -22,8 +24,6 @@ class FunctionCatalogTest {
     fun `retained life tools remain reachable`() {
         val lifeIds = lifeFunctionShortcuts().map(FunctionShortcut::id)
 
-        assertTrue("electric" in lifeIds)
-        assertTrue("calendar" in lifeIds)
         assertTrue("lost_found" in lifeIds)
     }
 }
