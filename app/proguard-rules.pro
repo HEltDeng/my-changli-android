@@ -40,12 +40,18 @@
 
 # Authentication responses are also created by Gson reflection. Keep this
 # narrow response surface so successful Release auth can restore token/user.
--keepclassmembers class com.mychangli.app.core.network.campustools.ApiEnvelope,
-    com.mychangli.app.core.network.campustools.ApiErrorBody,
-    com.mychangli.app.core.network.campustools.AuthData,
-    com.mychangli.app.core.network.campustools.AuthUser {
-    <fields>;
-}
+# All production API response DTOs below are instantiated by Gson reflection.
+# Keeping the concrete classes prevents R8 full-mode horizontal class merging
+# and preserves their field names for the HTTPS backend contract.
+-keep class com.mychangli.app.core.network.campustools.ApiEnvelope { *; }
+-keep class com.mychangli.app.core.network.campustools.ApiErrorBody { *; }
+-keep class com.mychangli.app.core.network.campustools.AuthData { *; }
+-keep class com.mychangli.app.core.network.campustools.AuthUser { *; }
+-keep class com.mychangli.app.core.network.campustools.Remote** { *; }
+-keep class com.mychangli.app.core.network.campustools.*Result { *; }
+-keep class com.mychangli.app.core.network.campustools.Reservation** { *; }
+-keep class com.mychangli.app.core.network.campustools.PublicBootstrap { *; }
+-keep class com.mychangli.app.core.network.campustools.VersionCheckResponse { *; }
 -keep class com.mychangli.app.**.bean.** { *; }
 -keep class com.mychangli.app.**.model.** { *; }
 -keep class com.mychangli.app.**.dto.** { *; }

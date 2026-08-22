@@ -6,7 +6,6 @@ import com.mychangli.app.core.network.campustools.RemoteResource
 import com.mychangli.app.core.network.campustools.ResourceComplaintRequest
 import com.mychangli.app.core.network.campustools.authenticatedCall
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,7 +45,6 @@ object ResourceLibraryRepository {
     private const val STORE_ID = "resource_library_cache_v1"
     private val store by lazy { MMKV.mmkvWithID(STORE_ID) }
     private val gson = Gson()
-    private val listType = object : TypeToken<List<RemoteResource>>() {}.type
     private val mutableItems = MutableStateFlow<List<RemoteResource>>(emptyList())
     val items: StateFlow<List<RemoteResource>> = mutableItems.asStateFlow()
 
@@ -122,7 +120,8 @@ object ResourceLibraryRepository {
         "resources_${CampusToolsSession.currentUser?.id ?: "signed_out"}"
 
     private fun loadCache(): List<RemoteResource> = runCatching {
-        gson.fromJson<List<RemoteResource>>(store.decodeString(cacheKey()), listType)
+        gson.fromJson(store.decodeString(cacheKey()), Array<RemoteResource>::class.java)
+            ?.toList()
             .orEmpty()
     }.getOrDefault(emptyList())
 
