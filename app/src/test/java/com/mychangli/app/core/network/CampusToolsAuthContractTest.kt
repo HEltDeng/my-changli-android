@@ -14,6 +14,7 @@ import com.mychangli.app.core.network.campustools.ReservationProfileRequest
 import com.mychangli.app.core.network.campustools.ResourceComplaintRequest
 import com.mychangli.app.core.network.campustools.UpsertLostFoundRequest
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.google.gson.annotations.SerializedName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -98,23 +99,40 @@ class CampusToolsAuthContractTest {
 
     @Test
     fun successfulAuthEnvelopeRestoresPhoneAccountAndOpaqueToken() {
-        val envelope = gson.fromJson(
+        val envelopeType = object : TypeToken<ApiEnvelope<AuthData>>() {}.type
+        val envelope: ApiEnvelope<AuthData> = gson.fromJson(
             """
             {"ok":true,"data":{"token":"opaque-local-token","user":{
               "id":"internal-user-id","role":"USER","accountType":"PHONE",
               "nickname":"长理同学","phoneMasked":"191****0000","accountStatus":"ACTIVE"
             }}}
             """.trimIndent(),
-            ApiEnvelope::class.java,
+            envelopeType,
         )
         assertTrue(envelope.ok)
+        val auth = requireNotNull(envelope.data)
+        assertEquals("internal-user-id", auth.user.id)
+        assertEquals("PHONE", auth.user.accountType)
+        assertEquals("opaque-local-token", auth.token)
+    }
 
-        val typed = gson.fromJson(
-            gson.toJson(envelope.data),
+    @Test
+    fun authenticationResponseFieldsHaveStableGsonNames() {
+        val responseTypes = listOf(
+            ApiEnvelope::class.java,
+            com.mychangli.app.core.network.campustools.ApiErrorBody::class.java,
             AuthData::class.java,
+            com.mychangli.app.core.network.campustools.AuthUser::class.java,
         )
-        assertEquals("internal-user-id", typed.user.id)
-        assertEquals("PHONE", typed.user.accountType)
-        assertEquals("opaque-local-token", typed.token)
+
+        responseTypes.forEach { type ->
+            type.declaredFields
+                .filterNot { it.isSynthetic || java.lang.reflect.Modifier.isStatic(it.modifiers) }
+                .forEach { field ->
+                    val annotation = field.getAnnotation(SerializedName::class.java)
+                    assertNotNull("${type.simpleName}.${field.name}", annotation)
+                    assertEquals(field.name, annotation?.value)
+                }
+        }
     }
 }

@@ -29,12 +29,15 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 data class ApiEnvelope<T>(
-    val ok: Boolean,
-    val data: T? = null,
-    val error: ApiErrorBody? = null,
+    @SerializedName("ok") val ok: Boolean,
+    @SerializedName("data") val data: T? = null,
+    @SerializedName("error") val error: ApiErrorBody? = null,
 )
 
-data class ApiErrorBody(val code: String = "", val message: String = "")
+data class ApiErrorBody(
+    @SerializedName("code") val code: String = "",
+    @SerializedName("message") val message: String = "",
+)
 class CampusToolsApiException(
     val statusCode: Int,
     val errorCode: String,
@@ -43,23 +46,26 @@ class CampusToolsApiException(
 data class DeviceAuthRequest(
     @SerializedName("installationId") val installationId: String,
 )
-data class AuthData(val token: String, val user: AuthUser)
+data class AuthData(
+    @SerializedName("token") val token: String,
+    @SerializedName("user") val user: AuthUser,
+)
 data class AuthUser(
-    val id: String,
-    val role: String,
-    val accountType: String = "DEVICE",
-    val nickname: String = "长理同学",
-    val phoneMasked: String? = null,
-    val studentId: String? = null,
-    val realName: String? = null,
-    val campusVerified: Boolean = false,
-    val campusVerifiedAt: Long? = null,
-    val reservationStudentId: String? = null,
-    val reservationName: String? = null,
-    val reservationProfileConsentedAt: Long? = null,
-    val reservationProfileVersion: Int = 0,
-    val reservationProfileUpdatedAt: Long? = null,
-    val accountStatus: String = "ACTIVE",
+    @SerializedName("id") val id: String,
+    @SerializedName("role") val role: String,
+    @SerializedName("accountType") val accountType: String = "DEVICE",
+    @SerializedName("nickname") val nickname: String = "长理同学",
+    @SerializedName("phoneMasked") val phoneMasked: String? = null,
+    @SerializedName("studentId") val studentId: String? = null,
+    @SerializedName("realName") val realName: String? = null,
+    @SerializedName("campusVerified") val campusVerified: Boolean = false,
+    @SerializedName("campusVerifiedAt") val campusVerifiedAt: Long? = null,
+    @SerializedName("reservationStudentId") val reservationStudentId: String? = null,
+    @SerializedName("reservationName") val reservationName: String? = null,
+    @SerializedName("reservationProfileConsentedAt") val reservationProfileConsentedAt: Long? = null,
+    @SerializedName("reservationProfileVersion") val reservationProfileVersion: Int = 0,
+    @SerializedName("reservationProfileUpdatedAt") val reservationProfileUpdatedAt: Long? = null,
+    @SerializedName("accountStatus") val accountStatus: String = "ACTIVE",
 )
 data class RegisterRequest(
     @SerializedName("phone") val phone: String,

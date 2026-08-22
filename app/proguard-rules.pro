@@ -37,6 +37,15 @@
 -keepclassmembers class com.mychangli.app.core.network.campustools.**Request {
     <fields>;
 }
+
+# Authentication responses are also created by Gson reflection. Keep this
+# narrow response surface so successful Release auth can restore token/user.
+-keepclassmembers class com.mychangli.app.core.network.campustools.ApiEnvelope,
+    com.mychangli.app.core.network.campustools.ApiErrorBody,
+    com.mychangli.app.core.network.campustools.AuthData,
+    com.mychangli.app.core.network.campustools.AuthUser {
+    <fields>;
+}
 -keep class com.mychangli.app.**.bean.** { *; }
 -keep class com.mychangli.app.**.model.** { *; }
 -keep class com.mychangli.app.**.dto.** { *; }
