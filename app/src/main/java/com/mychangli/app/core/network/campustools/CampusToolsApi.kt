@@ -487,6 +487,7 @@ object CampusToolsSession {
     private const val STORE_ID = "campus_tools_session_v1"
     private const val KEY_INSTALLATION_ID = "installation_id"
     private const val KEY_TOKEN = "access_token"
+    private const val KEY_DEVICE_TOKEN = "device_access_token"
     private const val KEY_USER = "account_user"
     private val mutex = Mutex()
     private val store by lazy { MMKV.mmkvWithID(STORE_ID) }
@@ -529,6 +530,35 @@ object CampusToolsSession {
             }
         }
 
+    private var deviceToken: String?
+        get() {
+            val stored = store.decodeString(KEY_DEVICE_TOKEN)?.takeIf(String::isNotBlank) ?: return null
+            if (CredentialCipher.isEncrypted(stored)) {
+                return runCatching { CredentialCipher.decrypt(stored) }.getOrNull()
+                    ?: run {
+                        store.removeValueForKey(KEY_DEVICE_TOKEN)
+                        null
+                    }
+            }
+            val migrated = runCatching { CredentialCipher.encrypt(stored) }.getOrNull()
+            return if (!migrated.isNullOrBlank() && store.encode(KEY_DEVICE_TOKEN, migrated)) {
+                stored
+            } else {
+                store.removeValueForKey(KEY_DEVICE_TOKEN)
+                null
+            }
+        }
+        set(value) {
+            if (value.isNullOrBlank()) store.removeValueForKey(KEY_DEVICE_TOKEN)
+            else {
+                val encrypted = CredentialCipher.encrypt(value)
+                check(store.encode(KEY_DEVICE_TOKEN, encrypted))
+            }
+        }
+
+    internal val authorizationToken: String?
+        get() = token ?: deviceToken
+
     private var cachedUser: AuthUser?
         get() = store.decodeString(KEY_USER)
             ?.takeIf(String::isNotBlank)
@@ -544,7 +574,8 @@ object CampusToolsSession {
             it.accountType == "PHONE" && it.accountStatus == "ACTIVE"
         }
         if (savedToken.isNullOrBlank()) {
-            clearLocalSession()
+            clearPhoneSession()
+            ensureDeviceIdentityLocked()
             return@withLock
         }
         if (!ServiceEndpointPolicy.isCampusToolsConfigured()) {
@@ -561,12 +592,16 @@ object CampusToolsSession {
             val user = response.data.takeIf { response.ok }
                 ?: error(response.error?.message ?: "登录状态已失效")
             if (user.accountType != "PHONE" || user.accountStatus != "ACTIVE") {
-                clearLocalSession()
+                clearPhoneSession()
+                ensureDeviceIdentityLocked()
                 return@withLock
             }
             persistSignedIn(savedToken, user)
         } catch (cause: retrofit2.HttpException) {
-            if (cause.code() == 401 || cause.code() == 403) clearLocalSession()
+            if (cause.code() == 401 || cause.code() == 403) {
+                clearPhoneSession()
+                ensureDeviceIdentityLocked()
+            }
             else if (savedUser == null) mutableState.value = AccountSessionState.SignedOut
         } catch (_: Exception) {
             if (savedUser == null) mutableState.value = AccountSessionState.SignedOut
@@ -671,7 +706,8 @@ object CampusToolsSession {
 
     suspend fun logout() = mutex.withLock {
         runCatching { CampusToolsApiClient.authenticated.logout() }
-        clearLocalSession()
+        clearPhoneSession()
+        ensureDeviceIdentityLocked()
     }
 
     suspend fun deleteAccount(password: String) = mutex.withLock {
@@ -682,25 +718,56 @@ object CampusToolsSession {
         }
         response.data.takeIf { response.ok }
             ?: error(response.error?.message ?: "账号注销失败")
-        clearLocalSession()
+        clearPhoneSession()
+        ensureDeviceIdentityLocked()
     }
 
-    fun requireToken(): String = token ?: error("请先登录我的长理")
+    fun requireToken(): String = authorizationToken ?: error("服务身份尚未建立")
 
     fun invalidate() {
-        clearLocalSession()
+        clearPhoneSession()
+        deviceToken = null
     }
 
     private fun persistSignedIn(accessToken: String, user: AuthUser) {
+        check(user.accountType == "PHONE") { "Only phone accounts can enter the visible account session" }
+        deviceToken = null
         token = accessToken
         cachedUser = user
         mutableState.value = AccountSessionState.SignedIn(user)
     }
 
-    private fun clearLocalSession() {
+    private fun clearPhoneSession() {
         token = null
         cachedUser = null
         mutableState.value = AccountSessionState.SignedOut
+    }
+
+    private suspend fun ensureDeviceIdentityLocked() {
+        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return
+
+        val savedDeviceToken = deviceToken
+        if (!savedDeviceToken.isNullOrBlank()) {
+            try {
+                val response = CampusToolsApiClient.authenticated.me()
+                val user = response.data.takeIf { response.ok }
+                if (user?.accountType == "DEVICE" && user.accountStatus == "ACTIVE") return
+                deviceToken = null
+            } catch (cause: retrofit2.HttpException) {
+                if (cause.code() == 401 || cause.code() == 403) deviceToken = null
+                else return
+            } catch (_: Exception) {
+                return
+            }
+        }
+
+        val response = runCatching {
+            CampusToolsApiClient.unauthenticated.deviceAuth(DeviceAuthRequest(installationId))
+        }.getOrNull() ?: return
+        val auth = response.data.takeIf { response.ok } ?: return
+        if (auth.user.accountType == "DEVICE" && auth.user.accountStatus == "ACTIVE") {
+            deviceToken = auth.token
+        }
     }
 }
 
@@ -739,7 +806,7 @@ object CampusToolsApiClient {
     val authenticated: CampusToolsApi by lazy {
         val client = baseClient.newBuilder()
             .addInterceptor { chain ->
-                val token = CampusToolsSession.token
+                val token = CampusToolsSession.authorizationToken
                 val request = if (token.isNullOrBlank()) {
                     chain.request()
                 } else {

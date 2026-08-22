@@ -2,6 +2,7 @@ package com.mychangli.app.core.network
 
 import com.mychangli.app.core.network.campustools.ApiEnvelope
 import com.mychangli.app.core.network.campustools.AuthData
+import com.mychangli.app.core.network.campustools.DeviceAuthRequest
 import com.mychangli.app.core.network.campustools.LoginRequest
 import com.mychangli.app.core.network.campustools.RegisterRequest
 import com.google.gson.Gson
@@ -12,6 +13,14 @@ import org.junit.Test
 
 class CampusToolsAuthContractTest {
     private val gson = Gson()
+
+    @Test
+    fun deviceIdentityUsesOnlyTheOpaqueInstallationIdentifier() {
+        val request = gson.toJsonTree(DeviceAuthRequest("installation-id")).asJsonObject
+        assertEquals(setOf("installationId"), request.keySet())
+        assertFalse(request.has("phone"))
+        assertFalse(request.has("password"))
+    }
 
     @Test
     fun registrationAndLoginRequestsUseBackendContractWithoutCredentialLoggingFields() {

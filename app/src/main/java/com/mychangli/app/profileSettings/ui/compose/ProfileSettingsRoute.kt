@@ -459,7 +459,7 @@ private fun createSettingItems(): List<SettingItemUiModel> = buildList {
             icon = Icons.Outlined.NotificationsActive,
         )
     )
-    if (!BuildConfig.TOOLS_API_BASE_URL.contains(".invalid")) {
+    if (BuildConfig.LEGACY_SERVICES_ENABLED) {
         add(SettingItemUiModel.Option("6", "主题设置", Icons.Outlined.Palette))
     }
     add(SettingItemUiModel.Option("10", "意见反馈", Icons.Outlined.Feedback))

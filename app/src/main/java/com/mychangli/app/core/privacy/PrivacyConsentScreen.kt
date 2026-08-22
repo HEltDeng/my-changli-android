@@ -82,7 +82,7 @@ fun PrivacyConsentScreen(
                     lineHeight = 21.sp,
                 )
                 Text(
-                    text = "V1 不提供学校账号输入或学校接口入口；学号、学校密码、验证码、学校 Cookie 和学校 token 不会发送到“我的长理”自有后端。",
+                    text = "用户主动使用校园查询时，可输入本人学校账号及按学校登录流程出现的验证码；学号、学校密码、验证码、学校 Cookie 和学校 token 不会发送到“我的长理”自有后端。",
                     color = AppTheme.colors.secondaryTextColor,
                     fontSize = 14.sp,
                     lineHeight = 21.sp,

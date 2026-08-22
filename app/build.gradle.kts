@@ -39,52 +39,48 @@ val releaseSigningKeys = listOf(
 val hasReleaseSigningConfig = releaseSigningConfigFile?.isFile == true &&
     releaseSigningKeys.all { key -> releaseSigningProperties.getProperty(key).orEmpty().isNotBlank() }
 
-// 历史兼容接口 BaseUrl。没有明确环境配置时必须 fail closed，禁止回连上游项目服务。
+// 历史兼容接口只允许 Debug 显式配置。Release 统一指向同域禁用哨兵，
+// 并由客户端在网络栈前拦截，避免访问不存在的旧接口。
 // 值需以 "/" 结尾（Retrofit BaseUrl 要求）。
+val legacyDisabledBaseUrl = "https://api.mychangliapp.cn/api/v1/legacy-disabled/"
 val planetApiBaseUrlDebug: String = localProperties.getProperty("planet.apiBaseUrl.debug")
     ?: System.getenv("PLANET_API_BASE_URL_DEBUG")
     ?: "https://planet-api-debug.invalid/v1/"
-val planetApiBaseUrlRelease: String = localProperties.getProperty("planet.apiBaseUrl.release")
-    ?: System.getenv("PLANET_API_BASE_URL_RELEASE")
-    ?: "https://planet-api.invalid/v1/"
+val planetApiBaseUrlRelease = legacyDisabledBaseUrl
 val adsEnabled: Boolean = (
     localProperties.getProperty("ads.enabled")
         ?: System.getenv("ADS_ENABLED")
         ?: "false"
     ).trim().equals("true", ignoreCase = true)
-val communityApiBaseUrl: String = localProperties.getProperty("community.apiBaseUrl")
+val communityApiBaseUrlDebug: String = localProperties.getProperty("community.apiBaseUrl")
     ?: System.getenv("MY_CHANGLI_COMMUNITY_API_BASE_URL")
     ?: "https://community-api.invalid/app/"
-val communityCommentsBaseUrl: String = localProperties.getProperty("community.commentsBaseUrl")
+val communityCommentsBaseUrlDebug: String = localProperties.getProperty("community.commentsBaseUrl")
     ?: System.getenv("MY_CHANGLI_COMMUNITY_COMMENTS_BASE_URL")
     ?: "https://community-api.invalid/app/fresh_news/"
-val communityUserBaseUrl: String = localProperties.getProperty("community.userBaseUrl")
+val communityUserBaseUrlDebug: String = localProperties.getProperty("community.userBaseUrl")
     ?: System.getenv("MY_CHANGLI_COMMUNITY_USER_BASE_URL")
     ?: "https://community-api.invalid/users/"
-val toolsApiBaseUrl: String = localProperties.getProperty("tools.apiBaseUrl")
+val toolsApiBaseUrlDebug: String = localProperties.getProperty("tools.apiBaseUrl")
     ?: System.getenv("MY_CHANGLI_TOOLS_API_BASE_URL")
     ?: "https://tools-api.invalid/app/tools/"
+val legacyToolsEnabledDebug = !toolsApiBaseUrlDebug.contains(".invalid", ignoreCase = true)
 val campusToolsApiBaseUrlDebug: String =
     localProperties.getProperty("campusTools.apiBaseUrl.debug")
         ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_DEBUG")
         ?: "http://127.0.0.1:8787/api/v1/"
-val campusToolsApiBaseUrlRelease: String =
-    localProperties.getProperty("campusTools.apiBaseUrl.release")
-        ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_RELEASE")
-        ?: "https://campus-tools.invalid/api/v1/"
+val campusToolsApiBaseUrlRelease = "https://api.mychangliapp.cn/api/v1/"
 
 tasks.register("verifyReleaseEndpointSafety") {
     group = "verification"
     description = "Fails when a Release endpoint can reconnect to inherited production services."
+    notCompatibleWithConfigurationCache("Release endpoint verification uses script-local validation.")
     inputs.property(
         "releaseEndpoints",
         listOf(
             planetApiBaseUrlRelease,
             campusToolsApiBaseUrlRelease,
-            communityApiBaseUrl,
-            communityCommentsBaseUrl,
-            communityUserBaseUrl,
-            toolsApiBaseUrl,
+            legacyDisabledBaseUrl,
         ).joinToString("\n"),
     )
     doLast {
@@ -102,7 +98,17 @@ tasks.register("verifyReleaseEndpointSafety") {
             forbiddenHosts.any { forbidden -> endpoint.contains(forbidden, ignoreCase = true) }
         }) { "Release endpoints must not use inherited Planet services" }
         check(releaseEndpoints.all { it.startsWith("https://") }) {
-            "Release endpoints must use HTTPS or an HTTPS .invalid placeholder"
+            "Release endpoints must use HTTPS"
+        }
+        check(releaseEndpoints.none { endpoint ->
+            endpoint.contains(".invalid", ignoreCase = true) ||
+                endpoint.contains("localhost", ignoreCase = true) ||
+                endpoint.contains("127.0.0.1")
+        }) {
+            "Release endpoints must not contain placeholder or loopback hosts"
+        }
+        check(campusToolsApiBaseUrlRelease == "https://api.mychangliapp.cn/api/v1/") {
+            "Release Campus Tools endpoint must use the accepted production API"
         }
     }
 }
@@ -147,16 +153,17 @@ android {
             "\"$planetApiBaseUrlRelease\""
         )
         buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
-        buildConfigField("String", "COMMUNITY_API_BASE_URL", "\"$communityApiBaseUrl\"")
-        buildConfigField("String", "COMMUNITY_COMMENTS_BASE_URL", "\"$communityCommentsBaseUrl\"")
-        buildConfigField("String", "COMMUNITY_USER_BASE_URL", "\"$communityUserBaseUrl\"")
-        buildConfigField("String", "TOOLS_API_BASE_URL", "\"$toolsApiBaseUrl\"")
+        buildConfigField("String", "COMMUNITY_API_BASE_URL", "\"$legacyDisabledBaseUrl\"")
+        buildConfigField("String", "COMMUNITY_COMMENTS_BASE_URL", "\"$legacyDisabledBaseUrl\"")
+        buildConfigField("String", "COMMUNITY_USER_BASE_URL", "\"$legacyDisabledBaseUrl\"")
+        buildConfigField("String", "TOOLS_API_BASE_URL", "\"$legacyDisabledBaseUrl\"")
         buildConfigField(
             "String",
             "CAMPUS_TOOLS_API_BASE_URL",
             "\"$campusToolsApiBaseUrlRelease\""
         )
         buildConfigField("boolean", "RELEASE_USER_SURFACE", "false")
+        buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", "false")
     }
 
     buildTypes {
@@ -172,6 +179,11 @@ android {
                 "CAMPUS_TOOLS_API_BASE_URL",
                 "\"$campusToolsApiBaseUrlDebug\""
             )
+            buildConfigField("String", "COMMUNITY_API_BASE_URL", "\"$communityApiBaseUrlDebug\"")
+            buildConfigField("String", "COMMUNITY_COMMENTS_BASE_URL", "\"$communityCommentsBaseUrlDebug\"")
+            buildConfigField("String", "COMMUNITY_USER_BASE_URL", "\"$communityUserBaseUrlDebug\"")
+            buildConfigField("String", "TOOLS_API_BASE_URL", "\"$toolsApiBaseUrlDebug\"")
+            buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", legacyToolsEnabledDebug.toString())
         }
         release {
             isMinifyEnabled = true
@@ -195,6 +207,7 @@ android {
                 "CAMPUS_TOOLS_API_BASE_URL",
                 "\"$campusToolsApiBaseUrlRelease\""
             )
+            buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", "false")
         }
 
         create("benchmark") {
@@ -217,6 +230,7 @@ android {
                 "CAMPUS_TOOLS_API_BASE_URL",
                 "\"$campusToolsApiBaseUrlRelease\""
             )
+            buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", "false")
         }
     }
 
@@ -287,6 +301,10 @@ val verifyAuthorizedCsustDataGet by tasks.registering {
 
 tasks.named("preBuild").configure {
     dependsOn(verifyAuthorizedCsustDataGet)
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn("verifyReleaseEndpointSafety")
 }
 
 tasks.matching { task ->

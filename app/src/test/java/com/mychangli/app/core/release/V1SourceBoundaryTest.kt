@@ -100,11 +100,25 @@ class V1SourceBoundaryTest {
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
         assertTrue(build.contains("versionCode = 32"))
         assertTrue(build.contains("versionName = \"1.0.0\""))
-        assertTrue(build.contains("https://campus-tools.invalid/api/v1/"))
+        assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
+        assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
+        assertTrue(build.contains("Release endpoints must not contain placeholder or loopback hosts"))
 
         val main = appFile("src/main/java/com/mychangli/app/core/MainActivity.kt").readText()
         assertTrue(main.contains("PrivacyConsentScreen"))
         assertTrue(main.contains("PrivacyDeclinedScreen"))
+
+        val campusTools = appFile(
+            "src/main/java/com/mychangli/app/core/network/campustools/CampusToolsApi.kt",
+        ).readText()
+        assertTrue(campusTools.contains("deviceAuth(DeviceAuthRequest(installationId))"))
+        assertTrue(campusTools.contains("get() = token ?: deviceToken"))
+        assertTrue(campusTools.contains("Only phone accounts can enter the visible account session"))
+
+        val legacyNetwork = appFile(
+            "src/main/java/com/mychangli/app/utils/RetrofitUtils.kt",
+        ).readText()
+        assertTrue(legacyNetwork.contains("LegacyServiceGuardInterceptor()"))
     }
 
     @Test

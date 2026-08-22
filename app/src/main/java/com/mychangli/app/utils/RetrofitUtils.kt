@@ -6,6 +6,7 @@ import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.network.OkHttpHelper.AuthInterceptor
 import com.mychangli.app.core.network.interceptor.NetworkLogger
+import com.mychangli.app.core.network.LegacyServiceGuardInterceptor
 import com.mychangli.app.core.network.UnavailableEndpointInterceptor
 import com.mychangli.app.feature.mooc.cookie.PersistentCookieJar
 import okhttp3.OkHttpClient
@@ -39,6 +40,7 @@ object RetrofitUtils {
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
+            .addInterceptor(LegacyServiceGuardInterceptor())
             .addInterceptor(UnavailableEndpointInterceptor())
             .addInterceptor(NetworkLogger.getLoggingInterceptor())
             .addInterceptor(AuthInterceptor(object : AuthInterceptor.TokenExpiredHandler {

@@ -11,7 +11,9 @@ class NetworkSecurityPolicyTest {
     @Test
     fun `invalid endpoint is fail closed`() {
         assertFalse(ServiceEndpointPolicy.isConfigured("https://campus-tools.invalid/api/v1/"))
+        assertFalse(ServiceEndpointPolicy.isConfigured("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
         assertFalse(ServiceEndpointPolicy.isConfigured("not a url"))
+        assertTrue(ServiceEndpointPolicy.isConfigured("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(ServiceEndpointPolicy.isConfigured("https://example.com/api/"))
     }
 
