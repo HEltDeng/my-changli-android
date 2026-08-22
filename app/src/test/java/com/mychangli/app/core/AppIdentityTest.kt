@@ -7,7 +7,12 @@ import org.junit.Test
 class AppIdentityTest {
 
     @Test
-    fun debugBuildUsesIndependentApplicationId() {
-        assertEquals("com.mychangli.app.debug", BuildConfig.APPLICATION_ID)
+    fun buildUsesVariantAppropriateApplicationId() {
+        val expected = if (BuildConfig.DEBUG) {
+            "com.mychangli.app.debug"
+        } else {
+            "com.mychangli.app"
+        }
+        assertEquals(expected, BuildConfig.APPLICATION_ID)
     }
 }

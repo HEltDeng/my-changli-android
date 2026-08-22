@@ -31,6 +31,12 @@
 -keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
+
+# Production Retrofit request DTOs use Gson reflection. Keep only their JSON
+# fields stable under R8; class names and non-field members may still shrink.
+-keepclassmembers class com.mychangli.app.core.network.campustools.**Request {
+    <fields>;
+}
 -keep class com.mychangli.app.**.bean.** { *; }
 -keep class com.mychangli.app.**.model.** { *; }
 -keep class com.mychangli.app.**.dto.** { *; }

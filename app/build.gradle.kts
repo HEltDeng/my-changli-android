@@ -316,6 +316,11 @@ tasks.matching { task ->
 }
 
 androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variantBuilder ->
+        (variantBuilder as com.android.build.api.variant.HasHostTestsBuilder)
+            .hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]
+            ?.enable = true
+    }
     onVariants { variant ->
         variant.outputs.forEach { output ->
             val versionName = output.versionName.orNull ?: ""

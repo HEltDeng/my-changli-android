@@ -7,6 +7,7 @@ import com.mychangli.app.core.network.ServiceUnavailableException
 import com.mychangli.app.core.network.UnavailableEndpointInterceptor
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import com.google.gson.annotations.SerializedName
 import com.tencent.mmkv.MMKV
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -39,7 +40,9 @@ class CampusToolsApiException(
     val errorCode: String,
     override val message: String,
 ) : IllegalStateException(message)
-data class DeviceAuthRequest(val installationId: String)
+data class DeviceAuthRequest(
+    @SerializedName("installationId") val installationId: String,
+)
 data class AuthData(val token: String, val user: AuthUser)
 data class AuthUser(
     val id: String,
@@ -59,25 +62,25 @@ data class AuthUser(
     val accountStatus: String = "ACTIVE",
 )
 data class RegisterRequest(
-    val phone: String,
-    val password: String,
-    val nickname: String,
-    val installationId: String,
+    @SerializedName("phone") val phone: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("nickname") val nickname: String,
+    @SerializedName("installationId") val installationId: String,
 )
 data class LoginRequest(
-    val phone: String,
-    val password: String,
-    val installationId: String,
+    @SerializedName("phone") val phone: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("installationId") val installationId: String,
 )
-data class ProfileRequest(val nickname: String)
-data class DeleteAccountRequest(val password: String)
+data class ProfileRequest(@SerializedName("nickname") val nickname: String)
+data class DeleteAccountRequest(@SerializedName("password") val password: String)
 data class DeleteAccountResult(val deleted: Boolean)
 data class LogoutResult(val loggedOut: Boolean)
 data class FeedbackRequest(
-    val category: String,
-    val title: String,
-    val content: String,
-    val appVersion: String,
+    @SerializedName("category") val category: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("content") val content: String,
+    @SerializedName("appVersion") val appVersion: String,
 )
 data class FeedbackResult(
     val id: String,
@@ -103,9 +106,9 @@ data class RemoteFeedback(
     val events: List<RemoteFeedbackEvent> = emptyList(),
 )
 data class ReservationProfileRequest(
-    val studentId: String,
-    val name: String,
-    val consented: Boolean = true,
+    @SerializedName("studentId") val studentId: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("consented") val consented: Boolean = true,
 )
 data class ReservationRules(
     val maxActivePerDay: Int = 2,
@@ -165,10 +168,10 @@ data class RemoteAvailability(
 )
 
 data class CreateReservationRequest(
-    val venueId: String,
-    val date: String,
-    val timeSlot: String,
-    val courtNumber: Int,
+    @SerializedName("venueId") val venueId: String,
+    @SerializedName("date") val date: String,
+    @SerializedName("timeSlot") val timeSlot: String,
+    @SerializedName("courtNumber") val courtNumber: Int,
 )
 
 data class RemoteReservation(
@@ -223,8 +226,8 @@ data class ResourceActionResult(
     val viewedAt: Long? = null,
 )
 data class ResourceComplaintRequest(
-    val reason: String,
-    val detail: String = "",
+    @SerializedName("reason") val reason: String,
+    @SerializedName("detail") val detail: String = "",
 )
 data class ResourceComplaintResult(val id: String, val status: String)
 
@@ -249,23 +252,23 @@ data class RemoteLostFoundPost(
 )
 
 data class UpsertLostFoundRequest(
-    val clientLocalId: String? = null,
-    val type: String,
-    val itemName: String,
-    val category: String,
-    val location: String,
-    val eventDate: String,
-    val approximateTime: String? = null,
-    val description: String = "",
-    val claimNote: String = "",
-    val imageBase64: String? = null,
-    val status: String,
+    @SerializedName("clientLocalId") val clientLocalId: String? = null,
+    @SerializedName("type") val type: String,
+    @SerializedName("itemName") val itemName: String,
+    @SerializedName("category") val category: String,
+    @SerializedName("location") val location: String,
+    @SerializedName("eventDate") val eventDate: String,
+    @SerializedName("approximateTime") val approximateTime: String? = null,
+    @SerializedName("description") val description: String = "",
+    @SerializedName("claimNote") val claimNote: String = "",
+    @SerializedName("imageBase64") val imageBase64: String? = null,
+    @SerializedName("status") val status: String,
 )
 
 data class FavoriteResult(val postId: String, val isFavorite: Boolean)
 data class DeleteResult(val deleted: Boolean, val id: String)
 data class ClaimResult(val postId: String, val submitted: Boolean, val message: String)
-data class ReportRequest(val reason: String)
+data class ReportRequest(@SerializedName("reason") val reason: String)
 data class ReportResult(val postId: String, val recorded: Boolean)
 data class RemoteAnnouncement(
     val id: String,
