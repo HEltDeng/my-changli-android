@@ -211,7 +211,11 @@ private fun LostFoundRoute(
     val context = LocalContext.current
     var page by remember { mutableStateOf(initialPage) }
     var draft by remember { mutableStateOf(LostFoundDraftStore.load()) }
+    val operationNotice by LostFoundRepository.operationNotice.collectAsState()
     LaunchedEffect(Unit) { LostFoundRepository.refresh() }
+    LaunchedEffect(operationNotice) {
+        if (operationNotice != null) page = LostFoundPage.List
+    }
 
     fun updateDraft(next: LostFoundDraft, persist: Boolean) {
         draft = next
@@ -290,6 +294,19 @@ private fun LostFoundRoute(
                 onDeleted = { page = LostFoundPage.List },
             )
         }
+    }
+
+    operationNotice?.let { notice ->
+        AlertDialog(
+            onDismissRequest = LostFoundRepository::clearOperationNotice,
+            title = { Text("操作未提交") },
+            text = { Text(notice) },
+            confirmButton = {
+                Button(onClick = LostFoundRepository::clearOperationNotice) {
+                    Text("知道了")
+                }
+            },
+        )
     }
 }
 

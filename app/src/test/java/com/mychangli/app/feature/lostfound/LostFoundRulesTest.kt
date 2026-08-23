@@ -8,6 +8,8 @@ import com.mychangli.app.freshNews.data.local.model.LostFoundCategory
 import com.mychangli.app.freshNews.data.local.model.LostFoundStatus
 import com.mychangli.app.freshNews.data.local.model.LostFoundType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LostFoundRulesTest {
@@ -99,6 +101,31 @@ class LostFoundRulesTest {
                 serverPosts = null,
                 cachedPosts = listOf(active, deletedCache),
             ).map(LocalCampusPost::id).toSet(),
+        )
+    }
+
+    @Test
+    fun `restricted account rejection discards only unsynced local creation`() {
+        assertTrue(
+            LostFoundRules.shouldDiscardRejectedPending(
+                errorCode = "ACCOUNT_OPERATION_RESTRICTED",
+                pendingSync = true,
+                hasRemoteId = false,
+            ),
+        )
+        assertFalse(
+            LostFoundRules.shouldDiscardRejectedPending(
+                errorCode = "ACCOUNT_OPERATION_RESTRICTED",
+                pendingSync = true,
+                hasRemoteId = true,
+            ),
+        )
+        assertFalse(
+            LostFoundRules.shouldDiscardRejectedPending(
+                errorCode = "NETWORK_ERROR",
+                pendingSync = true,
+                hasRemoteId = false,
+            ),
         )
     }
 

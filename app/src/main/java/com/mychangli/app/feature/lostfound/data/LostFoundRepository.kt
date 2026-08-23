@@ -51,6 +51,8 @@ object LostFoundRepository {
     val sourcePosts: StateFlow<List<LocalCampusPost>> = _sourcePosts.asStateFlow()
     private val _connectionState = MutableStateFlow(LostFoundConnectionState.IDLE)
     val connectionState: StateFlow<LostFoundConnectionState> = _connectionState.asStateFlow()
+    private val _operationNotice = MutableStateFlow<String?>(null)
+    val operationNotice: StateFlow<String?> = _operationNotice.asStateFlow()
     private val _searchResults = MutableStateFlow<List<LocalCampusPost>?>(null)
     val searchResults: StateFlow<List<LocalCampusPost>?> = _searchResults.asStateFlow()
     private val remoteIds = mutableMapOf<String, String>()
@@ -69,6 +71,7 @@ object LostFoundRepository {
         activeAccountId = userId
         remoteIds.clear()
         _searchResults.value = null
+        _operationNotice.value = null
         updateLocalSnapshot()
         _connectionState.value = LostFoundConnectionState.IDLE
     }
@@ -79,6 +82,7 @@ object LostFoundRepository {
         activeAccountId = null
         remoteIds.clear()
         _searchResults.value = null
+        _operationNotice.value = null
         _sourcePosts.value = emptyList()
         _connectionState.value = LostFoundConnectionState.IDLE
     }
@@ -113,6 +117,10 @@ object LostFoundRepository {
 
     fun find(id: String): LocalCampusPost? =
         _sourcePosts.value.firstOrNull { it.id == id }?.takeIf(LostFoundRules::isLostFound)
+
+    fun clearOperationNotice() {
+        _operationNotice.value = null
+    }
 
     fun search(query: String) {
         val normalized = query.trim()
@@ -232,9 +240,9 @@ object LostFoundRepository {
     private fun syncPost(post: LocalCampusPost) {
         scope.launch {
             val info = post.lostFound ?: return@launch
+            val remoteId = remoteIds[post.id]
             runCatching {
                 val request = post.toRemoteRequest(includeImage = true)
-                val remoteId = remoteIds[post.id]
                 val remote = if (remoteId == null) {
                     authenticatedCall { it.createLostFound(request) }
                 } else {
@@ -248,6 +256,23 @@ object LostFoundRepository {
                     error.errorCode in setOf("POST_DELETED", "POST_NOT_FOUND")
                 ) {
                     discardServerDeletedPost(post)
+                    _connectionState.value = LostFoundConnectionState.ONLINE
+                } else if (
+                    error is CampusToolsApiException &&
+                    error.errorCode == "ACCOUNT_OPERATION_RESTRICTED"
+                ) {
+                    if (
+                        LostFoundRules.shouldDiscardRejectedPending(
+                            errorCode = error.errorCode,
+                            pendingSync = info.pendingSync,
+                            hasRemoteId = remoteId != null,
+                        )
+                    ) {
+                        discardServerDeletedPost(post)
+                    } else {
+                        runCatching { refreshRemoteOnly() }
+                    }
+                    _operationNotice.value = ACCOUNT_RESTRICTED_NOTICE
                     _connectionState.value = LostFoundConnectionState.ONLINE
                 } else {
                     _connectionState.value = LostFoundConnectionState.OFFLINE
@@ -269,6 +294,17 @@ object LostFoundRepository {
             } catch (error: CampusToolsApiException) {
                 if (error.errorCode == "POST_DELETED") {
                     discardServerDeletedPost(post)
+                    return@forEach
+                }
+                if (
+                    LostFoundRules.shouldDiscardRejectedPending(
+                        errorCode = error.errorCode,
+                        pendingSync = post.lostFound?.pendingSync == true,
+                        hasRemoteId = false,
+                    )
+                ) {
+                    discardServerDeletedPost(post)
+                    _operationNotice.value = ACCOUNT_RESTRICTED_NOTICE
                     return@forEach
                 }
                 throw error
@@ -417,6 +453,12 @@ object LostFoundRules {
         .distinctBy(LocalCampusPost::id)
         .sortedByDescending(LocalCampusPost::createdAtMillis)
 
+    fun shouldDiscardRejectedPending(
+        errorCode: String,
+        pendingSync: Boolean,
+        hasRemoteId: Boolean,
+    ): Boolean = errorCode == "ACCOUNT_OPERATION_RESTRICTED" && pendingSync && !hasRemoteId
+
     fun filter(
         posts: List<LocalCampusPost>,
         type: LostFoundListFilter,
@@ -495,3 +537,4 @@ object LostFoundRules {
 }
 
 private const val MAX_REMOTE_IMAGE_BYTES = 3L * 1024L * 1024L
+private const val ACCOUNT_RESTRICTED_NOTICE = "账号当前已被管理员限制，内容未发布到服务器。"
