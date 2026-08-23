@@ -66,6 +66,7 @@ import com.mychangli.app.core.ads.AdPlacement
 import com.mychangli.app.core.ads.AdSlot
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
+import com.mychangli.app.feature.common.compose_ui.FunctionDestination
 import com.mychangli.app.overview.ui.model.OverviewCourseUiModel
 import com.mychangli.app.overview.ui.model.OverviewExamUiModel
 import com.mychangli.app.overview.ui.model.OverviewHomeworkUiModel
@@ -78,6 +79,9 @@ import kotlinx.coroutines.delay
 private val HomeworkAccent = Color(0xFFEF9442)
 private val TestAccent = Color(0xFF4F7FED)
 private val IconContainerShape = RoundedCornerShape(14.dp)
+
+internal fun isScoreMetricId(metricId: String): Boolean =
+    metricId == "score" || metricId == FunctionDestination.ScoreInquiry.name
 
 @Composable
 fun OverviewScreen(
@@ -374,6 +378,7 @@ private fun MetricRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         metrics.forEach { metric ->
+            val isScoreMetric = isScoreMetricId(metric.id)
             Surface(
                 shape = RoundedCornerShape(28.dp),
                 color = colors.bgCardColor,
@@ -388,7 +393,7 @@ private fun MetricRow(
                         .padding(18.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (metric.id == "score") {
+                        if (isScoreMetric) {
                             IconButton(
                                 onClick = { scoreVisible = !scoreVisible },
                                 modifier = Modifier.size(38.dp),
@@ -440,11 +445,11 @@ private fun MetricRow(
                             verticalAlignment = Alignment.Bottom
                         ) {
                             AnimatedContent(
-                                targetState = if (metric.id == "score") scoreVisible else true,
+                                targetState = if (isScoreMetric) scoreVisible else true,
                                 transitionSpec = { fadeIn().togetherWith(fadeOut()) },
                                 label = "overview_score_value_visibility",
                             ) { visible ->
-                                val displayedValue = if (metric.id == "score" && !visible) "****" else metric.value
+                                val displayedValue = if (isScoreMetric && !visible) "****" else metric.value
                                 Text(
                                     text = displayedValue,
                                     color = metric.accentColor,
@@ -453,7 +458,7 @@ private fun MetricRow(
                                     maxLines = 1
                                 )
                             }
-                            if (metric.unit.isNotBlank() && (metric.id != "score" || scoreVisible)) {
+                            if (metric.unit.isNotBlank() && (!isScoreMetric || scoreVisible)) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = metric.unit,
@@ -465,7 +470,7 @@ private fun MetricRow(
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        if (metric.id == "score" && !scoreVisible) {
+                        if (isScoreMetric && !scoreVisible) {
                             Text(
                                 text = "平均分 ****",
                                 color = colors.secondaryTextColor,
@@ -484,11 +489,12 @@ private fun MetricRow(
 @Composable
 private fun MetricSubtitle(metric: OverviewMetricUiModel) {
     val colors = AppTheme.colors
-    val subtitlePages = remember(metric.subtitle, metric.secondarySubtitle) {
+    val isScoreMetric = isScoreMetricId(metric.id)
+    val subtitlePages = remember(metric.subtitle, metric.secondarySubtitle, isScoreMetric) {
         listOf(metric.subtitle, metric.secondarySubtitle)
             .filter { it.isNotBlank() }
             .map { subtitle ->
-                if (metric.id == "score") {
+                if (isScoreMetric) {
                     subtitle.replace(Regex("^平均分\\s*[:：]\\s*"), "平均分 ")
                 } else {
                     subtitle

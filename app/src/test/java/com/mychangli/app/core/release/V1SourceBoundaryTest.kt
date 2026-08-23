@@ -1,5 +1,7 @@
 package com.mychangli.app.core.release
 
+import com.mychangli.app.feature.common.compose_ui.FunctionDestination
+import com.mychangli.app.overview.ui.compose.isScoreMetricId
 import java.io.File
 import java.security.MessageDigest
 import org.junit.Assert.assertEquals
@@ -214,6 +216,13 @@ class V1SourceBoundaryTest {
     }
 
     @Test
+    fun `overview recognizes the production score metric id`() {
+        assertTrue(isScoreMetricId(FunctionDestination.ScoreInquiry.name))
+        assertTrue(isScoreMetricId("score"))
+        assertFalse(isScoreMetricId("not-a-score-metric"))
+    }
+
+    @Test
     fun `overview score card uses a privacy visibility control instead of the grade badge`() {
         val overview = appFile(
             "src/main/java/com/mychangli/app/overview/ui/compose/OverviewScreen.kt",
@@ -226,6 +235,8 @@ class V1SourceBoundaryTest {
         assertTrue(overview.contains("显示成绩"))
         assertTrue(overview.contains("overview_score_visibility_icon"))
         assertTrue(overview.contains("overview_score_value_visibility"))
+        assertTrue(overview.contains("FunctionDestination.ScoreInquiry.name"))
+        assertTrue(overview.contains("val isScoreMetric = isScoreMetricId(metric.id)"))
         assertFalse(overview.contains("成绩已隐藏"))
 
         val headerStart = overview.indexOf("Row(verticalAlignment = Alignment.CenterVertically)")
@@ -234,7 +245,7 @@ class V1SourceBoundaryTest {
         assertEquals(1, Regex("IconButton\\(").findAll(header).count())
         assertTrue(header.indexOf("IconButton(") < header.indexOf("text = metric.title"))
         val scoreControl = header.substring(
-            header.indexOf("if (metric.id == \"score\")"),
+            header.indexOf("if (isScoreMetric)"),
             header.indexOf("} else {"),
         )
         assertFalse(scoreControl.contains(".background("))
