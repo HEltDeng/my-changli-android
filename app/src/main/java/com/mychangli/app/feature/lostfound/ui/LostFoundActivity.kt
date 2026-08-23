@@ -2,6 +2,12 @@ package com.mychangli.app.feature.lostfound.ui
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -85,6 +91,7 @@ import com.mychangli.app.freshNews.data.local.model.LostFoundType
 import com.google.gson.Gson
 import com.tencent.mmkv.MMKV
 import coil.compose.AsyncImage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.LocalDate
 import java.util.UUID
@@ -1146,20 +1153,87 @@ private fun copyImageToPrivateStorage(context: Context, uri: Uri): String {
     val directory = File(context.filesDir, "lost_found_images").apply { mkdirs() }
     val target = File(directory, "${UUID.randomUUID()}.jpg")
     try {
-        context.contentResolver.openInputStream(uri).use { input ->
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "Unreadable image" }
-            target.outputStream().use { output ->
-                val buffer = ByteArray(16 * 1024)
-                var total = 0L
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    total += count
-                    require(total <= MAX_IMAGE_BYTES) { "Image is too large" }
-                    output.write(buffer, 0, count)
+            BitmapFactory.decodeStream(input, null, bounds)
+        }
+        require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported image" }
+        require(bounds.outWidth.toLong() * bounds.outHeight <= MAX_IMAGE_PIXELS) {
+            "Image dimensions are too large"
+        }
+        var sampleSize = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sampleSize > MAX_IMAGE_DECODE_DIMENSION) {
+            sampleSize *= 2
+        }
+        val decoded = resolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "Unreadable image" }
+            BitmapFactory.decodeStream(
+                input,
+                null,
+                BitmapFactory.Options().apply { inSampleSize = sampleSize },
+            )
+        }
+        requireNotNull(decoded) { "Unsupported image" }
+        val rotation = runCatching {
+            resolver.openInputStream(uri).use { input ->
+                requireNotNull(input)
+                when (
+                    ExifInterface(input).getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL,
+                    )
+                ) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
                 }
             }
+        }.getOrDefault(0f)
+        val oriented = if (rotation == 0f) decoded else {
+            Bitmap.createBitmap(
+                decoded,
+                0,
+                0,
+                decoded.width,
+                decoded.height,
+                Matrix().apply { postRotate(rotation) },
+                true,
+            ).also { decoded.recycle() }
         }
+        val scale = minOf(
+            1f,
+            MAX_IMAGE_DIMENSION.toFloat() / maxOf(oriented.width, oriented.height),
+        )
+        val scaled = if (scale == 1f) oriented else {
+            Bitmap.createScaledBitmap(
+                oriented,
+                (oriented.width * scale).toInt().coerceAtLeast(1),
+                (oriented.height * scale).toInt().coerceAtLeast(1),
+                true,
+            ).also { oriented.recycle() }
+        }
+        val jpeg = Bitmap.createBitmap(scaled.width, scaled.height, Bitmap.Config.ARGB_8888)
+        Canvas(jpeg).apply {
+            drawColor(Color.WHITE)
+            drawBitmap(scaled, 0f, 0f, null)
+        }
+        if (jpeg !== scaled) scaled.recycle()
+        var encoded = ByteArray(0)
+        for (quality in listOf(90, 82, 74, 66, 58, 50)) {
+            encoded = ByteArrayOutputStream().use { output ->
+                check(jpeg.compress(Bitmap.CompressFormat.JPEG, quality, output))
+                output.toByteArray()
+            }
+            if (encoded.size <= MAX_IMAGE_BYTES) break
+        }
+        jpeg.recycle()
+        require(encoded.isNotEmpty() && encoded.size <= MAX_IMAGE_BYTES) {
+            "Image cannot be compressed to the upload limit"
+        }
+        target.outputStream().use { it.write(encoded) }
     } catch (error: Throwable) {
         target.delete()
         throw error
@@ -1178,4 +1252,7 @@ private val LOST_FOUND_PLACE_SUGGESTIONS = listOf(
     "其他",
 )
 
-private const val MAX_IMAGE_BYTES = 8L * 1024L * 1024L
+private const val MAX_IMAGE_BYTES = 3L * 1024L * 1024L
+private const val MAX_IMAGE_DIMENSION = 1920
+private const val MAX_IMAGE_DECODE_DIMENSION = 4096
+private const val MAX_IMAGE_PIXELS = 50_000_000L

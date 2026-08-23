@@ -48,6 +48,8 @@ data class LocalLostFoundInfo(
     val isLocalPublisher: Boolean = true,
     val hasLocalClaimRequest: Boolean = false,
     val updatedAtMillis: Long = System.currentTimeMillis(),
+    /** True only while a local write still needs acknowledgement from the production API. */
+    val pendingSync: Boolean = false,
 ) {
     val effectiveType: LostFoundType
         get() = type ?: LostFoundType.FOUND

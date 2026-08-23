@@ -61,10 +61,52 @@ class LostFoundRulesTest {
         assertEquals("已归还", LostFoundRules.statusLabel(found.copy(status = LostFoundStatus.RETURNED)))
     }
 
+    @Test
+    fun `resolved posts leave ordinary lists and enter claimed list`() {
+        val waiting = post("waiting", LostFoundType.FOUND)
+        val claimed = post("claimed", LostFoundType.FOUND, status = LostFoundStatus.CLAIMED)
+        val returned = post("returned", LostFoundType.FOUND, status = LostFoundStatus.RETURNED)
+        val recovered = post("recovered", LostFoundType.LOST, status = LostFoundStatus.FOUND)
+        val posts = listOf(waiting, claimed, returned, recovered)
+
+        assertEquals(
+            listOf("waiting"),
+            LostFoundRules.filter(posts, LostFoundListFilter.ALL, "").map(LocalCampusPost::id),
+        )
+        assertEquals(
+            setOf("claimed", "returned", "recovered"),
+            LostFoundRules.filter(posts, LostFoundListFilter.CLAIMED, "")
+                .map(LocalCampusPost::id)
+                .toSet(),
+        )
+    }
+
+    @Test
+    fun `successful server snapshot removes records that only remain in cache`() {
+        val active = post("server-active", LostFoundType.FOUND)
+        val deletedCache = post("admin-deleted", LostFoundType.FOUND)
+
+        assertEquals(
+            listOf("server-active"),
+            LostFoundRules.synchronizedSnapshot(
+                serverPosts = listOf(active),
+                cachedPosts = listOf(active, deletedCache),
+            ).map(LocalCampusPost::id),
+        )
+        assertEquals(
+            setOf("server-active", "admin-deleted"),
+            LostFoundRules.synchronizedSnapshot(
+                serverPosts = null,
+                cachedPosts = listOf(active, deletedCache),
+            ).map(LocalCampusPost::id).toSet(),
+        )
+    }
+
     private fun post(
         id: String,
         type: LostFoundType?,
         favorite: Boolean = false,
+        status: LostFoundStatus? = null,
     ) = LocalCampusPost(
         id = id,
         title = "蓝色耳机",
@@ -79,7 +121,7 @@ class LostFoundRulesTest {
             foundDate = "2026-07-28",
             description = "带透明保护壳",
             type = type,
-            status = if (type == LostFoundType.LOST) {
+            status = status ?: if (type == LostFoundType.LOST) {
                 LostFoundStatus.SEARCHING
             } else {
                 LostFoundStatus.WAITING

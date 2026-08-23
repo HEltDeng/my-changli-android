@@ -136,14 +136,18 @@ object CampusCommunityLocalStore {
         tag = "失物招领",
         id = id,
         createdAtMillis = createdAtMillis,
-        lostFound = info.copy(updatedAtMillis = createdAtMillis),
+        lostFound = info.copy(updatedAtMillis = createdAtMillis, pendingSync = true),
     )
 
     fun updateLostFoundStatus(id: String, status: LostFoundStatus): LocalCampusPost? =
         updatePost(id) { post ->
             val info = post.lostFound ?: return@updatePost post
             if (!info.isLocalPublisher) post else post.copy(
-                lostFound = info.copy(status = status, updatedAtMillis = System.currentTimeMillis())
+                lostFound = info.copy(
+                    status = status,
+                    updatedAtMillis = System.currentTimeMillis(),
+                    pendingSync = true,
+                )
             )
         }
 
@@ -159,6 +163,7 @@ object CampusCommunityLocalStore {
                     lostFound = info.copy(
                         isLocalPublisher = true,
                         updatedAtMillis = System.currentTimeMillis(),
+                        pendingSync = true,
                     ),
                 )
             }

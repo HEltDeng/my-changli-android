@@ -2,6 +2,7 @@ package com.mychangli.app.feature.lostfound.data
 
 import android.content.Context
 import android.util.Base64
+import com.mychangli.app.core.network.campustools.CampusToolsApiException
 import com.mychangli.app.core.network.campustools.CampusToolsApiClient
 import com.mychangli.app.core.network.campustools.RemoteLostFoundPost
 import com.mychangli.app.core.network.campustools.ReportRequest
@@ -27,6 +28,7 @@ enum class LostFoundListFilter(val label: String) {
     ALL("全部"),
     LOST("寻物"),
     FOUND("招领"),
+    CLAIMED("已认领"),
 }
 
 enum class LostFoundConnectionState { IDLE, LOADING, ONLINE, OFFLINE }
@@ -92,14 +94,17 @@ object LostFoundRepository {
                     remoteIds.clear()
                     _sourcePosts.value = remote.map { it.toDisplayLocal() }
                 } else {
-                    migrateLegacyOwnerPosts()
+                    migratePendingPosts()
                     val remote = authenticatedCall { it.lostFound() }
                     applyRemoteSnapshot(remote)
                 }
                 _connectionState.value = LostFoundConnectionState.ONLINE
             }.onFailure {
                 _sourcePosts.value = if (activeAccountId == null) emptyList() else {
-                    CampusCommunityLocalStore.posts.value.filter(LostFoundRules::isLostFound)
+                    LostFoundRules.synchronizedSnapshot(
+                        serverPosts = null,
+                        cachedPosts = CampusCommunityLocalStore.posts.value,
+                    )
                 }
                 _connectionState.value = LostFoundConnectionState.OFFLINE
             }
@@ -237,22 +242,45 @@ object LostFoundRepository {
                 }
                 remoteIds[post.id] = remote.id
                 refreshRemoteOnly()
-            }.onFailure {
-                _connectionState.value = LostFoundConnectionState.OFFLINE
+            }.onFailure { error ->
+                if (
+                    error is CampusToolsApiException &&
+                    error.errorCode in setOf("POST_DELETED", "POST_NOT_FOUND")
+                ) {
+                    discardServerDeletedPost(post)
+                    _connectionState.value = LostFoundConnectionState.ONLINE
+                } else {
+                    _connectionState.value = LostFoundConnectionState.OFFLINE
+                }
             }
         }
     }
 
-    private suspend fun migrateLegacyOwnerPosts() {
+    private suspend fun migratePendingPosts() {
         val localPosts = CampusCommunityLocalStore.posts.value
             .filter(LostFoundRules::isLostFound)
             .filter { it.lostFound?.isLocalPublisher == true }
+            .filter { it.lostFound?.pendingSync == true }
         localPosts.forEach { post ->
-            val remote = authenticatedCall {
-                it.createLostFound(post.toRemoteRequest(includeImage = true))
+            val remote = try {
+                authenticatedCall {
+                    it.createLostFound(post.toRemoteRequest(includeImage = true))
+                }
+            } catch (error: CampusToolsApiException) {
+                if (error.errorCode == "POST_DELETED") {
+                    discardServerDeletedPost(post)
+                    return@forEach
+                }
+                throw error
             }
             remoteIds[post.id] = remote.id
         }
+    }
+
+    private fun discardServerDeletedPost(post: LocalCampusPost) {
+        CampusCommunityLocalStore.deleteLocalPost(post.id)
+        remoteIds.remove(post.id)
+        updateLocalSnapshot()
     }
 
     private suspend fun refreshRemoteOnly() {
@@ -264,12 +292,10 @@ object LostFoundRepository {
     private fun applyRemoteSnapshot(remote: List<RemoteLostFoundPost>) {
         remoteIds.clear()
         val mapped = remote.map { it.toDisplayLocal() }
-        val unsynced = CampusCommunityLocalStore.posts.value
-            .filter(LostFoundRules::isLostFound)
-            .filter { local -> mapped.none { it.id == local.id } }
-        val merged = (mapped + unsynced)
-            .distinctBy(LocalCampusPost::id)
-            .sortedByDescending(LocalCampusPost::createdAtMillis)
+        val merged = LostFoundRules.synchronizedSnapshot(
+            serverPosts = mapped,
+            cachedPosts = CampusCommunityLocalStore.posts.value,
+        )
         CampusCommunityLocalStore.replaceLostFoundPosts(merged)
         _sourcePosts.value = merged
     }
@@ -291,7 +317,12 @@ object LostFoundRepository {
         val image = info.imagePath
             ?.takeIf { includeImage && !it.startsWith("http://") && !it.startsWith("https://") }
             ?.let(::File)
-            ?.takeIf { it.isFile && it.length() <= 3L * 1024 * 1024 }
+            ?.takeIf(File::isFile)
+            ?.also {
+                require(it.length() <= MAX_REMOTE_IMAGE_BYTES) {
+                    "失物图片超过生产上传上限"
+                }
+            }
             ?.readBytes()
             ?.let { Base64.encodeToString(it, Base64.NO_WRAP) }
         return UpsertLostFoundRequest(
@@ -334,6 +365,7 @@ object LostFoundRepository {
             isLocalPublisher = isMine,
             hasLocalClaimRequest = hasClaimRequest,
             updatedAtMillis = updatedAtMillis,
+            pendingSync = false,
         )
         return LocalCampusPost(
             id = displayId,
@@ -376,6 +408,15 @@ object LostFoundRules {
     fun isLostFound(post: LocalCampusPost): Boolean =
         post.lostFound != null || post.tag == "失物招领"
 
+    /** A successful server list is authoritative; cache is used only when no response exists. */
+    fun synchronizedSnapshot(
+        serverPosts: List<LocalCampusPost>?,
+        cachedPosts: List<LocalCampusPost>,
+    ): List<LocalCampusPost> = (serverPosts ?: cachedPosts)
+        .filter(::isLostFound)
+        .distinctBy(LocalCampusPost::id)
+        .sortedByDescending(LocalCampusPost::createdAtMillis)
+
     fun filter(
         posts: List<LocalCampusPost>,
         type: LostFoundListFilter,
@@ -391,7 +432,12 @@ object LostFoundRules {
                     LostFoundListFilter.ALL -> true
                     LostFoundListFilter.LOST -> post.lostFound?.effectiveType == LostFoundType.LOST
                     LostFoundListFilter.FOUND -> post.lostFound?.effectiveType == LostFoundType.FOUND
+                    LostFoundListFilter.CLAIMED -> post.lostFound?.status in RESOLVED_STATUSES
                 }
+            }
+            .filter { post ->
+                type == LostFoundListFilter.CLAIMED ||
+                    post.lostFound?.status !in RESOLVED_STATUSES
             }
             .filter { !favoritesOnly || it.isFavorite }
             .filter { !mineOnly || it.lostFound?.isLocalPublisher == true }
@@ -440,4 +486,12 @@ object LostFoundRules {
             append(info.claimNote)
         }
     }
+
+    private val RESOLVED_STATUSES = setOf(
+        LostFoundStatus.CLAIMED,
+        LostFoundStatus.FOUND,
+        LostFoundStatus.RETURNED,
+    )
 }
+
+private const val MAX_REMOTE_IMAGE_BYTES = 3L * 1024L * 1024L
