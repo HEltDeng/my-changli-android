@@ -14,6 +14,7 @@ import com.mychangli.app.core.network.campustools.CampusToolsApiClient
 import com.mychangli.app.core.network.campustools.RemoteAppVersion
 import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.mychangli.app.core.theme.AppTheme
+import com.mychangli.app.core.web.PublicWebsiteNavigator
 import java.net.URI
 
 sealed interface VersionCheckResult {
@@ -118,6 +119,9 @@ object UpdateTargetPolicy {
 
 object AppUpdateNavigator {
     fun open(context: Context, rawUrl: String?): Boolean {
+        if (BuildConfig.RELEASE_USER_SURFACE) {
+            return PublicWebsiteNavigator.open(context, PublicWebsiteNavigator.DOWNLOAD_URL)
+        }
         if (!UpdateTargetPolicy.isSafeHttps(rawUrl)) return false
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(rawUrl)).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)

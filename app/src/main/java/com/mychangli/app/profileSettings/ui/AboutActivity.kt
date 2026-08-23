@@ -44,6 +44,7 @@ import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.AppUpdateNavigator
 import com.mychangli.app.core.update.VersionCheckResult
+import com.mychangli.app.core.web.PublicWebsiteNavigator
 import kotlinx.coroutines.launch
 
 class AboutActivity : ComponentActivity() {
@@ -101,7 +102,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
                         strokeWidth = strokeWidth
                     )
                 },
-                title = { Text("关于我们", color = AppTheme.colors.titleTopColor) },
+                title = { Text("关于我的长理", color = AppTheme.colors.titleTopColor) },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
                         Icon(
@@ -133,6 +134,23 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
                 lineHeight = 24.sp,
                 modifier = Modifier.padding(top = 18.dp, bottom = 20.dp),
             )
+            Text(
+                text = "开发者：我的长理个人开发者\n当前版本：${BuildConfig.VERSION_NAME}",
+                fontSize = 15.sp,
+                lineHeight = 23.sp,
+                color = AppTheme.colors.secondaryTextColor,
+                modifier = Modifier.padding(bottom = 10.dp),
+            )
+            Button(
+                onClick = {
+                    activity?.let {
+                        PublicWebsiteNavigator.open(it, PublicWebsiteNavigator.HOME_URL)
+                    }
+                },
+                modifier = Modifier.padding(bottom = 14.dp),
+            ) {
+                Text("访问我的长理官网")
+            }
             CheckUpdateSection(
                 checking = checking,
                 checkMessage = checkMessage,
@@ -225,7 +243,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
             BulletPoint(text = "成绩查询：学生可以直接在App内查看学期成绩。")
             BulletPoint(text = "课表定制：用户可以根据个人课表定制学习计划，方便日程管理。")
             BulletPoint(text = "资料库：集中访问往年试题、馆藏检索和学校官方资源。")
-            BulletPoint(text = "失物招领：在本机浏览、发布和管理寻物与招领信息。")
+            BulletPoint(text = "失物招领：通过我的长理生产服务同步浏览、发布和管理寻物与招领信息。")
             if (!BuildConfig.RELEASE_USER_SURFACE) {
                 BulletPoint(text = "场地预约：体验羽毛球和乒乓球的本地预约模拟流程。")
             }

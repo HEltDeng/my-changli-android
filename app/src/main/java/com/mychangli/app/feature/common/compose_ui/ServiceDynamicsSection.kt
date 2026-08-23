@@ -47,8 +47,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val AUTO_ADVANCE_MILLIS = 7_000L
-private const val INTERACTION_PAUSE_MILLIS = 10_000L
+private const val AUTO_ADVANCE_MILLIS = 2_000L
+private const val INTERACTION_PAUSE_MILLIS = 4_000L
 private const val LOOP_CENTER_PAGES = 10_000
 
 /**
@@ -89,8 +89,8 @@ fun virtualPageToRealIndex(
  * Unified "服务动态" area on the service page.
  *
  * A single update is a static card; two or more updates are presented as a
- * horizontal pager with a compact page indicator. Auto-advance pauses for at
- * least 10 seconds after any user drag or click.
+ * horizontal pager with a compact page indicator. Cards advance about every
+ * two seconds; a direct user drag or click pauses the loop briefly.
  */
 @Composable
 fun ServiceDynamicsSection(

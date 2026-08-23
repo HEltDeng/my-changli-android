@@ -299,7 +299,7 @@ private fun LostFoundRoute(
     operationNotice?.let { notice ->
         AlertDialog(
             onDismissRequest = LostFoundRepository::clearOperationNotice,
-            title = { Text("操作未提交") },
+            title = { Text("服务提示") },
             text = { Text(notice) },
             confirmButton = {
                 Button(onClick = LostFoundRepository::clearOperationNotice) {
@@ -406,6 +406,14 @@ private fun LostFoundListScreen(
                     Text(
                         "服务暂时不可用，正在显示本机缓存；恢复连接后会自动兼容旧数据。",
                         color = AppTheme.colors.secondaryTextColor,
+                        fontSize = 12.sp,
+                    )
+                }
+            } else if (connectionState == LostFoundConnectionState.RESTRICTED) {
+                item {
+                    Text(
+                        "账号当前受限，失物招领服务暂不可访问。",
+                        color = AppTheme.colors.errorRedColor,
                         fontSize = 12.sp,
                     )
                 }

@@ -1,6 +1,7 @@
 package com.mychangli.app.feature.resources
 
 import com.mychangli.app.core.network.campustools.CampusToolsSession
+import com.mychangli.app.core.network.campustools.CampusToolsApiException
 import com.mychangli.app.core.network.campustools.CampusToolsApiClient
 import com.mychangli.app.core.network.campustools.RemoteResource
 import com.mychangli.app.core.network.campustools.ResourceComplaintRequest
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 enum class ResourceListMode { ALL, FAVORITES, RECENT }
+
+internal fun shouldUseResourceOfflineCache(error: Throwable): Boolean =
+    error !is CampusToolsApiException || error.errorCode != "ACCOUNT_OPERATION_RESTRICTED"
 
 internal object ResourceLibraryFilters {
     fun apply(
@@ -72,6 +76,10 @@ object ResourceLibraryRepository {
         }
         result
     }.recoverCatching { cause ->
+        if (!shouldUseResourceOfflineCache(cause)) {
+            mutableItems.value = emptyList()
+            throw cause
+        }
         val cached = ResourceLibraryFilters.apply(loadCache(), query, category, mode)
         if (cached.isEmpty()) throw cause
         mutableItems.value = cached

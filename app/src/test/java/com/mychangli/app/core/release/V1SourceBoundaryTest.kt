@@ -142,4 +142,60 @@ class V1SourceBoundaryTest {
         val debugStrings = appFile("src/debug/res/values/strings.xml").readText()
         assertTrue(debugStrings.contains("<string name=\"app_name\">我的长理 QA</string>"))
     }
+
+    @Test
+    fun `profile hierarchy uses official website custom tabs and concise first level entries`() {
+        val profile = appFile(
+            "src/main/java/com/mychangli/app/profileSettings/ui/compose/ProfileSettingsRoute.kt",
+        ).readText()
+        listOf(
+            "我的长理官网（最新消息）",
+            "我的长理账号",
+            "绑定学号",
+            "上课提醒",
+            "检查更新",
+            "隐私与合规",
+            "账号与数据管理",
+        ).forEach { assertTrue(profile.contains(it)) }
+        assertFalse(profile.contains("上课提醒 & 桌面小组件"))
+
+        val websiteNavigator = appFile(
+            "src/main/java/com/mychangli/app/core/web/PublicWebsiteNavigator.kt",
+        ).readText()
+        listOf(
+            "https://mychangliapp.cn",
+            "https://mychangliapp.cn/download.html",
+            "https://mychangliapp.cn/privacy.html",
+            "https://mychangliapp.cn/terms.html",
+            "CustomTabsIntent.Builder()",
+        ).forEach { assertTrue(websiteNavigator.contains(it)) }
+    }
+
+    @Test
+    fun `service dynamics uses two second continuous cadence`() {
+        val dynamics = appFile(
+            "src/main/java/com/mychangli/app/feature/common/compose_ui/ServiceDynamicsSection.kt",
+        ).readText()
+        assertTrue(dynamics.contains("AUTO_ADVANCE_MILLIS = 2_000L"))
+        assertFalse(dynamics.contains("AUTO_ADVANCE_MILLIS = 7_000L"))
+    }
+
+    @Test
+    fun `bottom navigation removes rim gap and uses fine line icons`() {
+        val bottomBar = appFile(
+            "src/main/java/com/mychangli/app/core/main/ui/MainBottomBar.kt",
+        ).readText()
+        assertTrue(bottomBar.contains("edgeGlowColor = Color.Transparent"))
+        assertTrue(bottomBar.contains("tabBarContentPadding = PaddingValues(0.dp)"))
+        val floatingBar = appFile(
+            "src/main/java/com/mychangli/app/widget/view/FloatingTabBar.kt",
+        ).readText()
+        assertTrue(floatingBar.contains("verticalInset = 0.dp"))
+
+        listOf("ic_home.xml", "ic_unselect_home.xml").forEach { name ->
+            val icon = appFile("src/main/res/drawable/$name").readText()
+            assertTrue(icon.contains("android:strokeWidth=\"1.6\""))
+            assertTrue(icon.contains("android:fillColor=\"#00000000\""))
+        }
+    }
 }

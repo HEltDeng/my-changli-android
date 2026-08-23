@@ -1,7 +1,10 @@
 package com.mychangli.app.feature.resources
 
 import com.mychangli.app.core.network.campustools.RemoteResource
+import com.mychangli.app.core.network.campustools.CampusToolsApiException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ResourceLibraryFiltersTest {
@@ -69,5 +72,13 @@ class ResourceLibraryFiltersTest {
                 mode = ResourceListMode.RECENT,
             ).map(RemoteResource::id),
         )
+    }
+
+    @Test
+    fun `restricted account never receives offline resource cache`() {
+        assertFalse(shouldUseResourceOfflineCache(
+            CampusToolsApiException(403, "ACCOUNT_OPERATION_RESTRICTED", "账号受限"),
+        ))
+        assertTrue(shouldUseResourceOfflineCache(IllegalStateException("网络断开")))
     }
 }

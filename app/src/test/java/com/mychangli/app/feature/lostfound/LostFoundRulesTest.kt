@@ -2,6 +2,8 @@ package com.mychangli.app.feature.lostfound
 
 import com.mychangli.app.feature.lostfound.data.LostFoundListFilter
 import com.mychangli.app.feature.lostfound.data.LostFoundRules
+import com.mychangli.app.feature.lostfound.data.shouldUseLostFoundOfflineCache
+import com.mychangli.app.core.network.campustools.CampusToolsApiException
 import com.mychangli.app.freshNews.data.local.model.LocalCampusPost
 import com.mychangli.app.freshNews.data.local.model.LocalLostFoundInfo
 import com.mychangli.app.freshNews.data.local.model.LostFoundCategory
@@ -127,6 +129,14 @@ class LostFoundRulesTest {
                 hasRemoteId = false,
             ),
         )
+    }
+
+    @Test
+    fun `restricted account never receives offline lost-found cache`() {
+        assertFalse(shouldUseLostFoundOfflineCache(
+            CampusToolsApiException(403, "ACCOUNT_OPERATION_RESTRICTED", "账号受限"),
+        ))
+        assertTrue(shouldUseLostFoundOfflineCache(IllegalStateException("网络断开")))
     }
 
     private fun post(

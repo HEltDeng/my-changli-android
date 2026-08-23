@@ -78,13 +78,13 @@ fun MainBottomBar(
             backgroundColor = colors.bottomBarGlassColor,
             accessoryBackgroundColor = colors.bottomBarGlassColor,
             touchGlowColor = colors.commonColor,
-            edgeGlowColor = colors.bottomBarGlassEdgeColor
+            edgeGlowColor = Color.Transparent
         ),
         sizes = FloatingTabBarDefaults.sizes(
-            tabBarContentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            tabBarContentPadding = PaddingValues(0.dp),
             tabInlineContentPadding = PaddingValues(10.dp),
             tabExpandedContentPadding = PaddingValues(vertical = 12.dp, horizontal = 0.dp),
-            tabSpacing = 4.dp
+            tabSpacing = 0.dp
         )
     ) {
         bottomBarItems.forEach { item ->

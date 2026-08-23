@@ -1,5 +1,6 @@
 package com.mychangli.app.profileSettings.ui.compose
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,25 +21,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Feedback
-import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,52 +54,58 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.mychangli.app.BuildConfig
 import com.mychangli.app.R
 import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.mychangli.app.common.data.local.mmkv.UserInfoManager
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.Route
-import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.core.network.campustools.AccountSessionState
 import com.mychangli.app.core.network.campustools.CampusToolsSession
+import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
+import com.mychangli.app.core.update.AppUpdateChecker
+import com.mychangli.app.core.update.AppUpdatePrompt
+import com.mychangli.app.core.update.VersionCheckResult
+import com.mychangli.app.core.web.PublicWebsiteNavigator
 import com.mychangli.app.profileSettings.ui.model.SettingItemUiModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.launch
 
-private const val OPEN_SOURCE_URL = "https://github.com/CreaMakers/changli-planet-app"
+private enum class ProfilePage { MAIN, PRIVACY, ACCOUNT_DATA }
 
 private data class ProfileBindingSnapshot(
     val studentId: String,
-    val isBound: Boolean
+    val isBound: Boolean,
 )
 
 private fun readProfileBindingSnapshot(): ProfileBindingSnapshot {
     val isBound = StudentInfoManager.hasCompleteBinding
     return ProfileBindingSnapshot(
         studentId = StudentInfoManager.studentId.takeIf { isBound }.orEmpty(),
-        isBound = isBound
+        isBound = isBound,
     )
 }
 
 @Composable
-fun ProfileSettingsRoute(
-    modifier: Modifier = Modifier
-) {
+fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+    var page by remember { mutableStateOf(ProfilePage.MAIN) }
     var bindingSnapshot by remember { mutableStateOf(readProfileBindingSnapshot()) }
-    val studentId = bindingSnapshot.studentId
-    val isBound = bindingSnapshot.isBound
-    val studentIdLabel = remember(studentId) { maskedStudentId(studentId) }
+    var showCacheDialog by remember { mutableStateOf(false) }
+    var updateResult by remember { mutableStateOf<VersionCheckResult?>(null) }
+    var updateMessage by remember { mutableStateOf<String?>(null) }
+    var checkingUpdate by remember { mutableStateOf(false) }
     val accountState by CampusToolsSession.state.collectAsState()
     val accountUser = (accountState as? AccountSessionState.SignedIn)?.user
-    val avatarUrl = UserInfoManager.userAvatar.takeIf { it.isNotBlank() }
-    var showCacheDialog by remember { mutableStateOf(false) }
+    val studentIdLabel = remember(bindingSnapshot.studentId) {
+        maskedStudentId(bindingSnapshot.studentId)
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -108,55 +117,134 @@ fun ProfileSettingsRoute(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    ProfileSettingsScreen(
-        modifier = modifier,
-        items = createSettingItems(),
-        studentIdLabel = studentIdLabel,
-        displayName = accountUser?.nickname ?: "长理同学",
-        accountLabel = accountUser?.phoneMasked ?: "我的长理账号",
-        avatarData = avatarUrl,
-        isBound = isBound,
-        onItemClick = { item ->
-            if (item.id == "4") {
-                showCacheDialog = true
-            } else {
-                handleSettingItemClick(context, item)
-            }
-        },
-        onPrimaryClick = {
-            // 切换学号 / 绑定学号均直接跳转绑定页，旧数据等绑定成功后再清理。
-            if (isBound) {
-                Route.goBindingUser(context, isSwitchAccount = true)
-            } else {
-                Route.goBindingUser(context)
-            }
-        }
-    )
+    BackHandler(enabled = page != ProfilePage.MAIN) { page = ProfilePage.MAIN }
+
+    when (page) {
+        ProfilePage.MAIN -> ProfileSettingsScreen(
+            modifier = modifier,
+            mainItems = createMainSettingItems(checkingUpdate),
+            secondaryItems = createSecondarySettingItems(),
+            studentIdLabel = studentIdLabel,
+            displayName = accountUser?.nickname ?: "长理同学",
+            accountLabel = accountUser?.phoneMasked ?: "我的长理账号",
+            avatarData = UserInfoManager.userAvatar.takeIf { it.isNotBlank() },
+            isBound = bindingSnapshot.isBound,
+            onWebsiteClick = {
+                if (!PublicWebsiteNavigator.open(context, PublicWebsiteNavigator.HOME_URL)) {
+                    updateMessage = "暂时无法打开官网"
+                }
+            },
+            onItemClick = { item ->
+                when (item.id) {
+                    "account" -> Route.goAccountCenter(context)
+                    "bind" -> Route.goBindingUser(context)
+                    "reminders" -> Route.goCourseReminders(context)
+                    "update" -> if (!checkingUpdate) {
+                        checkingUpdate = true
+                        scope.launch {
+                            updateResult = AppUpdateChecker.check()
+                            if (updateResult === VersionCheckResult.Latest) {
+                                updateMessage = "当前已是最新版本"
+                                updateResult = null
+                            } else if (updateResult === VersionCheckResult.Unavailable) {
+                                updateMessage = "暂时无法检查更新，请稍后再试"
+                                updateResult = null
+                            }
+                            checkingUpdate = false
+                        }
+                    }
+                    "privacy" -> page = ProfilePage.PRIVACY
+                    "account-data" -> page = ProfilePage.ACCOUNT_DATA
+                }
+            },
+        )
+
+        ProfilePage.PRIVACY -> ProfileSubPage(
+            modifier = modifier,
+            title = "隐私与合规",
+            subtitle = "产品信息、政策与数据清单",
+            items = createPrivacyItems(),
+            onBack = { page = ProfilePage.MAIN },
+            onItemClick = { item ->
+                when (item.id) {
+                    "about" -> Route.goAbout(context)
+                    "privacy-policy" -> if (!PublicWebsiteNavigator.open(
+                            context,
+                            PublicWebsiteNavigator.PRIVACY_URL,
+                        )) updateMessage = "暂时无法打开隐私政策"
+                    "terms" -> if (!PublicWebsiteNavigator.open(
+                            context,
+                            PublicWebsiteNavigator.TERMS_URL,
+                        )) updateMessage = "暂时无法打开用户协议"
+                    "third-party" -> Route.goReleaseInformation(
+                        context,
+                        ReleaseDocumentType.THIRD_PARTY,
+                    )
+                    "personal-information" -> Route.goReleaseInformation(
+                        context,
+                        ReleaseDocumentType.PERSONAL_INFORMATION,
+                    )
+                }
+            },
+        )
+
+        ProfilePage.ACCOUNT_DATA -> ProfileSubPage(
+            modifier = modifier,
+            title = "账号与数据管理",
+            subtitle = "管理账号与本机缓存",
+            items = createAccountDataItems(),
+            onBack = { page = ProfilePage.MAIN },
+            onItemClick = { item ->
+                when (item.id) {
+                    "delete-account" -> Route.goAccountCenter(context)
+                    "clear-cache" -> showCacheDialog = true
+                }
+            },
+        )
+    }
 
     if (showCacheDialog) {
         ConfirmDialog(
-            title = "清除工具缓存",
-            content = "确定清除实用工具产生的本地缓存吗？",
+            title = "清除缓存",
+            content = "确定清除实用工具产生的本地缓存吗？账号登录状态不会受到影响。",
             onDismiss = { showCacheDialog = false },
             onConfirm = {
                 PlanetApplication.clearContentCache()
                 showCacheDialog = false
-            }
+            },
         )
+    }
+
+    (updateResult as? VersionCheckResult.Available)?.let { update ->
+        AppUpdatePrompt(
+            update = update,
+            onLater = { updateResult = null },
+            onPrimaryAction = {
+                updateResult = null
+                if (!PublicWebsiteNavigator.open(context, PublicWebsiteNavigator.DOWNLOAD_URL)) {
+                    updateMessage = "暂时无法打开官网下载页"
+                }
+            },
+        )
+    }
+
+    updateMessage?.let { message ->
+        InformationDialog(message = message, onDismiss = { updateMessage = null })
     }
 }
 
 @Composable
 private fun ProfileSettingsScreen(
-    items: List<SettingItemUiModel>,
+    mainItems: List<SettingItemUiModel>,
+    secondaryItems: List<SettingItemUiModel>,
     studentIdLabel: String,
     avatarData: Any?,
     isBound: Boolean,
+    onWebsiteClick: () -> Unit,
     onItemClick: (SettingItemUiModel.Option) -> Unit,
-    onPrimaryClick: () -> Unit,
     displayName: String = "长理同学",
     accountLabel: String = "我的长理账号",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
@@ -165,38 +253,91 @@ private fun ProfileSettingsScreen(
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp),
     ) {
         Text(
             text = "我的",
             color = AppTheme.colors.primaryTextColor,
             fontSize = 30.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(top = 16.dp, start = 4.dp)
+            modifier = Modifier.padding(top = 16.dp, start = 4.dp),
         )
         Text(
             text = "账号与应用设置",
             color = AppTheme.colors.secondaryTextColor,
             fontSize = 14.sp,
-            modifier = Modifier.padding(top = 2.dp, start = 4.dp)
+            modifier = Modifier.padding(top = 2.dp, start = 4.dp),
         )
-
         Spacer(modifier = Modifier.height(18.dp))
         ProfileHeader(
             studentIdLabel = studentIdLabel,
             displayName = displayName,
             accountLabel = accountLabel,
             avatarData = avatarData,
-            isBound = isBound
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        SettingsCard(
-            items = items,
             isBound = isBound,
-            onItemClick = onItemClick,
-            onPrimaryClick = onPrimaryClick
         )
+        Spacer(modifier = Modifier.height(14.dp))
+        WebsiteEntryCard(onClick = onWebsiteClick)
+        Spacer(modifier = Modifier.height(14.dp))
+        SettingsCard(items = mainItems, onItemClick = onItemClick)
+        Spacer(modifier = Modifier.height(14.dp))
+        SettingsCard(items = secondaryItems, onItemClick = onItemClick)
+        Spacer(modifier = Modifier.height(112.dp))
+    }
+}
+
+@Composable
+private fun ProfileSubPage(
+    title: String,
+    subtitle: String,
+    items: List<SettingItemUiModel>,
+    onBack: () -> Unit,
+    onItemClick: (SettingItemUiModel.Option) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(AppTheme.colors.bgPrimaryColor)
+            .verticalScroll(rememberScrollState())
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 10.dp),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = AppTheme.colors.bgCardColor,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clickable(onClick = onBack),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ArrowBack,
+                    contentDescription = "返回",
+                    tint = AppTheme.colors.iconPrimaryColor,
+                    modifier = Modifier.padding(10.dp),
+                )
+            }
+            Column(modifier = Modifier.padding(start = 12.dp)) {
+                Text(
+                    text = title,
+                    color = AppTheme.colors.primaryTextColor,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = subtitle,
+                    color = AppTheme.colors.secondaryTextColor,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(18.dp))
+        SettingsCard(items = items, onItemClick = onItemClick)
         Spacer(modifier = Modifier.height(112.dp))
     }
 }
@@ -207,17 +348,17 @@ private fun ProfileHeader(
     displayName: String,
     accountLabel: String,
     avatarData: Any?,
-    isBound: Boolean
+    isBound: Boolean,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = AppTheme.colors.bgTopBarColor,
-        border = BorderStroke(1.dp, AppTheme.colors.outlineLowContrastColor)
+        border = BorderStroke(1.dp, AppTheme.colors.outlineLowContrastColor),
     ) {
         Row(
             modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -231,13 +372,12 @@ private fun ProfileHeader(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(CircleShape)
+                    .clip(CircleShape),
             )
-
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 16.dp)
+                    .padding(start = 16.dp),
             ) {
                 Text(
                     text = displayName,
@@ -245,7 +385,7 @@ private fun ProfileHeader(
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = accountLabel,
@@ -253,7 +393,7 @@ private fun ProfileHeader(
                     fontSize = 14.sp,
                     modifier = Modifier.padding(top = 4.dp),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = studentIdLabel,
@@ -261,19 +401,19 @@ private fun ProfileHeader(
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 3.dp),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Surface(
                     color = AppTheme.colors.bgButtonLowlightColor,
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.padding(top = 10.dp)
+                    modifier = Modifier.padding(top = 10.dp),
                 ) {
                     Text(
                         text = if (isBound) "已绑定学号" else "未绑定学号",
                         color = AppTheme.colors.functionalTextColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                     )
                 }
             }
@@ -282,51 +422,74 @@ private fun ProfileHeader(
 }
 
 @Composable
+private fun WebsiteEntryCard(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(22.dp),
+        color = AppTheme.colors.bgButtonColor,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Language,
+                contentDescription = null,
+                tint = AppTheme.colors.textButtonColor,
+                modifier = Modifier.size(26.dp),
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 14.dp),
+            ) {
+                Text(
+                    text = "我的长理官网（最新消息）",
+                    color = AppTheme.colors.textButtonColor,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "更新公告、功能介绍、使用说明与联系反馈",
+                    color = AppTheme.colors.textButtonColor.copy(alpha = 0.82f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+            Icon(
+                imageVector = Icons.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = AppTheme.colors.textButtonColor,
+            )
+        }
+    }
+}
+
+@Composable
 private fun SettingsCard(
     items: List<SettingItemUiModel>,
-    isBound: Boolean,
     onItemClick: (SettingItemUiModel.Option) -> Unit,
-    onPrimaryClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = AppTheme.colors.bgCardColor,
-        border = BorderStroke(1.dp, AppTheme.colors.outlineLowContrastColor)
+        border = BorderStroke(1.dp, AppTheme.colors.outlineLowContrastColor),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)
-        ) {
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
             items.forEach { item ->
                 when (item) {
                     is SettingItemUiModel.Header -> SettingHeaderItem(item)
                     is SettingItemUiModel.Option -> SettingOptionItem(
                         item = item,
-                        onClick = { onItemClick(item) }
+                        onClick = { onItemClick(item) },
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = onPrimaryClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppTheme.colors.bgButtonColor,
-                    contentColor = AppTheme.colors.textButtonColor
-                ),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Text(
-                    text = if (isBound) "切换学号" else "绑定学号",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -340,14 +503,14 @@ private fun SettingHeaderItem(item: SettingItemUiModel.Header) {
         color = AppTheme.colors.greyTextColor,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp)
+            .padding(top = 10.dp, bottom = 4.dp),
     )
 }
 
 @Composable
 private fun SettingOptionItem(
     item: SettingItemUiModel.Option,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -356,24 +519,23 @@ private fun SettingOptionItem(
             .heightIn(min = 56.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 10.dp)
+            .padding(horizontal = 6.dp, vertical = 10.dp),
     ) {
         item.icon?.let { imageVector ->
             Surface(
                 modifier = Modifier.size(36.dp),
                 shape = RoundedCornerShape(10.dp),
-                color = AppTheme.colors.bgButtonLowlightColor
+                color = AppTheme.colors.bgButtonLowlightColor,
             ) {
                 Icon(
                     imageVector = imageVector,
                     contentDescription = null,
                     tint = AppTheme.colors.functionalTextColor,
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(8.dp),
                 )
             }
             Spacer(modifier = Modifier.size(12.dp))
         }
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
@@ -395,7 +557,7 @@ private fun SettingOptionItem(
             imageVector = Icons.Outlined.KeyboardArrowRight,
             contentDescription = null,
             tint = AppTheme.colors.iconSecondaryColor,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(22.dp),
         )
     }
 }
@@ -405,7 +567,7 @@ private fun ConfirmDialog(
     title: String,
     content: String,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
 ) {
     AlertDialog(
         containerColor = AppTheme.colors.bgCardColor,
@@ -423,62 +585,69 @@ private fun ConfirmDialog(
             TextButton(onClick = onDismiss) {
                 Text("取消", color = AppTheme.colors.greyTextColor, fontSize = 16.sp)
             }
-        }
+        },
     )
 }
 
-private fun handleSettingItemClick(
-    context: android.content.Context,
-    item: SettingItemUiModel.Option
-) {
-    when (item.id) {
-        "11" -> Route.goAccountCenter(context)
-        "5" -> Route.goBindingUser(context)
-        "6" -> Route.goSkinSecletion(context)
-        "9" -> Route.goWebView(context, OPEN_SOURCE_URL)
-        "10" -> Route.goFeedback(context)
-        "12" -> Route.goCourseReminders(context)
-        "13" -> Route.goAbout(context)
-        "14" -> Route.goReleaseInformation(context, ReleaseDocumentType.PRIVACY)
-        "15" -> Route.goReleaseInformation(context, ReleaseDocumentType.AGREEMENT)
-        "16" -> Route.goReleaseInformation(context, ReleaseDocumentType.THIRD_PARTY)
-        "17" -> Route.goReleaseInformation(context, ReleaseDocumentType.PERSONAL_INFORMATION)
-        "18" -> Route.goReleaseInformation(context, ReleaseDocumentType.ACCOUNT_DATA)
-    }
+@Composable
+private fun InformationDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        containerColor = AppTheme.colors.bgCardColor,
+        onDismissRequest = onDismiss,
+        title = { Text("检查更新", fontWeight = FontWeight.Bold) },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("知道了") } },
+    )
 }
 
-private fun createSettingItems(): List<SettingItemUiModel> = buildList {
-    add(SettingItemUiModel.Header("主要设置"))
-    add(SettingItemUiModel.Option("4", "清除缓存", Icons.Outlined.DeleteOutline))
-    add(SettingItemUiModel.Option("11", "我的长理账号", Icons.Outlined.AccountCircle))
-    add(SettingItemUiModel.Option("5", "绑定学号", Icons.Outlined.AccountCircle))
-    add(
-        SettingItemUiModel.Option(
-            id = "12",
-            title = "上课提醒 & 桌面小组件",
-            icon = Icons.Outlined.NotificationsActive,
-        )
-    )
-    if (BuildConfig.LEGACY_SERVICES_ENABLED) {
-        add(SettingItemUiModel.Option("6", "主题设置", Icons.Outlined.Palette))
-    }
-    add(SettingItemUiModel.Option("10", "意见反馈", Icons.Outlined.Feedback))
-    add(SettingItemUiModel.Header("隐私与合规"))
-    add(SettingItemUiModel.Option("13", "关于我的长理", Icons.Outlined.Info))
-    add(SettingItemUiModel.Option("14", "隐私政策", Icons.Outlined.Info))
-    add(SettingItemUiModel.Option("15", "用户协议", Icons.Outlined.Info))
-    add(SettingItemUiModel.Option("16", "第三方 SDK / 服务清单", Icons.Outlined.Info))
-    add(SettingItemUiModel.Option("17", "个人信息清单", Icons.Outlined.Info))
-    add(SettingItemUiModel.Option("18", "账号与数据管理", Icons.Outlined.AccountCircle))
-}
+private fun createMainSettingItems(checkingUpdate: Boolean): List<SettingItemUiModel> = listOf(
+    SettingItemUiModel.Header("主要设置"),
+    SettingItemUiModel.Option("account", "我的长理账号", Icons.Outlined.AccountCircle),
+    SettingItemUiModel.Option("bind", "绑定学号", Icons.Outlined.AccountCircle),
+    SettingItemUiModel.Option("reminders", "上课提醒", Icons.Outlined.NotificationsActive),
+    SettingItemUiModel.Option(
+        "update",
+        "检查更新",
+        Icons.Outlined.SystemUpdate,
+        subtitle = if (checkingUpdate) "正在检查…" else "通过官网获取新版本",
+    ),
+)
+
+private fun createSecondarySettingItems(): List<SettingItemUiModel> = listOf(
+    SettingItemUiModel.Option("privacy", "隐私与合规", Icons.Outlined.Security),
+    SettingItemUiModel.Option("account-data", "账号与数据管理", Icons.Outlined.Storage),
+)
+
+private fun createPrivacyItems(): List<SettingItemUiModel> = listOf(
+    SettingItemUiModel.Option("about", "关于我的长理", Icons.Outlined.Info),
+    SettingItemUiModel.Option("privacy-policy", "隐私政策", Icons.Outlined.Security),
+    SettingItemUiModel.Option("terms", "用户协议", Icons.Outlined.Info),
+    SettingItemUiModel.Option("third-party", "第三方 SDK / 服务清单", Icons.Outlined.Info),
+    SettingItemUiModel.Option("personal-information", "个人信息清单", Icons.Outlined.Info),
+)
+
+private fun createAccountDataItems(): List<SettingItemUiModel> = listOf(
+    SettingItemUiModel.Option(
+        "delete-account",
+        "注销账号",
+        Icons.Outlined.AccountCircle,
+        subtitle = "进入账号中心确认注销",
+    ),
+    SettingItemUiModel.Option(
+        "clear-cache",
+        "清除缓存",
+        Icons.Outlined.DeleteOutline,
+        subtitle = "清理本机工具缓存",
+    ),
+)
 
 private fun maskedStudentId(studentId: String): String {
     if (studentId.isBlank()) return "尚未绑定学号"
     if (studentId.length <= 4) return "学号 ${"•".repeat(studentId.length)}"
-
     val visiblePrefixLength = if (studentId.length >= 8) 4 else 2
     val visibleSuffixLength = 2
-    val hiddenLength = (studentId.length - visiblePrefixLength - visibleSuffixLength).coerceAtLeast(2)
+    val hiddenLength = (studentId.length - visiblePrefixLength - visibleSuffixLength)
+        .coerceAtLeast(2)
     return buildString {
         append("学号 ")
         append(studentId.take(visiblePrefixLength))
@@ -492,12 +661,13 @@ private fun maskedStudentId(studentId: String): String {
 private fun ProfileSettingsRoutePreview() {
     AppSkinTheme {
         ProfileSettingsScreen(
-            items = createSettingItems(),
+            mainItems = createMainSettingItems(checkingUpdate = false),
+            secondaryItems = createSecondarySettingItems(),
             studentIdLabel = "尚未绑定学号",
             avatarData = null,
             isBound = false,
+            onWebsiteClick = {},
             onItemClick = {},
-            onPrimaryClick = {}
         )
     }
 }

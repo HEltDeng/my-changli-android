@@ -330,6 +330,7 @@ androidComponents {
     }
 }
 dependencies {
+    implementation(libs.androidx.browser)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.compose.ui.graphics)

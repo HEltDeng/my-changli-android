@@ -31,7 +31,10 @@ enum class LostFoundListFilter(val label: String) {
     CLAIMED("已认领"),
 }
 
-enum class LostFoundConnectionState { IDLE, LOADING, ONLINE, OFFLINE }
+enum class LostFoundConnectionState { IDLE, LOADING, ONLINE, OFFLINE, RESTRICTED }
+
+internal fun shouldUseLostFoundOfflineCache(error: Throwable): Boolean =
+    error !is CampusToolsApiException || error.errorCode != "ACCOUNT_OPERATION_RESTRICTED"
 
 /**
  * Remote-first lost-and-found repository.
@@ -103,14 +106,21 @@ object LostFoundRepository {
                     applyRemoteSnapshot(remote)
                 }
                 _connectionState.value = LostFoundConnectionState.ONLINE
-            }.onFailure {
-                _sourcePosts.value = if (activeAccountId == null) emptyList() else {
-                    LostFoundRules.synchronizedSnapshot(
-                        serverPosts = null,
-                        cachedPosts = CampusCommunityLocalStore.posts.value,
-                    )
+            }.onFailure { error ->
+                if (!shouldUseLostFoundOfflineCache(error)) {
+                    _sourcePosts.value = emptyList()
+                    _searchResults.value = null
+                    _operationNotice.value = ACCOUNT_RESTRICTED_NOTICE
+                    _connectionState.value = LostFoundConnectionState.RESTRICTED
+                } else {
+                    _sourcePosts.value = if (activeAccountId == null) emptyList() else {
+                        LostFoundRules.synchronizedSnapshot(
+                            serverPosts = null,
+                            cachedPosts = CampusCommunityLocalStore.posts.value,
+                        )
+                    }
+                    _connectionState.value = LostFoundConnectionState.OFFLINE
                 }
-                _connectionState.value = LostFoundConnectionState.OFFLINE
             }
         }
     }
@@ -145,10 +155,16 @@ object LostFoundRepository {
                     _searchResults.value = results
                     _connectionState.value = LostFoundConnectionState.ONLINE
                 }
-            }.onFailure {
+            }.onFailure { error ->
                 if (generation == searchGeneration) {
                     _searchResults.value = null
-                    _connectionState.value = LostFoundConnectionState.OFFLINE
+                    if (!shouldUseLostFoundOfflineCache(error)) {
+                        _sourcePosts.value = emptyList()
+                        _operationNotice.value = ACCOUNT_RESTRICTED_NOTICE
+                        _connectionState.value = LostFoundConnectionState.RESTRICTED
+                    } else {
+                        _connectionState.value = LostFoundConnectionState.OFFLINE
+                    }
                 }
             }
         }
@@ -537,4 +553,5 @@ object LostFoundRules {
 }
 
 private const val MAX_REMOTE_IMAGE_BYTES = 3L * 1024L * 1024L
-private const val ACCOUNT_RESTRICTED_NOTICE = "账号当前已被管理员限制，内容未发布到服务器。"
+private const val ACCOUNT_RESTRICTED_NOTICE =
+    "账号当前已被管理员限制，暂时不能访问失物招领；本地功能仍可使用。"

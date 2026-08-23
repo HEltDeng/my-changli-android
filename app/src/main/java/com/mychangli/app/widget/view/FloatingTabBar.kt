@@ -896,8 +896,8 @@ private fun SharedTransitionScope.ExpandedTabs(
             .then(tabBarContentModifier)
             .drawWithContent {
                 selectionBounds?.let { bounds ->
-                    val horizontalInset = 2.dp.toPx()
-                    val verticalInset = 4.dp.toPx()
+                    val horizontalInset = 1.dp.toPx()
+                    val verticalInset = 0.dp.toPx()
                     val indicatorWidth = bounds.width - horizontalInset * 2
                     val indicatorHeight = bounds.height - verticalInset * 2
                     if (indicatorWidth > 0f && indicatorHeight > 0f) {
