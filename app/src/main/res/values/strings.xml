@@ -207,8 +207,8 @@
     <string name="no_classroom">无教室</string>
     <string name="next_step">下一步</string>
     <string name="binding_page_title">绑定学号</string>
-    <string name="binding_form_title">连接教务账号</string>
-    <string name="binding_form_description">我的长理不是学校官方 App。学校账号仅用于连接对应学校服务；根据当前可审计客户端逻辑，不会发送至“我的长理”自有后端。</string>
+    <string name="binding_form_title">绑定学校账号</string>
+    <string name="binding_form_description">绑定学校账号后，可以查看你的课程、成绩等校园信息。</string>
     <string name="binding_student_id_label">学号</string>
     <string name="binding_student_id_hint">请输入长沙理工大学学号</string>
     <string name="binding_password_label">统一身份认证密码</string>
@@ -219,7 +219,7 @@
     <string name="binding_action">绑定</string>
     <string name="binding_loading">正在验证，请稍候</string>
     <string name="binding_web_login_action">遇到问题？尝试网页登录</string>
-    <string name="binding_privacy_statement">隐私说明：学号、学校密码、验证码、Cookie/session 仅用于直接连接学校统一认证及你主动使用的校园查询，不发送至“我的长理”自有后端。学校密码通过 Android Keystore 加密保存在本机；xk、pt 现有学校链路使用 HTTP，仅建议在可信网络和可信设备使用。可在“设置 → 账号与数据管理”解绑并清理。</string>
+    <string name="binding_privacy_statement">我们会采用安全方式处理账号信息，不会人工查看你的密码；相关数据仅用于提供校园查询服务。更多说明请查看隐私与合规。</string>
     <string name="binding_privacy_policy_action">查看隐私政策与个人信息清单</string>
     <string name="sso_webview_cancel">关闭</string>
     <string name="password_length_restriction">密码长度至少6位</string>

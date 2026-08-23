@@ -32,13 +32,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mychangli.app.core.account.accountRestrictionMessage
+import com.mychangli.app.core.network.campustools.AuthUser
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.account.AccountInputRules
 import com.mychangli.app.core.Route
 import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.feature.common.compose_ui.ImeCompatibleTextField
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -55,11 +59,10 @@ fun AccountLoadingScreen() {
 
 @Composable
 fun AccountGateScreen(
-    onLogin: suspend (phone: String, password: String) -> Unit,
-    onRegister: suspend (phone: String, password: String, nickname: String) -> Unit,
+    onLogin: suspend (phone: String, password: String) -> AuthUser,
+    onRegister: suspend (phone: String, password: String, nickname: String) -> AuthUser,
     onAuthenticated: () -> Unit = {},
     onContinueAsGuest: (() -> Unit)? = null,
-    reasonText: String = "登录后即可使用失物招领、资料库、反馈和其他我的长理自有服务。课表与上课提醒可继续本地使用。",
 ) {
     var registerMode by rememberSaveable { mutableStateOf(false) }
     var phone by rememberSaveable { mutableStateOf("") }
@@ -67,6 +70,7 @@ fun AccountGateScreen(
     var nickname by rememberSaveable { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var successMessage by remember { mutableStateOf("") }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -87,7 +91,8 @@ fun AccountGateScreen(
                 modifier = Modifier
                     .size(58.dp)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(AppTheme.colors.functionalTextColor),
+                    .background(AppTheme.colors.functionalTextColor)
+                    .align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -103,41 +108,14 @@ fun AccountGateScreen(
                 color = AppTheme.colors.primaryTextColor,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = reasonText,
-                color = AppTheme.colors.secondaryTextColor,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(top = 8.dp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                color = AppTheme.colors.bgSecondaryColor,
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "我的长理由个人开发者独立开发，是非官方校园辅助工具，与长沙理工大学不存在官方隶属或授权关系。",
-                        color = AppTheme.colors.secondaryTextColor,
-                        fontSize = 13.sp,
-                        lineHeight = 19.sp,
-                    )
-                    TextButton(
-                        onClick = {
-                            Route.goReleaseInformation(context, ReleaseDocumentType.PRIVACY)
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                    ) { Text("查看完整隐私说明") }
-                }
-            }
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
+                    .padding(top = 28.dp),
                 color = AppTheme.colors.bgCardColor,
                 shape = RoundedCornerShape(22.dp),
             ) {
@@ -174,6 +152,14 @@ fun AccountGateScreen(
                             fontSize = 13.sp,
                         )
                     }
+                    if (successMessage.isNotBlank()) {
+                        Text(
+                            text = successMessage,
+                            color = AppTheme.colors.successGreenColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                     Button(
                         enabled = !submitting && AccountInputRules.canSubmit(
                             phone = phone,
@@ -183,12 +169,25 @@ fun AccountGateScreen(
                         ),
                         onClick = {
                             errorMessage = ""
+                            successMessage = ""
                             submitting = true
                             scope.launch {
                                 runCatching {
                                     if (registerMode) onRegister(phone, password, nickname)
                                     else onLogin(phone, password)
-                                }.onSuccess {
+                                }.onSuccess { user ->
+                                    if (registerMode) {
+                                        successMessage = "注册成功"
+                                        delay(650L)
+                                    } else {
+                                        accountRestrictionMessage(
+                                            accountStatus = user.accountStatus,
+                                            expiresAtMillis = user.accountStatusExpiresAt,
+                                        )?.let { message ->
+                                            successMessage = message
+                                            delay(1_400L)
+                                        }
+                                    }
                                     onAuthenticated()
                                 }.onFailure {
                                     errorMessage = it.message ?: "操作失败，请检查网络后重试"
@@ -218,11 +217,12 @@ fun AccountGateScreen(
                         onClick = {
                             registerMode = !registerMode
                             errorMessage = ""
+                            successMessage = ""
                         },
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                     ) {
                         Text(
-                            if (registerMode) "已有账号，直接登录" else "没有账号，创建一个",
+                            if (registerMode) "已有账号？直接登录" else "没有账号？创建账号",
                             color = AppTheme.colors.functionalTextColor,
                         )
                     }
@@ -235,23 +235,14 @@ fun AccountGateScreen(
                             Text("暂不登录", color = AppTheme.colors.secondaryTextColor)
                         }
                     }
-                }
-            }
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                color = AppTheme.colors.bgSecondaryColor,
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "本页账号仅用于“我的长理”自有服务，与学校账号相互独立。学校账号绑定仅用于用户主动访问学校服务；学校密码、验证码、Cookie 或会话不会发送至“我的长理”自有后端。V1 不提供校园地图、真实体育预约或真实支付。",
-                        color = AppTheme.colors.secondaryTextColor,
-                        fontSize = 13.sp,
-                        lineHeight = 19.sp,
-                    )
+                    TextButton(
+                        onClick = {
+                            Route.goReleaseInformation(context, ReleaseDocumentType.PRIVACY)
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
+                        Text("查看完整隐私说明", color = AppTheme.colors.secondaryTextColor)
+                    }
                 }
             }
             Spacer(Modifier.height(24.dp))

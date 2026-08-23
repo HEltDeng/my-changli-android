@@ -66,6 +66,8 @@ data class AuthUser(
     @SerializedName("reservationProfileVersion") val reservationProfileVersion: Int = 0,
     @SerializedName("reservationProfileUpdatedAt") val reservationProfileUpdatedAt: Long? = null,
     @SerializedName("accountStatus") val accountStatus: String = "ACTIVE",
+    @SerializedName("accountStatusReason") val accountStatusReason: String = "",
+    @SerializedName("accountStatusExpiresAt") val accountStatusExpiresAt: Long? = null,
 )
 data class RegisterRequest(
     @SerializedName("phone") val phone: String,
@@ -580,7 +582,7 @@ object CampusToolsSession {
     suspend fun restore() = mutex.withLock {
         val savedToken = token
         val savedUser = cachedUser?.takeIf {
-            it.accountType == "PHONE" && it.accountStatus == "ACTIVE"
+            it.accountType == "PHONE" && it.accountStatus in setOf("ACTIVE", "LIMITED")
         }
         if (savedToken.isNullOrBlank()) {
             clearPhoneSession()
@@ -600,7 +602,7 @@ object CampusToolsSession {
             val response = CampusToolsApiClient.authenticated.me()
             val user = response.data.takeIf { response.ok }
                 ?: error(response.error?.message ?: "登录状态已失效")
-            if (user.accountType != "PHONE" || user.accountStatus != "ACTIVE") {
+            if (user.accountType != "PHONE" || user.accountStatus !in setOf("ACTIVE", "LIMITED")) {
                 clearPhoneSession()
                 ensureDeviceIdentityLocked()
                 return@withLock

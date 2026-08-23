@@ -604,12 +604,12 @@ private fun createMainSettingItems(checkingUpdate: Boolean): List<SettingItemUiM
     SettingItemUiModel.Header("主要设置"),
     SettingItemUiModel.Option("account", "我的长理账号", Icons.Outlined.AccountCircle),
     SettingItemUiModel.Option("bind", "绑定学号", Icons.Outlined.AccountCircle),
-    SettingItemUiModel.Option("reminders", "上课提醒", Icons.Outlined.NotificationsActive),
+    SettingItemUiModel.Option("reminders", "上课提醒 & 桌面小组件", Icons.Outlined.NotificationsActive),
     SettingItemUiModel.Option(
         "update",
         "检查更新",
         Icons.Outlined.SystemUpdate,
-        subtitle = if (checkingUpdate) "正在检查…" else "通过官网获取新版本",
+        subtitle = if (checkingUpdate) "正在检查…" else null,
     ),
 )
 

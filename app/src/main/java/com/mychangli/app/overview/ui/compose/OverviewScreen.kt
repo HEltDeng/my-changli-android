@@ -32,15 +32,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -361,6 +368,7 @@ private fun MetricRow(
     onMetricClick: (String) -> Unit
 ) {
     val colors = AppTheme.colors
+    var scoreVisible by rememberSaveable { mutableStateOf(true) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -380,20 +388,32 @@ private fun MetricRow(
                         .padding(18.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(IconContainerShape)
-                                .background(
-                                    colors.overviewScoreIconBackgroundColor
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(metric.iconRes),
-                                contentDescription = metric.title,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        if (metric.id == "score") {
+                            IconButton(
+                                onClick = { scoreVisible = !scoreVisible },
+                                modifier = Modifier.size(38.dp),
+                            ) {
+                                Icon(
+                                    imageVector = if (scoreVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                                    contentDescription = if (scoreVisible) "隐藏成绩" else "显示成绩",
+                                    tint = colors.primaryTextColor,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(IconContainerShape)
+                                    .background(colors.overviewScoreIconBackgroundColor),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(metric.iconRes),
+                                    contentDescription = metric.title,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
@@ -414,13 +434,13 @@ private fun MetricRow(
                             verticalAlignment = Alignment.Bottom
                         ) {
                             Text(
-                                text = metric.value,
+                                text = if (metric.id == "score" && !scoreVisible) "••••" else metric.value,
                                 color = metric.accentColor,
-                                fontSize = metricValueFontSize(metric.value),
+                                fontSize = if (metric.id == "score" && !scoreVisible) 30.sp else metricValueFontSize(metric.value),
                                 fontWeight = FontWeight.Black,
                                 maxLines = 1
                             )
-                            if (metric.unit.isNotBlank()) {
+                            if (metric.unit.isNotBlank() && (metric.id != "score" || scoreVisible)) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = metric.unit,
@@ -432,7 +452,15 @@ private fun MetricRow(
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        MetricSubtitle(metric)
+                        if (metric.id == "score" && !scoreVisible) {
+                            Text(
+                                text = "成绩已隐藏",
+                                color = colors.secondaryTextColor,
+                                fontSize = 14.sp,
+                            )
+                        } else {
+                            MetricSubtitle(metric)
+                        }
                     }
                 }
             }

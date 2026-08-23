@@ -90,8 +90,12 @@ class V1SourceBoundaryTest {
         val accountGate = appFile(
             "src/main/java/com/mychangli/app/core/account/ui/AccountGateScreen.kt",
         ).readText()
-        assertTrue(accountGate.contains("学校账号相互独立"))
-        assertTrue(accountGate.contains("不会发送至“我的长理”自有后端"))
+        assertTrue(accountGate.contains("查看完整隐私说明"))
+        assertFalse(accountGate.contains("学校账号相互独立"))
+
+        val bindingCopy = appFile("src/main/res/values/strings.xml").readText()
+        assertTrue(bindingCopy.contains("绑定学校账号后，可以查看你的课程、成绩等校园信息。"))
+        assertFalse(bindingCopy.contains("连接对应学校服务"))
     }
 
     @Test
@@ -152,12 +156,13 @@ class V1SourceBoundaryTest {
             "我的长理官网（最新消息）",
             "我的长理账号",
             "绑定学号",
-            "上课提醒",
+            "上课提醒 & 桌面小组件",
             "检查更新",
             "隐私与合规",
             "账号与数据管理",
         ).forEach { assertTrue(profile.contains(it)) }
-        assertFalse(profile.contains("上课提醒 & 桌面小组件"))
+        assertTrue(profile.contains("上课提醒 & 桌面小组件"))
+        assertFalse(profile.contains("通过官网获取新版本"))
 
         val websiteNavigator = appFile(
             "src/main/java/com/mychangli/app/core/web/PublicWebsiteNavigator.kt",
@@ -197,5 +202,51 @@ class V1SourceBoundaryTest {
             assertTrue(icon.contains("android:strokeWidth=\"1.6\""))
             assertTrue(icon.contains("android:fillColor=\"#00000000\""))
         }
+        listOf("ic_home.xml", "ic_service.xml", "ic_profile.xml").forEach { name ->
+            assertTrue(appFile("src/main/res/drawable/$name").readText().contains("#FF000000"))
+        }
+        listOf("ic_unselect_home.xml", "ic_unselect_service.xml", "ic_unselect_profile.xml").forEach { name ->
+            assertTrue(appFile("src/main/res/drawable/$name").readText().contains("#FF7A7A7A"))
+        }
+    }
+
+    @Test
+    fun `overview score card uses a privacy visibility control instead of the grade badge`() {
+        val overview = appFile(
+            "src/main/java/com/mychangli/app/overview/ui/compose/OverviewScreen.kt",
+        ).readText()
+        assertTrue(overview.contains("Icons.Outlined.Visibility"))
+        assertTrue(overview.contains("Icons.Outlined.VisibilityOff"))
+        assertTrue(overview.contains("成绩已隐藏"))
+        assertTrue(overview.contains("隐藏成绩"))
+        assertTrue(overview.contains("显示成绩"))
+    }
+
+    @Test
+    fun `account entry and about surfaces stay concise while registration enters automatically`() {
+        val accountGate = appFile(
+            "src/main/java/com/mychangli/app/core/account/ui/AccountGateScreen.kt",
+        ).readText()
+        listOf(
+            "登录我的长理账号",
+            "没有账号？创建账号",
+            "注册成功",
+            "delay(650L)",
+            "onAuthenticated()",
+            "查看完整隐私说明",
+        ).forEach { assertTrue(accountGate.contains(it)) }
+        assertFalse(accountGate.contains("服务说明"))
+
+        val about = appFile(
+            "src/main/java/com/mychangli/app/profileSettings/ui/AboutActivity.kt",
+        ).readText()
+        listOf(
+            "面向长沙理工大学同学的轻量校园生活工具",
+            "当前版本",
+            "访问我的长理官网",
+            "产品介绍、最新消息和详细说明请前往官网查看",
+        ).forEach { assertTrue(about.contains(it)) }
+        assertFalse(about.contains("FeatureItem("))
+        assertFalse(about.contains("BulletPoint("))
     }
 }
