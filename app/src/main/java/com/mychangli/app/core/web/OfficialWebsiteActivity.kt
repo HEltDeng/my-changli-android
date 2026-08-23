@@ -62,6 +62,83 @@ import java.net.URI
 private const val OFFICIAL_WEBSITE_HOST = "mychangliapp.cn"
 private const val EXTRA_INITIAL_URL = "official_website_initial_url"
 
+internal val MOBILE_NAV_COMPATIBILITY_SCRIPT = """
+    (() => {
+      const styleId = 'mychangli-webview-mobile-nav-fix';
+      if (!document.head || document.getElementById(styleId)) return;
+
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @media (max-width: 840px) {
+          .site-header { overflow: visible !important; }
+          .site-nav {
+            position: fixed !important;
+            z-index: 100 !important;
+            top: 80px !important;
+            right: 20px !important;
+            left: 20px !important;
+            display: none !important;
+            width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            padding: 10px !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 18px !important;
+            background: var(--white) !important;
+            box-shadow: var(--shadow) !important;
+            max-height: calc(100vh - 96px) !important;
+            max-height: calc(100dvh - 96px) !important;
+            overflow-y: auto !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            overscroll-behavior: contain !important;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y !important;
+          }
+          .site-nav[data-open="true"] {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 4px !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+          }
+          .site-nav a {
+            display: flex !important;
+            width: 100% !important;
+            min-height: 48px !important;
+            flex: 0 0 auto !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            padding: 0 16px !important;
+            border: 0 !important;
+            border-radius: 12px !important;
+            background: var(--white) !important;
+            line-height: 1.4 !important;
+            white-space: nowrap !important;
+            touch-action: manipulation !important;
+          }
+          .site-nav a[aria-current="page"] {
+            color: var(--blue-700) !important;
+            background: var(--blue-050) !important;
+          }
+          .site-nav a:active { background: var(--blue-100) !important; }
+        }
+        @media (max-width: 520px) {
+          .site-nav {
+            top: 72px !important;
+            right: 16px !important;
+            left: 16px !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+""".trimIndent()
+
 internal fun isOfficialWebsiteUrl(rawUrl: String): Boolean {
     val uri = runCatching { URI(rawUrl) }.getOrNull() ?: return false
     return uri.scheme.equals("https", ignoreCase = true) &&
@@ -234,6 +311,9 @@ private fun OfficialWebsiteScreen(
                             }
 
                             override fun onPageFinished(view: WebView, url: String) {
+                                if (isOfficialWebsiteUrl(url)) {
+                                    view.evaluateJavascript(MOBILE_NAV_COMPATIBILITY_SCRIPT, null)
+                                }
                                 progress = 100
                             }
 

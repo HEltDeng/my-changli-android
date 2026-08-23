@@ -206,6 +206,8 @@ class V1SourceBoundaryTest {
         assertTrue(officialWebsite.contains("Icons.AutoMirrored.Rounded.OpenInNew"))
         assertTrue(officialWebsite.contains("在浏览器中打开"))
         assertTrue(officialWebsite.contains("onOpenExternal(PublicWebsiteNavigator.HOME_URL)"))
+        assertTrue(officialWebsite.contains("view.evaluateJavascript(MOBILE_NAV_COMPATIBILITY_SCRIPT, null)"))
+        assertTrue(officialWebsite.contains("if (isOfficialWebsiteUrl(url))"))
         assertFalse(officialWebsite.contains("addJavascriptInterface"))
 
         val manifest = appFile("src/main/AndroidManifest.xml").readText()
