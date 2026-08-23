@@ -51,7 +51,7 @@ enum class FunctionDestination {
  * 首页正在按这些稳定 ID 查找快捷入口，因此这里保留原有顺序、ID 与跳转。
  */
 fun primaryFunctionShortcuts(): List<FunctionShortcut> =
-    functionCatalog().selectById(
+    v1VisibleFunctionCatalog().selectById(
         "schedule",
         "grade",
         "classroom",
@@ -65,7 +65,7 @@ fun primaryFunctionShortcuts(): List<FunctionShortcut> =
  * 保留旧接口，避免已有调用方因服务页重新分区而失效。
  */
 fun secondaryFunctionShortcuts(): List<FunctionShortcut> =
-    functionCatalog().selectById(
+    v1VisibleFunctionCatalog().selectById(
         "cet",
         "lost_found",
         "document",
@@ -73,7 +73,7 @@ fun secondaryFunctionShortcuts(): List<FunctionShortcut> =
     )
 
 fun learningFunctionShortcuts(): List<FunctionShortcut> =
-    functionCatalog().selectById(
+    v1VisibleFunctionCatalog().selectById(
         "schedule",
         "grade",
         "classroom",
@@ -88,7 +88,7 @@ fun sportsFunctionShortcuts(): List<FunctionShortcut> =
     emptyList()
 
 fun lifeFunctionShortcuts(): List<FunctionShortcut> =
-    functionCatalog().selectById(
+    v1VisibleFunctionCatalog().selectById(
         "electric",
         "calendar",
         "lost_found",
@@ -207,6 +207,12 @@ private fun functionCatalog(): List<FunctionShortcut> = listOf(
         destination = FunctionDestination.Mandarin,
     ),
 )
+
+/**
+ * 校历仍保留路由和实现，V1 仅隐藏已失效旧数据源对应的用户入口。
+ */
+private fun v1VisibleFunctionCatalog(): List<FunctionShortcut> =
+    functionCatalog().filterNot { it.id == "calendar" }
 
 private fun List<FunctionShortcut>.selectById(vararg ids: String): List<FunctionShortcut> {
     val shortcutsById = associateBy(FunctionShortcut::id)

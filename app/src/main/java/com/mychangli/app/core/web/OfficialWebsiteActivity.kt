@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -176,6 +177,15 @@ private fun OfficialWebsiteScreen(
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
                             contentDescription = "刷新网页",
+                            tint = AppTheme.colors.titleTopColor,
+                        )
+                    }
+                    IconButton(
+                        onClick = { onOpenExternal(PublicWebsiteNavigator.HOME_URL) },
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                            contentDescription = "在浏览器中打开",
                             tint = AppTheme.colors.titleTopColor,
                         )
                     }

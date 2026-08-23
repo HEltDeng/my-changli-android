@@ -203,6 +203,9 @@ class V1SourceBoundaryTest {
             "canGoBack()",
             "官网加载失败",
         ).forEach { assertTrue(officialWebsite.contains(it)) }
+        assertTrue(officialWebsite.contains("Icons.AutoMirrored.Rounded.OpenInNew"))
+        assertTrue(officialWebsite.contains("在浏览器中打开"))
+        assertTrue(officialWebsite.contains("onOpenExternal(PublicWebsiteNavigator.HOME_URL)"))
         assertFalse(officialWebsite.contains("addJavascriptInterface"))
 
         val manifest = appFile("src/main/AndroidManifest.xml").readText()

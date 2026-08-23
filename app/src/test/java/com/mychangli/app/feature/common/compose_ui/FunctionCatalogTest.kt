@@ -15,7 +15,10 @@ class FunctionCatalogTest {
         assertFalse("map" in primaryIds)
         assertTrue(listOf("schedule", "grade", "classroom", "homework", "exam").all(primaryIds::contains))
         assertTrue(listOf("schedule", "grade", "classroom", "homework", "exam", "document", "cet", "mandarin").all(learningIds::contains))
-        assertTrue(listOf("electric", "calendar", "lost_found").all(lifeIds::contains))
+        assertTrue(listOf("electric", "lost_found").all(lifeIds::contains))
+        assertFalse("calendar" in primaryIds)
+        assertFalse("calendar" in learningIds)
+        assertFalse("calendar" in lifeIds)
         assertTrue(sportsFunctionShortcuts().isEmpty())
     }
 
