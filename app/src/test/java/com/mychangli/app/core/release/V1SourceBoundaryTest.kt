@@ -182,12 +182,31 @@ class V1SourceBoundaryTest {
     }
 
     @Test
-    fun `service dynamics uses two second continuous cadence`() {
+    fun `service dynamics uses one second continuous cadence`() {
         val dynamics = appFile(
             "src/main/java/com/mychangli/app/feature/common/compose_ui/ServiceDynamicsSection.kt",
         ).readText()
-        assertTrue(dynamics.contains("AUTO_ADVANCE_MILLIS = 2_000L"))
+        assertTrue(dynamics.contains("AUTO_ADVANCE_MILLIS = 1_000L"))
+        assertTrue(dynamics.contains("（点击查看详情）"))
         assertFalse(dynamics.contains("AUTO_ADVANCE_MILLIS = 7_000L"))
+    }
+
+    @Test
+    fun `service tab reentry and pull gesture refresh cached updates without parallel requests`() {
+        val main = appFile("src/main/java/com/mychangli/app/core/main/ui/MainScreen.kt").readText()
+        val feature = appFile(
+            "src/main/java/com/mychangli/app/feature/common/ui/FeatureFragment.kt",
+        ).readText()
+        val store = appFile(
+            "src/main/java/com/mychangli/app/core/network/campustools/RemoteConfigurationStore.kt",
+        ).readText()
+
+        assertTrue(main.contains("isActive = pagerState.settledPage == page"))
+        assertTrue(feature.contains("LaunchedEffect(isActive)"))
+        assertTrue(feature.contains("PullToRefreshBox("))
+        assertTrue(feature.contains("RemoteConfigurationStore.refreshServiceUpdates()"))
+        assertTrue(store.contains("serviceUpdatesRefreshMutex.tryLock()"))
+        assertTrue(store.contains("KEY_SERVICE_UPDATES"))
     }
 
     @Test
@@ -250,6 +269,17 @@ class V1SourceBoundaryTest {
         )
         assertFalse(scoreControl.contains(".background("))
         assertFalse(scoreControl.contains("metric.iconRes"))
+
+        val privacyPreference = appFile(
+            "src/main/java/com/mychangli/app/overview/data/local/OverviewPrivacyPreferences.kt",
+        ).readText()
+        assertTrue(privacyPreference.contains("overview_privacy_preferences_v1"))
+        assertTrue(privacyPreference.contains("show_gpa"))
+        assertTrue(privacyPreference.contains("decodeBool(KEY_SHOW_GPA, true)"))
+        assertTrue(privacyPreference.contains("encode(KEY_SHOW_GPA, visible)"))
+        assertTrue(overview.contains("OverviewPrivacyPreferences.isGpaVisible()"))
+        assertTrue(overview.contains("OverviewPrivacyPreferences.setGpaVisible(visible)"))
+        assertFalse(overview.contains("rememberSaveable { mutableStateOf(true) }"))
     }
 
     @Test
@@ -293,7 +323,13 @@ class V1SourceBoundaryTest {
             "访问我的长理官网",
             "产品介绍、最新消息和详细说明请前往官网查看",
         ).forEach { assertTrue(about.contains(it)) }
+        assertFalse(about.contains("尽量"))
         assertFalse(about.contains("FeatureItem("))
         assertFalse(about.contains("BulletPoint("))
+
+        val releaseInformation = appFile(
+            "src/main/java/com/mychangli/app/core/privacy/v1/ReleaseInformationV1Activity.kt",
+        ).readText()
+        assertTrue(releaseInformation.contains("if (type == ReleaseDocumentType.PRIVACY)"))
     }
 }

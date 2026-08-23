@@ -26,12 +26,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -64,9 +67,11 @@ import com.mychangli.app.feature.common.compose_ui.toFunctionItemData
 import com.mychangli.app.profileSettings.ui.AboutActivity
 import com.mychangli.app.feature.common.ui.AnnouncementDetailActivity
 import com.mychangli.app.feature.common.ui.FeatureUnavailableActivity
+import com.mychangli.app.widget.view.CustomToast
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 class FeatureFragment : Fragment() {
     companion object {
@@ -88,15 +93,19 @@ class FeatureFragment : Fragment() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeatureScreen(
     modifier: Modifier = Modifier,
+    isActive: Boolean = true,
 ) {
     val context = LocalContext.current
     val serviceUpdates by RemoteConfigurationStore.serviceUpdates.collectAsState()
+    val isRefreshing by RemoteConfigurationStore.serviceUpdatesRefreshing.collectAsState()
     val clientUpdates = remember(serviceUpdates) {
         filterServiceUpdatesForClient(serviceUpdates, BuildConfig.VERSION_CODE)
     }
+    val scope = rememberCoroutineScope()
     var dialogUpdate by remember { mutableStateOf<RemoteServiceUpdate?>(null) }
     val learningItems = remember(context) {
         learningFunctionShortcuts().map { it.toFunctionItemData(context) }
@@ -105,82 +114,95 @@ fun FeatureScreen(
         lifeFunctionShortcuts().map { it.toFunctionItemData(context) }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isActive) {
+        if (!isActive) return@LaunchedEffect
         runCatching { RemoteConfigurationStore.refresh() }
         runCatching { RemoteConfigurationStore.refreshServiceUpdates() }
     }
 
-    Column(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            scope.launch {
+                runCatching { RemoteConfigurationStore.refreshServiceUpdates() }
+                    .onFailure { CustomToast.showMessage(context, "刷新失败，继续显示已有内容") }
+            }
+        },
         modifier = modifier
             .fillMaxSize()
-            .background(AppTheme.colors.overviewPageBackgroundColor)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .navigationBarsPadding(),
+            .background(AppTheme.colors.overviewPageBackgroundColor),
     ) {
-        FeatureHeaderSection()
-
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding(),
         ) {
-            if (clientUpdates.isNotEmpty()) {
-                ServiceDynamicsSection(
-                    updates = clientUpdates,
-                    onUpdateClick = { update ->
-                        when (update.targetType) {
-                            "ABOUT_UPDATE" -> {
-                                context.startActivity(
-                                    Intent(context, AboutActivity::class.java)
-                                        .putExtra(AboutActivity.EXTRA_AUTO_CHECK_UPDATE, true),
-                                )
-                            }
-                            "FEATURE" -> {
-                                val moduleLabel = when (update.moduleKey) {
-                                    "lost_found" -> "失物招领"
-                                    "resource_library" -> "资料库"
-                                    else -> "该服务"
+            FeatureHeaderSection()
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            ) {
+                if (clientUpdates.isNotEmpty()) {
+                    ServiceDynamicsSection(
+                        updates = clientUpdates,
+                        onUpdateClick = { update ->
+                            when (update.targetType) {
+                                "ABOUT_UPDATE" -> {
+                                    context.startActivity(
+                                        Intent(context, AboutActivity::class.java)
+                                            .putExtra(AboutActivity.EXTRA_AUTO_CHECK_UPDATE, true),
+                                    )
                                 }
-                                context.startActivity(
-                                    FeatureUnavailableActivity.intent(
-                                        context = context,
-                                        title = update.title.ifBlank {
-                                            "$moduleLabel${if (update.type == "MAINTENANCE") "维护中" else "暂不开放"}"
-                                        },
-                                        status = update.type,
-                                        message = update.summary,
-                                        recoverAt = update.recoverAt,
-                                    ),
-                                )
+                                "FEATURE" -> {
+                                    val moduleLabel = when (update.moduleKey) {
+                                        "lost_found" -> "失物招领"
+                                        "resource_library" -> "资料库"
+                                        else -> "该服务"
+                                    }
+                                    context.startActivity(
+                                        FeatureUnavailableActivity.intent(
+                                            context = context,
+                                            title = update.title.ifBlank {
+                                                "$moduleLabel${if (update.type == "MAINTENANCE") "维护中" else "暂不开放"}"
+                                            },
+                                            status = update.type,
+                                            message = update.summary,
+                                            recoverAt = update.recoverAt,
+                                        ),
+                                    )
+                                }
+                                "ANNOUNCEMENT" -> {
+                                    context.startActivity(
+                                        AnnouncementDetailActivity.intent(
+                                            context = context,
+                                            title = update.title,
+                                            content = update.summary,
+                                            publishedAt = update.publishedAt,
+                                        ),
+                                    )
+                                }
+                                else -> dialogUpdate = update
                             }
-                            "ANNOUNCEMENT" -> {
-                                context.startActivity(
-                                    AnnouncementDetailActivity.intent(
-                                        context = context,
-                                        title = update.title,
-                                        content = update.summary,
-                                        publishedAt = update.publishedAt,
-                                    ),
-                                )
-                            }
-                            else -> dialogUpdate = update
-                        }
-                    },
-                    modifier = Modifier.padding(bottom = 14.dp),
+                        },
+                        modifier = Modifier.padding(bottom = 14.dp),
+                    )
+                }
+                FunctionSection(
+                    title = stringResource(R.string.feature_section_learning),
+                    description = stringResource(R.string.feature_section_learning_description),
+                    items = learningItems,
                 )
+                FunctionSection(
+                    title = stringResource(R.string.feature_section_life),
+                    description = stringResource(R.string.feature_section_life_description),
+                    items = lifeItems,
+                )
+                Spacer(modifier = Modifier.height(112.dp))
             }
-            FunctionSection(
-                title = stringResource(R.string.feature_section_learning),
-                description = stringResource(R.string.feature_section_learning_description),
-                items = learningItems,
-            )
-            FunctionSection(
-                title = stringResource(R.string.feature_section_life),
-                description = stringResource(R.string.feature_section_life_description),
-                items = lifeItems,
-            )
-            Spacer(modifier = Modifier.height(112.dp))
         }
     }
 }

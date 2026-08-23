@@ -42,11 +42,14 @@ object RemoteConfigurationStore {
     private val gson = Gson()
     private val storage by lazy { MMKV.mmkvWithID(STORE_ID) }
     private val refreshMutex = Mutex()
+    private val serviceUpdatesRefreshMutex = Mutex()
     @Volatile private var lastSuccessfulRefreshAt = 0L
     private val mutableBootstrap = MutableStateFlow(load())
     private val mutableServiceUpdates = MutableStateFlow(loadServiceUpdates())
+    private val mutableServiceUpdatesRefreshing = MutableStateFlow(false)
     val bootstrap: StateFlow<PublicBootstrap?> = mutableBootstrap.asStateFlow()
     val serviceUpdates: StateFlow<List<RemoteServiceUpdate>> = mutableServiceUpdates.asStateFlow()
+    val serviceUpdatesRefreshing: StateFlow<Boolean> = mutableServiceUpdatesRefreshing.asStateFlow()
 
     suspend fun refresh(): PublicBootstrap? = refreshIfStale(0L)
 
@@ -101,16 +104,23 @@ object RemoteConfigurationStore {
 
     suspend fun refreshServiceUpdates(): List<RemoteServiceUpdate> {
         if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return mutableServiceUpdates.value
-        val response = try {
-            CampusToolsApiClient.unauthenticated.serviceUpdates()
-        } catch (error: Throwable) {
-            Log.w(TAG, "Service updates refresh failed (${error.javaClass.simpleName})")
-            throw error
+        if (!serviceUpdatesRefreshMutex.tryLock()) return mutableServiceUpdates.value
+        mutableServiceUpdatesRefreshing.value = true
+        return try {
+            val response = try {
+                CampusToolsApiClient.unauthenticated.serviceUpdates()
+            } catch (error: Throwable) {
+                Log.w(TAG, "Service updates refresh failed (${error.javaClass.simpleName})")
+                throw error
+            }
+            val value = response.data.takeIf { response.ok } ?: return mutableServiceUpdates.value
+            check(storage.encode(KEY_SERVICE_UPDATES, gson.toJson(value)))
+            mutableServiceUpdates.value = value
+            value
+        } finally {
+            mutableServiceUpdatesRefreshing.value = false
+            serviceUpdatesRefreshMutex.unlock()
         }
-        val value = response.data.takeIf { response.ok } ?: return mutableServiceUpdates.value
-        check(storage.encode(KEY_SERVICE_UPDATES, gson.toJson(value)))
-        mutableServiceUpdates.value = value
-        return value
     }
 
     private fun load(): PublicBootstrap? = runCatching {

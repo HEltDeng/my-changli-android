@@ -101,18 +101,20 @@ private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocume
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
-            Surface(
-                color = AppTheme.colors.bgCardColor,
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = NON_OFFICIAL_STATEMENT,
-                    color = AppTheme.colors.primaryTextColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(18.dp),
-                )
+            if (type == ReleaseDocumentType.PRIVACY) {
+                Surface(
+                    color = AppTheme.colors.bgCardColor,
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = NON_OFFICIAL_STATEMENT,
+                        color = AppTheme.colors.primaryTextColor,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(18.dp),
+                    )
+                }
             }
             v1InformationSections(
                 type = type,

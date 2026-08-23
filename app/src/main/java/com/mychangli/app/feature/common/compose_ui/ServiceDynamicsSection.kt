@@ -47,7 +47,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val AUTO_ADVANCE_MILLIS = 2_000L
+private const val AUTO_ADVANCE_MILLIS = 1_000L
 private const val INTERACTION_PAUSE_MILLIS = 4_000L
 private const val LOOP_CENTER_PAGES = 10_000
 
@@ -90,7 +90,7 @@ fun virtualPageToRealIndex(
  *
  * A single update is a static card; two or more updates are presented as a
  * horizontal pager with a compact page indicator. Cards advance about every
- * two seconds; a direct user drag or click pauses the loop briefly.
+ * second; a direct user drag or click pauses the loop briefly.
  */
 @Composable
 fun ServiceDynamicsSection(
@@ -211,14 +211,26 @@ private fun ServiceDynamicsCard(
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = update.title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = colors.primaryTextColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = update.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.primaryTextColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (update.targetType == "ANNOUNCEMENT") {
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "（点击查看详情）",
+                    fontSize = 11.sp,
+                    color = colors.greyTextColor,
+                    maxLines = 1,
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = buildSummary(update),

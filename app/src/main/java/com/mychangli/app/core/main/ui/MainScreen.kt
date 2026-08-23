@@ -133,7 +133,9 @@ fun MainScreen(
             ) { page ->
                 when (destinations[page]) {
                     MainTabDestination.Overview -> OverviewTabRoute()
-                    MainTabDestination.Feature -> FeatureScreen()
+                    MainTabDestination.Feature -> FeatureScreen(
+                        isActive = pagerState.settledPage == page && !pagerState.isScrollInProgress,
+                    )
                     MainTabDestination.Profile -> ProfileSettingsRoute()
                 }
             }

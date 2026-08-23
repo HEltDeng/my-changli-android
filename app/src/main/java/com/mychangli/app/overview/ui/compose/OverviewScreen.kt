@@ -46,7 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +66,7 @@ import com.mychangli.app.core.ads.AdSlot
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.feature.common.compose_ui.FunctionDestination
+import com.mychangli.app.overview.data.local.OverviewPrivacyPreferences
 import com.mychangli.app.overview.ui.model.OverviewCourseUiModel
 import com.mychangli.app.overview.ui.model.OverviewExamUiModel
 import com.mychangli.app.overview.ui.model.OverviewHomeworkUiModel
@@ -372,7 +372,7 @@ private fun MetricRow(
     onMetricClick: (String) -> Unit
 ) {
     val colors = AppTheme.colors
-    var scoreVisible by rememberSaveable { mutableStateOf(true) }
+    var scoreVisible by remember { mutableStateOf(OverviewPrivacyPreferences.isGpaVisible()) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -395,7 +395,11 @@ private fun MetricRow(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isScoreMetric) {
                             IconButton(
-                                onClick = { scoreVisible = !scoreVisible },
+                                onClick = {
+                                    val visible = !scoreVisible
+                                    OverviewPrivacyPreferences.setGpaVisible(visible)
+                                    scoreVisible = visible
+                                },
                                 modifier = Modifier.size(38.dp),
                             ) {
                                 AnimatedContent(

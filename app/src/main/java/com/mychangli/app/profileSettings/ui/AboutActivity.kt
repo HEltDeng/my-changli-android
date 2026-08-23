@@ -120,7 +120,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
                 fontWeight = FontWeight.Black,
             )
             Text(
-                text = "面向长沙理工大学同学的轻量校园生活工具。常用校园信息、课程服务与实用入口，尽量集中在一个清晰的位置。",
+                text = "面向长沙理工大学同学的轻量校园生活工具，集中展示常用校园信息、课程服务与实用入口。",
                 color = AppTheme.colors.secondaryTextColor,
                 fontSize = 16.sp,
                 lineHeight = 25.sp,
