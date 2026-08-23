@@ -388,7 +388,25 @@ private fun MetricRow(
                         .padding(18.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (metric.id != "score") {
+                        if (metric.id == "score") {
+                            IconButton(
+                                onClick = { scoreVisible = !scoreVisible },
+                                modifier = Modifier.size(38.dp),
+                            ) {
+                                AnimatedContent(
+                                    targetState = scoreVisible,
+                                    transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                                    label = "overview_score_visibility_icon",
+                                ) { visible ->
+                                    Icon(
+                                        imageVector = if (visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                                        contentDescription = if (visible) "隐藏成绩" else "显示成绩",
+                                        tint = colors.primaryTextColor,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            }
+                        } else {
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
@@ -410,25 +428,6 @@ private fun MetricRow(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        if (metric.id == "score") {
-                            IconButton(
-                                onClick = { scoreVisible = !scoreVisible },
-                                modifier = Modifier.size(38.dp),
-                            ) {
-                                AnimatedContent(
-                                    targetState = scoreVisible,
-                                    transitionSpec = { fadeIn().togetherWith(fadeOut()) },
-                                    label = "overview_score_visibility_icon",
-                                ) { visible ->
-                                    Icon(
-                                        imageVector = if (visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                                        contentDescription = if (visible) "隐藏成绩" else "显示成绩",
-                                        tint = colors.primaryTextColor,
-                                        modifier = Modifier.size(22.dp),
-                                    )
-                                }
-                            }
-                        }
                     }
 
                     Column(

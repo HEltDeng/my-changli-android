@@ -227,6 +227,18 @@ class V1SourceBoundaryTest {
         assertTrue(overview.contains("overview_score_visibility_icon"))
         assertTrue(overview.contains("overview_score_value_visibility"))
         assertFalse(overview.contains("成绩已隐藏"))
+
+        val headerStart = overview.indexOf("Row(verticalAlignment = Alignment.CenterVertically)")
+        val headerEnd = overview.indexOf("verticalArrangement = Arrangement.Center", headerStart)
+        val header = overview.substring(headerStart, headerEnd)
+        assertEquals(1, Regex("IconButton\\(").findAll(header).count())
+        assertTrue(header.indexOf("IconButton(") < header.indexOf("text = metric.title"))
+        val scoreControl = header.substring(
+            header.indexOf("if (metric.id == \"score\")"),
+            header.indexOf("} else {"),
+        )
+        assertFalse(scoreControl.contains(".background("))
+        assertFalse(scoreControl.contains("metric.iconRes"))
     }
 
     @Test
