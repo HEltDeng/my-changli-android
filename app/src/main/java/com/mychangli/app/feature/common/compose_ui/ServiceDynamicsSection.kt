@@ -126,13 +126,23 @@ fun ServiceDynamicsSection(
         }
     }
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "服务动态",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = colors.primaryTextColor,
+        Row(
             modifier = Modifier.padding(bottom = 10.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "服务动态",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.primaryTextColor,
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "（下拉刷新）",
+                fontSize = 11.sp,
+                color = colors.greyTextColor,
+            )
+        }
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxWidth(),

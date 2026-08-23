@@ -130,7 +130,7 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
             avatarData = UserInfoManager.userAvatar.takeIf { it.isNotBlank() },
             isBound = bindingSnapshot.isBound,
             onWebsiteClick = {
-                if (!PublicWebsiteNavigator.open(context, PublicWebsiteNavigator.HOME_URL)) {
+                if (!PublicWebsiteNavigator.openHomeInApp(context)) {
                     updateMessage = "暂时无法打开官网"
                 }
             },

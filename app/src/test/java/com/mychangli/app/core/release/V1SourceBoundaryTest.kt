@@ -1,6 +1,7 @@
 package com.mychangli.app.core.release
 
 import com.mychangli.app.feature.common.compose_ui.FunctionDestination
+import com.mychangli.app.core.web.isOfficialWebsiteUrl
 import com.mychangli.app.overview.ui.compose.isScoreMetricId
 import java.io.File
 import java.security.MessageDigest
@@ -153,7 +154,7 @@ class V1SourceBoundaryTest {
     }
 
     @Test
-    fun `profile hierarchy uses official website custom tabs and concise first level entries`() {
+    fun `profile hierarchy uses a restricted in app website and concise first level entries`() {
         val profile = appFile(
             "src/main/java/com/mychangli/app/profileSettings/ui/compose/ProfileSettingsRoute.kt",
         ).readText()
@@ -179,6 +180,45 @@ class V1SourceBoundaryTest {
             "https://mychangliapp.cn/terms.html",
             "CustomTabsIntent.Builder()",
         ).forEach { assertTrue(websiteNavigator.contains(it)) }
+        assertTrue(profile.contains("PublicWebsiteNavigator.openHomeInApp(context)"))
+        val about = appFile(
+            "src/main/java/com/mychangli/app/profileSettings/ui/AboutActivity.kt",
+        ).readText()
+        assertTrue(about.contains("PublicWebsiteNavigator.openHomeInApp(it)"))
+        assertTrue(websiteNavigator.contains("OfficialWebsiteActivity.createIntent"))
+
+        val officialWebsite = appFile(
+            "src/main/java/com/mychangli/app/core/web/OfficialWebsiteActivity.kt",
+        ).readText()
+        listOf(
+            "isOfficialWebsiteUrl",
+            "allowFileAccess = false",
+            "allowContentAccess = false",
+            "MIXED_CONTENT_NEVER_ALLOW",
+            "safeBrowsingEnabled = true",
+            "setAcceptThirdPartyCookies(this, false)",
+            "handler.cancel()",
+            "request.isForMainFrame",
+            "Intent.ACTION_VIEW",
+            "canGoBack()",
+            "官网加载失败",
+        ).forEach { assertTrue(officialWebsite.contains(it)) }
+        assertFalse(officialWebsite.contains("addJavascriptInterface"))
+
+        val manifest = appFile("src/main/AndroidManifest.xml").readText()
+        assertTrue(manifest.contains("core.web.OfficialWebsiteActivity"))
+        assertTrue(manifest.contains("android:exported=\"false\""))
+    }
+
+    @Test
+    fun `in app website allowlist accepts only the official https origin`() {
+        assertTrue(isOfficialWebsiteUrl("https://mychangliapp.cn"))
+        assertTrue(isOfficialWebsiteUrl("https://mychangliapp.cn/privacy.html?from=app"))
+        assertFalse(isOfficialWebsiteUrl("http://mychangliapp.cn"))
+        assertFalse(isOfficialWebsiteUrl("https://www.mychangliapp.cn"))
+        assertFalse(isOfficialWebsiteUrl("https://mychangliapp.cn.example.com"))
+        assertFalse(isOfficialWebsiteUrl("https://user@mychangliapp.cn"))
+        assertFalse(isOfficialWebsiteUrl("https://mychangliapp.cn:8443"))
     }
 
     @Test
@@ -188,6 +228,9 @@ class V1SourceBoundaryTest {
         ).readText()
         assertTrue(dynamics.contains("AUTO_ADVANCE_MILLIS = 1_000L"))
         assertTrue(dynamics.contains("（点击查看详情）"))
+        assertTrue(dynamics.contains("（下拉刷新）"))
+        assertTrue(dynamics.contains("fontSize = 11.sp"))
+        assertTrue(dynamics.contains("color = colors.greyTextColor"))
         assertFalse(dynamics.contains("AUTO_ADVANCE_MILLIS = 7_000L"))
     }
 

@@ -157,7 +157,7 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
             Button(
                 onClick = {
                     activity?.let {
-                        PublicWebsiteNavigator.open(it, PublicWebsiteNavigator.HOME_URL)
+                        PublicWebsiteNavigator.openHomeInApp(it)
                     }
                 },
                 modifier = Modifier
