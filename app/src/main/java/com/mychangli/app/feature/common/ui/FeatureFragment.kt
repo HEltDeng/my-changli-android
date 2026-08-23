@@ -113,7 +113,7 @@ fun FeatureScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppTheme.colors.bgPrimaryColor)
+            .background(AppTheme.colors.overviewPageBackgroundColor)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .navigationBarsPadding(),

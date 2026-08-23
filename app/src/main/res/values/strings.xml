@@ -219,7 +219,7 @@
     <string name="binding_action">绑定</string>
     <string name="binding_loading">正在验证，请稍候</string>
     <string name="binding_web_login_action">遇到问题？尝试网页登录</string>
-    <string name="binding_privacy_statement">我们会采用安全方式处理账号信息，不会人工查看你的密码；相关数据仅用于提供校园查询服务。更多说明请查看隐私与合规。</string>
+    <string name="binding_privacy_statement">你的账号信息和成绩数据不会被我们获取或保存，仅用于提供校园查询服务。更多说明请查看隐私与合规。</string>
     <string name="binding_privacy_policy_action">查看隐私政策与个人信息清单</string>
     <string name="sso_webview_cancel">关闭</string>
     <string name="password_length_restriction">密码长度至少6位</string>

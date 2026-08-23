@@ -388,19 +388,7 @@ private fun MetricRow(
                         .padding(18.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (metric.id == "score") {
-                            IconButton(
-                                onClick = { scoreVisible = !scoreVisible },
-                                modifier = Modifier.size(38.dp),
-                            ) {
-                                Icon(
-                                    imageVector = if (scoreVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                                    contentDescription = if (scoreVisible) "隐藏成绩" else "显示成绩",
-                                    tint = colors.primaryTextColor,
-                                    modifier = Modifier.size(22.dp),
-                                )
-                            }
-                        } else {
+                        if (metric.id != "score") {
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
@@ -422,6 +410,25 @@ private fun MetricRow(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
+                        if (metric.id == "score") {
+                            IconButton(
+                                onClick = { scoreVisible = !scoreVisible },
+                                modifier = Modifier.size(38.dp),
+                            ) {
+                                AnimatedContent(
+                                    targetState = scoreVisible,
+                                    transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                                    label = "overview_score_visibility_icon",
+                                ) { visible ->
+                                    Icon(
+                                        imageVector = if (visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                                        contentDescription = if (visible) "隐藏成绩" else "显示成绩",
+                                        tint = colors.primaryTextColor,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Column(
@@ -433,13 +440,20 @@ private fun MetricRow(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.Bottom
                         ) {
-                            Text(
-                                text = if (metric.id == "score" && !scoreVisible) "••••" else metric.value,
-                                color = metric.accentColor,
-                                fontSize = if (metric.id == "score" && !scoreVisible) 30.sp else metricValueFontSize(metric.value),
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1
-                            )
+                            AnimatedContent(
+                                targetState = if (metric.id == "score") scoreVisible else true,
+                                transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                                label = "overview_score_value_visibility",
+                            ) { visible ->
+                                val displayedValue = if (metric.id == "score" && !visible) "****" else metric.value
+                                Text(
+                                    text = displayedValue,
+                                    color = metric.accentColor,
+                                    fontSize = metricValueFontSize(displayedValue),
+                                    fontWeight = FontWeight.Black,
+                                    maxLines = 1
+                                )
+                            }
                             if (metric.unit.isNotBlank() && (metric.id != "score" || scoreVisible)) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
@@ -454,7 +468,7 @@ private fun MetricRow(
                         Spacer(modifier = Modifier.height(8.dp))
                         if (metric.id == "score" && !scoreVisible) {
                             Text(
-                                text = "成绩已隐藏",
+                                text = "平均分 ****",
                                 color = colors.secondaryTextColor,
                                 fontSize = 14.sp,
                             )
@@ -474,6 +488,13 @@ private fun MetricSubtitle(metric: OverviewMetricUiModel) {
     val subtitlePages = remember(metric.subtitle, metric.secondarySubtitle) {
         listOf(metric.subtitle, metric.secondarySubtitle)
             .filter { it.isNotBlank() }
+            .map { subtitle ->
+                if (metric.id == "score") {
+                    subtitle.replace(Regex("^平均分\\s*[:：]\\s*"), "平均分 ")
+                } else {
+                    subtitle
+                }
+            }
             .distinct()
     }
     val currentIndex = remember(metric.id, subtitlePages) { mutableIntStateOf(0) }

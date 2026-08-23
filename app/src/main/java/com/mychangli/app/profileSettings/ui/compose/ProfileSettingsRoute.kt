@@ -249,7 +249,7 @@ private fun ProfileSettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppTheme.colors.bgPrimaryColor)
+            .background(AppTheme.colors.overviewPageBackgroundColor)
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .navigationBarsPadding()
@@ -298,7 +298,7 @@ private fun ProfileSubPage(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppTheme.colors.bgPrimaryColor)
+            .background(AppTheme.colors.overviewPageBackgroundColor)
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .navigationBarsPadding()

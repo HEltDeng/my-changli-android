@@ -95,6 +95,9 @@ class V1SourceBoundaryTest {
 
         val bindingCopy = appFile("src/main/res/values/strings.xml").readText()
         assertTrue(bindingCopy.contains("绑定学校账号后，可以查看你的课程、成绩等校园信息。"))
+        assertTrue(bindingCopy.contains("你的账号信息和成绩数据不会被我们获取或保存，仅用于提供校园查询服务。更多说明请查看隐私与合规。"))
+        assertTrue(bindingCopy.contains("查看隐私政策与个人信息清单"))
+        assertTrue(bindingCopy.contains("遇到问题？尝试网页登录"))
         assertFalse(bindingCopy.contains("连接对应学校服务"))
     }
 
@@ -217,9 +220,30 @@ class V1SourceBoundaryTest {
         ).readText()
         assertTrue(overview.contains("Icons.Outlined.Visibility"))
         assertTrue(overview.contains("Icons.Outlined.VisibilityOff"))
-        assertTrue(overview.contains("成绩已隐藏"))
+        assertTrue(overview.contains("平均分 ****"))
+        assertTrue(overview.contains("\"****\" else metric.value"))
         assertTrue(overview.contains("隐藏成绩"))
         assertTrue(overview.contains("显示成绩"))
+        assertTrue(overview.contains("overview_score_visibility_icon"))
+        assertTrue(overview.contains("overview_score_value_visibility"))
+        assertFalse(overview.contains("成绩已隐藏"))
+    }
+
+    @Test
+    fun `three main tabs reuse the overview page background color`() {
+        val overview = appFile(
+            "src/main/java/com/mychangli/app/overview/ui/compose/OverviewScreen.kt",
+        ).readText()
+        val feature = appFile(
+            "src/main/java/com/mychangli/app/feature/common/ui/FeatureFragment.kt",
+        ).readText()
+        val profile = appFile(
+            "src/main/java/com/mychangli/app/profileSettings/ui/compose/ProfileSettingsRoute.kt",
+        ).readText()
+
+        assertTrue(overview.contains("background(colors.overviewPageBackgroundColor)"))
+        assertTrue(feature.contains("background(AppTheme.colors.overviewPageBackgroundColor)"))
+        assertTrue(profile.contains("background(AppTheme.colors.overviewPageBackgroundColor)"))
     }
 
     @Test
