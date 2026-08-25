@@ -108,8 +108,8 @@ class V1SourceBoundaryTest {
     fun `release identity endpoint and privacy gate are explicit`() {
         val build = appFile("build.gradle.kts").readText()
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
-        assertTrue(build.contains("versionCode = 32"))
-        assertTrue(build.contains("versionName = \"1.0.0\""))
+        assertTrue(build.contains("versionCode = 33"))
+        assertTrue(build.contains("versionName = \"1.0.1\""))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
         assertTrue(build.contains("Release endpoints must not contain placeholder or loopback hosts"))
@@ -180,39 +180,18 @@ class V1SourceBoundaryTest {
             "https://mychangliapp.cn/terms.html",
             "CustomTabsIntent.Builder()",
         ).forEach { assertTrue(websiteNavigator.contains(it)) }
-        assertTrue(profile.contains("PublicWebsiteNavigator.openHomeInApp(context)"))
+        assertTrue(profile.contains("PublicWebsiteNavigator.openHomeInBrowser(context)"))
         val about = appFile(
             "src/main/java/com/mychangli/app/profileSettings/ui/AboutActivity.kt",
         ).readText()
-        assertTrue(about.contains("PublicWebsiteNavigator.openHomeInApp(it)"))
-        assertTrue(websiteNavigator.contains("OfficialWebsiteActivity.createIntent"))
-
-        val officialWebsite = appFile(
-            "src/main/java/com/mychangli/app/core/web/OfficialWebsiteActivity.kt",
-        ).readText()
-        listOf(
-            "isOfficialWebsiteUrl",
-            "allowFileAccess = false",
-            "allowContentAccess = false",
-            "MIXED_CONTENT_NEVER_ALLOW",
-            "safeBrowsingEnabled = true",
-            "setAcceptThirdPartyCookies(this, false)",
-            "handler.cancel()",
-            "request.isForMainFrame",
-            "Intent.ACTION_VIEW",
-            "canGoBack()",
-            "官网加载失败",
-        ).forEach { assertTrue(officialWebsite.contains(it)) }
-        assertTrue(officialWebsite.contains("Icons.AutoMirrored.Rounded.OpenInNew"))
-        assertTrue(officialWebsite.contains("在浏览器中打开"))
-        assertTrue(officialWebsite.contains("onOpenExternal(PublicWebsiteNavigator.HOME_URL)"))
-        assertTrue(officialWebsite.contains("view.evaluateJavascript(MOBILE_NAV_COMPATIBILITY_SCRIPT, null)"))
-        assertTrue(officialWebsite.contains("if (isOfficialWebsiteUrl(url))"))
-        assertFalse(officialWebsite.contains("addJavascriptInterface"))
+        assertTrue(about.contains("PublicWebsiteNavigator.openHomeInBrowser(it)"))
+        assertTrue(websiteNavigator.contains("fun openHomeInBrowser"))
+        assertTrue(websiteNavigator.contains("Intent(Intent.ACTION_VIEW, uri)"))
+        assertTrue(websiteNavigator.contains("Intent.CATEGORY_BROWSABLE"))
+        assertFalse(websiteNavigator.contains("OfficialWebsiteActivity.createIntent"))
 
         val manifest = appFile("src/main/AndroidManifest.xml").readText()
-        assertTrue(manifest.contains("core.web.OfficialWebsiteActivity"))
-        assertTrue(manifest.contains("android:exported=\"false\""))
+        assertFalse(manifest.contains("core.web.OfficialWebsiteActivity"))
     }
 
     @Test

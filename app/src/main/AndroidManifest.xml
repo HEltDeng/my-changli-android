@@ -99,10 +99,6 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
-            android:name="com.mychangli.app.core.web.OfficialWebsiteActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-        <activity
             android:name="com.mychangli.app.feature.common.ui.FeatureUnavailableActivity"
             android:exported="false"
             android:screenOrientation="portrait" />

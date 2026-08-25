@@ -12,10 +12,12 @@ object PublicWebsiteNavigator {
     const val PRIVACY_URL = "https://mychangliapp.cn/privacy.html"
     const val TERMS_URL = "https://mychangliapp.cn/terms.html"
 
-    /** Opens the public home page in the app's restricted website container. */
-    fun openHomeInApp(context: Context): Boolean = runCatching {
+    /** Opens the public home page in the user's system browser. */
+    fun openHomeInBrowser(context: Context): Boolean = runCatching {
+        val uri = Uri.parse(HOME_URL)
         context.startActivity(
-            OfficialWebsiteActivity.createIntent(context, HOME_URL).apply {
+            Intent(Intent.ACTION_VIEW, uri).apply {
+                addCategory(Intent.CATEGORY_BROWSABLE)
                 if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             },
         )

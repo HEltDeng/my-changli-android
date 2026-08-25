@@ -137,8 +137,8 @@ android {
         applicationId = "com.mychangli.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.0.0"
+        versionCode = 33
+        versionName = "1.0.1"
 
         ndk {
             // 设置支持的SO库架构
