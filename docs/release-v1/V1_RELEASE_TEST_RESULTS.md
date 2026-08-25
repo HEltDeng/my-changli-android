@@ -2,7 +2,7 @@
 
 - Date: 2026-08-12
 - Java: Temurin 17.0.19
-- Android SDK: `C:\Users\HeVoi\AppData\Local\Android\Sdk`
+- Android SDK: local installation (path intentionally omitted)
 - Gradle result: `BUILD SUCCESSFUL`
 
 ## Automated result
