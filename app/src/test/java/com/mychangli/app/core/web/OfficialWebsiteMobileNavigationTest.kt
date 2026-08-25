@@ -25,4 +25,22 @@ class OfficialWebsiteMobileNavigationTest {
         assertFalse(MOBILE_NAV_COMPATIBILITY_SCRIPT.contains("http://"))
         assertFalse(MOBILE_NAV_COMPATIBILITY_SCRIPT.contains("addJavascriptInterface"))
     }
+
+    @Test
+    fun `webview announcement dialog has narrow official-site compatibility sizing`() {
+        listOf(
+            ".announcement-dialog[open]",
+            "width: calc(100% - 32px) !important",
+            "max-width: 640px !important",
+            ".announcement-dialog-shell",
+            "max-height: 80vh !important",
+            ".announcement-dialog-body",
+            "max-height: 52vh !important",
+            "overflow-y: auto !important",
+        ).forEach { expected ->
+            assertTrue("Missing announcement dialog rule: $expected", MOBILE_NAV_COMPATIBILITY_SCRIPT.contains(expected))
+        }
+
+        assertFalse(MOBILE_NAV_COMPATIBILITY_SCRIPT.contains("dialog {"))
+    }
 }

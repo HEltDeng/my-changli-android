@@ -72,6 +72,33 @@ internal val MOBILE_NAV_COMPATIBILITY_SCRIPT = """
       style.textContent = `
         @media (max-width: 840px) {
           .site-header { overflow: visible !important; }
+          .announcement-dialog[open] {
+            display: block !important;
+            width: calc(100% - 32px) !important;
+            max-width: 640px !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: 80vh !important;
+            margin: auto !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+          .announcement-dialog-shell {
+            display: flex !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: 80vh !important;
+            flex-direction: column !important;
+          }
+          .announcement-dialog-header,
+          .announcement-dialog-footer { flex: 0 0 auto !important; }
+          .announcement-dialog-body {
+            display: block !important;
+            min-height: 0 !important;
+            max-height: 52vh !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+          }
           .site-nav {
             position: fixed !important;
             z-index: 100 !important;
