@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.ZoneId
 import java.util.regex.Pattern
 
 class TimeTableViewModel : ViewModel() {
@@ -426,7 +427,12 @@ class TimeTableViewModel : ViewModel() {
 
     fun getCurWeek(term: String): Int =
         com.mychangli.app.feature.schedule.CourseScheduleRepository.termStart(term)
-            ?.let { com.mychangli.app.feature.schedule.CourseScheduleEngine.teachingWeek(it, java.time.LocalDate.now()) }
+            ?.let {
+                com.mychangli.app.feature.schedule.CourseScheduleEngine.teachingWeek(
+                    it,
+                    java.time.LocalDate.now(ZoneId.of("Asia/Shanghai")),
+                )
+            }
             ?.coerceAtLeast(1)
             ?: CommonInfo.getCurrentWeekInt(term)
 

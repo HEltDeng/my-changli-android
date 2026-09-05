@@ -113,6 +113,7 @@ private const val TotalColumns = 7
 private const val TotalWeeks = 20
 
 enum class WeekBadgeState {
+    Preview,
     NotStarted,
     Current,
     NotCurrent,
@@ -186,6 +187,7 @@ fun TimeTableComposeScreen(
     val effectiveWeek = settledWeek.value
     val weekBadgeState = remember(termStarted, currentWeek, effectiveWeek) {
         when {
+            !termStarted && effectiveWeek == 1 && currentWeek == 1 -> WeekBadgeState.Preview
             !termStarted -> WeekBadgeState.NotStarted
             effectiveWeek == currentWeek -> WeekBadgeState.Current
             else -> WeekBadgeState.NotCurrent
@@ -330,16 +332,19 @@ private fun TermWeekBar(
     var showRemarkDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
     val badgeContainerColor = when (weekBadgeState) {
+        WeekBadgeState.Preview -> colors.textHeighLightColor.copy(alpha = 0.14f)
         WeekBadgeState.NotStarted -> colors.textHeighLightColor.copy(alpha = 0.14f)
         WeekBadgeState.Current -> colors.successGreenColor.copy(alpha = 0.16f)
         WeekBadgeState.NotCurrent -> colors.secondaryTextColor.copy(alpha = 0.12f)
     }
     val badgeTextColor = when (weekBadgeState) {
+        WeekBadgeState.Preview -> colors.textHeighLightColor
         WeekBadgeState.NotStarted -> colors.textHeighLightColor
         WeekBadgeState.Current -> colors.successGreenColor
         WeekBadgeState.NotCurrent -> colors.secondaryTextColor
     }
     val badgeText = when (weekBadgeState) {
+        WeekBadgeState.Preview -> "第1周预览"
         WeekBadgeState.NotStarted -> "未开学"
         WeekBadgeState.Current -> "本周"
         WeekBadgeState.NotCurrent -> "非本周"
