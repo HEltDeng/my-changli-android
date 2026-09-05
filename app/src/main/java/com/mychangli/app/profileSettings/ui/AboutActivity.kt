@@ -38,7 +38,7 @@ import com.mychangli.app.R
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.update.AppUpdateChecker
-import com.mychangli.app.core.update.AppUpdateNavigator
+import com.mychangli.app.core.update.AppUpdateCoordinator
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.core.web.PublicWebsiteNavigator
@@ -46,6 +46,11 @@ import com.mychangli.app.core.web.PublicWebsiteNavigator
 class AboutActivity : ComponentActivity() {
     companion object {
         const val EXTRA_AUTO_CHECK_UPDATE = "extra_auto_check_update"
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AppUpdateCoordinator.resumePendingInstall(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -179,16 +184,10 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
     availableUpdate?.let { update ->
         AppUpdatePrompt(
             update = update,
+            context = activity,
             onLater = { availableUpdate = null },
             onPrimaryAction = {
-                availableUpdate = null
-                checkMessage = if (
-                    activity != null && AppUpdateNavigator.open(activity, update.version.download_url)
-                ) {
-                    ""
-                } else {
-                    "暂时无法打开更新地址"
-                }
+                activity?.let { AppUpdateCoordinator.begin(it, update.version) }
             },
         )
     }

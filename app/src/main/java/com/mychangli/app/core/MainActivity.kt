@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,8 +39,8 @@ import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdateCooldown
+import com.mychangli.app.core.update.AppUpdateCoordinator
 import com.mychangli.app.core.update.AppUpdatePrompt
-import com.mychangli.app.core.update.AppUpdateNavigator
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.utils.event.AppEventBus
 import androidx.lifecycle.Lifecycle
@@ -56,6 +55,7 @@ class MainActivity : ComponentActivity(), DrawerController {
 
     override fun onResume() {
         super.onResume()
+        AppUpdateCoordinator.resumePendingInstall(this)
         if (!PrivacyConsentManager.hasAppConsent(this)) return
         store.dispatch(UserAction.initilaize())  //初始化用户信息，对游客模式无影响
         lifecycleScope.launch(Dispatchers.IO) {
@@ -167,6 +167,7 @@ class MainActivity : ComponentActivity(), DrawerController {
                         availableUpdate?.let { update ->
                             AppUpdatePrompt(
                                 update = update,
+                                context = this@MainActivity,
                                 onLater = {
                                     AppUpdateCooldown.recordDismissed(
                                         this@MainActivity,
@@ -175,23 +176,7 @@ class MainActivity : ComponentActivity(), DrawerController {
                                     availableUpdate = null
                                 },
                                 onPrimaryAction = {
-                                    availableUpdate = null
-                                    if (
-                                        BuildConfig.RELEASE_USER_SURFACE &&
-                                        AppUpdateNavigator.open(
-                                            this@MainActivity,
-                                            update.version.download_url,
-                                        )
-                                    ) return@AppUpdatePrompt
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        if (BuildConfig.RELEASE_USER_SURFACE) {
-                                            "暂时无法打开更新地址"
-                                        } else {
-                                            "本地体验版未配置真实 APK 下载，不会执行安装"
-                                        },
-                                        Toast.LENGTH_LONG,
-                                    ).show()
+                                    AppUpdateCoordinator.begin(this@MainActivity, update.version)
                                 },
                             )
                         }
@@ -201,7 +186,7 @@ class MainActivity : ComponentActivity(), DrawerController {
         }
         if (PrivacyConsentManager.hasAppConsent(this)) notifyLocalScheduleComponents()
         Log.d("MainActivity", "用时 ${System.currentTimeMillis() - start}")
-        // 版本检查仅访问“我的长理”后端；本地阶段不下载或安装 APK。
+        // 版本检查与自动更新共用 AppUpdateCoordinator；安装始终交给系统 PackageInstaller 确认。
     }
 
     override fun onDestroy() {

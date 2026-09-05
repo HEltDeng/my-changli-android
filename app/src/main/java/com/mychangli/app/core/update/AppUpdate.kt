@@ -1,20 +1,28 @@
 package com.mychangli.app.core.update
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.network.campustools.CampusToolsApiClient
 import com.mychangli.app.core.network.campustools.RemoteAppVersion
 import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.mychangli.app.core.theme.AppTheme
-import com.mychangli.app.core.web.PublicWebsiteNavigator
 import java.net.URI
 
 sealed interface VersionCheckResult {
@@ -118,7 +126,10 @@ object AppUpdateChecker {
     private fun isSafeResult(result: VersionCheckResult): Boolean =
         result !is VersionCheckResult.Available ||
             !BuildConfig.RELEASE_USER_SURFACE ||
-            UpdateTargetPolicy.isSafeHttps(result.version.download_url)
+            (
+                UpdateTargetPolicy.isSafeHttps(result.version.download_url) &&
+                    UpdateArtifactPolicy.expectationFrom(result.version) != null
+                )
 }
 
 /** Release builds only expose update actions backed by a public HTTPS target. */
@@ -147,22 +158,6 @@ object UpdateTargetPolicy {
         val parts = host.split('.')
         if (parts.size != 4 || parts[0] != "172") return false
         return parts[1].toIntOrNull() in 16..31
-    }
-}
-
-object AppUpdateNavigator {
-    fun open(context: Context, rawUrl: String?): Boolean {
-        if (BuildConfig.RELEASE_USER_SURFACE) {
-            return PublicWebsiteNavigator.open(context, PublicWebsiteNavigator.DOWNLOAD_URL)
-        }
-        if (!UpdateTargetPolicy.isSafeHttps(rawUrl)) return false
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(rawUrl)).apply {
-            addCategory(Intent.CATEGORY_BROWSABLE)
-        }
-        return runCatching {
-            context.startActivity(intent)
-            true
-        }.getOrDefault(false)
     }
 }
 
@@ -217,31 +212,127 @@ fun AppUpdatePrompt(
     update: VersionCheckResult.Available,
     onLater: () -> Unit,
     onPrimaryAction: () -> Unit,
+    context: Context? = null,
 ) {
+    val appContext = context ?: LocalContext.current
     val releaseSurface = BuildConfig.RELEASE_USER_SURFACE
+    val updateState by AppUpdateCoordinator.state.collectAsState()
+    val activeState = updateState.takeIf { it.versionCode() == update.version.latest_version_code.toLong() }
+    val isBusy = activeState is AppUpdateState.Downloading ||
+        activeState is AppUpdateState.Verifying ||
+        activeState is AppUpdateState.Installing
+    val isMandatory = update.mandatory
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, appContext) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                AppUpdateCoordinator.resumePendingInstall(appContext)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     AlertDialog(
-        onDismissRequest = onLater,
+        onDismissRequest = {
+            if (isBusy) AppUpdateCoordinator.cancelDownload(appContext)
+            if (!isMandatory) onLater()
+        },
         containerColor = AppTheme.colors.bgCardColor,
-        title = { Text("发现新版本 ${update.version.latest_version_name}", fontWeight = FontWeight.Bold) },
-        text = {
+        title = {
             Text(
-                buildString {
-                    append(update.version.update_message.ifBlank { "包含体验与稳定性改进。" })
-                    if (!releaseSurface && update.mandatory) {
-                        append("\n\n当前为本地规则演示，不会锁定或替换应用。")
-                    }
-                    append(
-                        if (releaseSurface) "\n\n更新信息由我的长理服务提供。"
-                        else "\n\n更新来源：我的长理本地后端。",
-                    )
-                }
+                when (activeState) {
+                    is AppUpdateState.Downloading,
+                    is AppUpdateState.Verifying,
+                    is AppUpdateState.Installing -> "正在安装更新"
+                    is AppUpdateState.NeedInstallPermission -> "需要安装权限"
+                    is AppUpdateState.Failed -> "更新失败"
+                    else -> "发现新版本 ${update.version.latest_version_name}"
+                },
+                fontWeight = FontWeight.Bold,
             )
         },
-        confirmButton = {
-            TextButton(onClick = onPrimaryAction) {
-                Text(if (releaseSurface) "获取更新" else "立即更新")
+        text = {
+            when (val current = activeState) {
+                is AppUpdateState.Downloading -> {
+                    val progress = current.totalBytes
+                        ?.takeIf { it > 0L }
+                        ?.let { (current.downloadedBytes.toFloat() / it).coerceIn(0f, 1f) }
+                    Column {
+                        Text("正在下载更新…")
+                        LinearProgressIndicator(
+                            progress = { progress ?: 0f },
+                            modifier = androidx.compose.ui.Modifier.padding(top = 12.dp),
+                        )
+                        Text(
+                            text = if (current.totalBytes != null) {
+                                "${formatUpdateBytes(current.downloadedBytes)} / ${formatUpdateBytes(current.totalBytes)}"
+                            } else {
+                                formatUpdateBytes(current.downloadedBytes)
+                            },
+                            modifier = androidx.compose.ui.Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+                is AppUpdateState.Verifying -> Text("正在校验更新包…")
+                is AppUpdateState.ReadyToInstall -> Text("更新包已准备完成，正在进入系统安装器…")
+                is AppUpdateState.NeedInstallPermission -> Text(
+                    "更新已下载完成。为了安装更新，请允许“我的长理”安装应用。",
+                )
+                is AppUpdateState.Installing -> Text("正在准备系统安装器…")
+                is AppUpdateState.Failed -> Text(current.message)
+                else -> Text(
+                    buildString {
+                        append(update.version.update_message.ifBlank { "包含体验与稳定性改进。" })
+                        if (!releaseSurface && update.mandatory) {
+                            append("\n\n当前为本地规则演示，不会锁定或替换应用。")
+                        }
+                        append(
+                            if (releaseSurface) "\n\n更新信息由我的长理服务提供。"
+                            else "\n\n更新来源：我的长理本地后端。",
+                        )
+                    },
+                )
             }
         },
-        dismissButton = { TextButton(onClick = onLater) { Text("稍后再说") } },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    when (activeState) {
+                        is AppUpdateState.NeedInstallPermission ->
+                            AppUpdateCoordinator.openInstallPermissionSettings(appContext)
+                        is AppUpdateState.Failed ->
+                            AppUpdateCoordinator.begin(appContext, update.version)
+                        is AppUpdateState.Downloading,
+                        is AppUpdateState.Verifying,
+                        is AppUpdateState.Installing -> Unit
+                        else -> onPrimaryAction()
+                    }
+                },
+                enabled = !isBusy,
+            ) {
+                Text(
+                    when (activeState) {
+                        is AppUpdateState.NeedInstallPermission -> "去开启"
+                        is AppUpdateState.Failed -> "重新下载"
+                        is AppUpdateState.Downloading,
+                        is AppUpdateState.Verifying,
+                        is AppUpdateState.Installing -> "处理中"
+                        else -> if (releaseSurface) "立即更新" else "立即更新"
+                    },
+                )
+            }
+        },
+        dismissButton = if (isMandatory) {
+            null
+        } else {
+            {
+                TextButton(
+                    onClick = {
+                        if (isBusy) AppUpdateCoordinator.cancelDownload(appContext)
+                        onLater()
+                    },
+                ) { Text(if (isBusy) "取消下载" else "稍后再说") }
+            }
+        },
     )
 }

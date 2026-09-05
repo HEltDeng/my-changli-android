@@ -69,6 +69,7 @@ import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.update.AppUpdateChecker
+import com.mychangli.app.core.update.AppUpdateCoordinator
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.core.web.PublicWebsiteNavigator
@@ -218,12 +219,10 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
     (updateResult as? VersionCheckResult.Available)?.let { update ->
         AppUpdatePrompt(
             update = update,
+            context = context,
             onLater = { updateResult = null },
             onPrimaryAction = {
-                updateResult = null
-                if (!PublicWebsiteNavigator.open(context, PublicWebsiteNavigator.DOWNLOAD_URL)) {
-                    updateMessage = "暂时无法打开官网下载页"
-                }
+                AppUpdateCoordinator.begin(context, update.version)
             },
         )
     }

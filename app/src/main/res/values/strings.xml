@@ -4,7 +4,7 @@
     <string name="release_document_title_third_party">第三方 SDK / 服务</string>
     <string name="release_document_title_personal_information">个人信息清单</string>
     <string name="release_document_title_account_data">账号与数据管理</string>
-    <string name="release_document_footer">我的长理 · 版本 1.0.2</string>
+    <string name="release_document_footer">我的长理 · 版本 1.0.3</string>
     <string name="release_third_party_android_components">本版本使用 AndroidX、Compose、Material、Room、MMKV、Retrofit、OkHttp、Coil、Glide 等应用运行与界面组件。</string>
     <string name="app_name">我的长理</string>
     <string name="chat">群聊</string>
