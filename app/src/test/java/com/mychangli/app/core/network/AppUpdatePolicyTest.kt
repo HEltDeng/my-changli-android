@@ -43,6 +43,12 @@ class AppUpdatePolicyTest {
     }
 
     @Test
+    fun numericVersionWinsWhenServerUpdateFlagIsStale() {
+        val result = VersionPolicy.evaluate(10, updateAvailable = false, latest = version(11))
+        assertTrue(result is VersionCheckResult.Available)
+    }
+
+    @Test
     fun newerVersionIsAvailableWithoutForcingNormalUpgrade() {
         val result = VersionPolicy.evaluate(10, true, version(11)) as VersionCheckResult.Available
         assertEquals(11, result.version.latest_version_code)

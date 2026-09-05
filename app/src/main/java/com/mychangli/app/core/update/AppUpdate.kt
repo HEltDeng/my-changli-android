@@ -33,11 +33,33 @@ object VersionPolicy {
         latest: RemoteAppVersion?,
     ): VersionCheckResult {
         if (latest == null || latest.latest_version_code < 1) return VersionCheckResult.Latest
-        if (!updateAvailable || latest.latest_version_code <= currentVersionCode) {
+        // versionCode is the authoritative ordering signal. The boolean is a
+        // server hint and must not hide a numerically newer release if an old
+        // cache or an inconsistent response leaves it false.
+        if (latest.latest_version_code <= currentVersionCode) {
             return VersionCheckResult.Latest
         }
         val mandatory = latest.force_update || currentVersionCode < latest.minimum_version_code
         return VersionCheckResult.Available(latest, mandatory)
+    }
+}
+
+object VersionSourcePolicy {
+    fun choose(
+        backend: VersionCheckResult?,
+        website: VersionCheckResult?,
+    ): VersionCheckResult = backend ?: website ?: VersionCheckResult.Unavailable
+
+    fun fromWebsiteManifest(
+        currentVersionCode: Int,
+        manifest: OfficialReleaseManifest,
+    ): VersionCheckResult? {
+        val latest = manifest.toRemoteAppVersion() ?: return null
+        return VersionPolicy.evaluate(
+            currentVersionCode = currentVersionCode,
+            updateAvailable = latest.latest_version_code > currentVersionCode,
+            latest = latest,
+        )
     }
 }
 
@@ -64,28 +86,39 @@ data class UpdatePromptCooldownPolicy(
 }
 
 object AppUpdateChecker {
-    suspend fun check(): VersionCheckResult {
-        if (!ServiceEndpointPolicy.isCampusToolsConfigured()) return VersionCheckResult.Unavailable
-        return runCatching {
-            val envelope = CampusToolsApiClient.unauthenticated.versionCheck(BuildConfig.VERSION_CODE)
-            val data = envelope.data.takeIf { envelope.ok }
-                ?: return@runCatching VersionCheckResult.Unavailable
-            val result = VersionPolicy.evaluate(
-                BuildConfig.VERSION_CODE,
-                data.updateAvailable,
-                data.latestVersion,
-            )
-            if (
-                BuildConfig.RELEASE_USER_SURFACE &&
-                result is VersionCheckResult.Available &&
-                !UpdateTargetPolicy.isSafeHttps(result.version.download_url)
-            ) {
-                VersionCheckResult.Unavailable
-            } else {
-                result
-            }
-        }.getOrDefault(VersionCheckResult.Unavailable)
+    suspend fun check(forceRefresh: Boolean = false): VersionCheckResult {
+        val backendResult = if (ServiceEndpointPolicy.isCampusToolsConfigured()) {
+            runCatching {
+                val envelope = CampusToolsApiClient.unauthenticated.versionCheck(BuildConfig.VERSION_CODE)
+                val data = envelope.data.takeIf { envelope.ok } ?: return@runCatching null
+                val latest = data.latestVersion
+                    ?.takeIf { it.latest_version_code > 0 && it.latest_version_name.isNotBlank() }
+                    ?: return@runCatching null
+                val result = VersionPolicy.evaluate(
+                    BuildConfig.VERSION_CODE,
+                    data.updateAvailable,
+                    latest,
+                )
+                result.takeIf { isSafeResult(it) }
+            }.getOrNull()
+        } else {
+            null
+        }
+        if (backendResult != null) return backendResult
+
+        val websiteResult = runCatching {
+            VersionSourcePolicy.fromWebsiteManifest(
+                currentVersionCode = BuildConfig.VERSION_CODE,
+                manifest = OfficialReleaseManifestClient.latest(forceRefresh),
+            )?.takeIf(::isSafeResult)
+        }.getOrNull()
+        return VersionSourcePolicy.choose(backendResult, websiteResult)
     }
+
+    private fun isSafeResult(result: VersionCheckResult): Boolean =
+        result !is VersionCheckResult.Available ||
+            !BuildConfig.RELEASE_USER_SURFACE ||
+            UpdateTargetPolicy.isSafeHttps(result.version.download_url)
 }
 
 /** Release builds only expose update actions backed by a public HTTPS target. */

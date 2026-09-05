@@ -142,7 +142,7 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
                     "update" -> if (!checkingUpdate) {
                         checkingUpdate = true
                         scope.launch {
-                            updateResult = AppUpdateChecker.check()
+                            updateResult = AppUpdateChecker.check(forceRefresh = true)
                             if (updateResult === VersionCheckResult.Latest) {
                                 updateMessage = "当前已是最新版本"
                                 updateResult = null
