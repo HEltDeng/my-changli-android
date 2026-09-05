@@ -108,8 +108,8 @@ class V1SourceBoundaryTest {
     fun `release identity endpoint and privacy gate are explicit`() {
         val build = appFile("build.gradle.kts").readText()
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
-        assertTrue(build.contains("versionCode = 33"))
-        assertTrue(build.contains("versionName = \"1.0.1\""))
+        assertTrue(build.contains("versionCode = 34"))
+        assertTrue(build.contains("versionName = \"1.0.2\""))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
         assertTrue(build.contains("Release endpoints must not contain placeholder or loopback hosts"))
