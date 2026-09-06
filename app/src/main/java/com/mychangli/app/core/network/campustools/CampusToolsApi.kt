@@ -1,6 +1,7 @@
 package com.mychangli.app.core.network.campustools
 
 import com.mychangli.app.BuildConfig
+import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.security.CredentialCipher
 import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.mychangli.app.core.network.ServiceUnavailableException
@@ -45,6 +46,9 @@ class CampusToolsApiException(
 ) : IllegalStateException(message)
 data class DeviceAuthRequest(
     @SerializedName("installationId") val installationId: String,
+    @SerializedName("deviceScopedId") val deviceScopedId: String? = null,
+    @SerializedName("versionName") val versionName: String? = null,
+    @SerializedName("versionCode") val versionCode: Int? = null,
 )
 data class AuthData(
     @SerializedName("token") val token: String,
@@ -54,6 +58,7 @@ data class AuthUser(
     @SerializedName("id") val id: String,
     @SerializedName("role") val role: String,
     @SerializedName("accountType") val accountType: String = "DEVICE",
+    @SerializedName("userCode") val userCode: String? = null,
     @SerializedName("nickname") val nickname: String = "长理同学",
     @SerializedName("phoneMasked") val phoneMasked: String? = null,
     @SerializedName("studentId") val studentId: String? = null,
@@ -74,11 +79,17 @@ data class RegisterRequest(
     @SerializedName("password") val password: String,
     @SerializedName("nickname") val nickname: String,
     @SerializedName("installationId") val installationId: String,
+    @SerializedName("deviceScopedId") val deviceScopedId: String? = null,
+    @SerializedName("versionName") val versionName: String? = null,
+    @SerializedName("versionCode") val versionCode: Int? = null,
 )
 data class LoginRequest(
     @SerializedName("phone") val phone: String,
     @SerializedName("password") val password: String,
     @SerializedName("installationId") val installationId: String,
+    @SerializedName("deviceScopedId") val deviceScopedId: String? = null,
+    @SerializedName("versionName") val versionName: String? = null,
+    @SerializedName("versionCode") val versionCode: Int? = null,
 )
 data class ProfileRequest(@SerializedName("nickname") val nickname: String)
 data class DeleteAccountRequest(@SerializedName("password") val password: String)
@@ -303,11 +314,17 @@ data class RemoteAppVersion(
     val download_url: String? = null,
     val apk_sha256: String? = null,
     val apk_size: Long? = null,
+    val package_name: String? = null,
+    val signing_certificate_sha256: String? = null,
+    val metadata_verified: Boolean = false,
     val force_update: Boolean = false,
     val published_at: Long? = null,
 )
 data class VersionCheckResponse(
     val updateAvailable: Boolean = false,
+    val forceUpdate: Boolean = false,
+    val minimumVersionViolated: Boolean = false,
+    val mandatoryUpdate: Boolean = false,
     val currentVersionCode: Int = 0,
     val latestVersion: RemoteAppVersion? = null,
 )
@@ -626,7 +643,15 @@ object CampusToolsSession {
     ): AuthUser = mutex.withLock {
         val response = try {
             CampusToolsApiClient.unauthenticated.register(
-                RegisterRequest(phone.trim(), password, nickname.trim(), installationId)
+                RegisterRequest(
+                    phone = phone.trim(),
+                    password = password,
+                    nickname = nickname.trim(),
+                    installationId = installationId,
+                    deviceScopedId = deviceScopedId(),
+                    versionName = BuildConfig.VERSION_NAME,
+                    versionCode = BuildConfig.VERSION_CODE,
+                )
             )
         } catch (cause: Throwable) {
             error(cause.apiMessage("注册失败，请检查网络后重试"))
@@ -640,7 +665,14 @@ object CampusToolsSession {
     suspend fun login(phone: String, password: String): AuthUser = mutex.withLock {
         val response = try {
             CampusToolsApiClient.unauthenticated.login(
-                LoginRequest(phone.trim(), password, installationId)
+                LoginRequest(
+                    phone = phone.trim(),
+                    password = password,
+                    installationId = installationId,
+                    deviceScopedId = deviceScopedId(),
+                    versionName = BuildConfig.VERSION_NAME,
+                    versionCode = BuildConfig.VERSION_CODE,
+                )
             )
         } catch (cause: Throwable) {
             error(cause.apiMessage("登录失败，请检查手机号、密码和网络"))
@@ -773,13 +805,24 @@ object CampusToolsSession {
         }
 
         val response = runCatching {
-            CampusToolsApiClient.unauthenticated.deviceAuth(DeviceAuthRequest(installationId))
+            CampusToolsApiClient.unauthenticated.deviceAuth(
+                DeviceAuthRequest(
+                    installationId = installationId,
+                    deviceScopedId = deviceScopedId(),
+                    versionName = BuildConfig.VERSION_NAME,
+                    versionCode = BuildConfig.VERSION_CODE,
+                )
+            )
         }.getOrNull() ?: return
         val auth = response.data.takeIf { response.ok } ?: return
         if (auth.user.accountType == "DEVICE" && auth.user.accountStatus == "ACTIVE") {
             deviceToken = auth.token
         }
     }
+
+    private fun deviceScopedId(): String? = runCatching {
+        DeviceIdentity.deviceScopedId(PlanetApplication.appContext)
+    }.getOrNull()
 }
 
 private fun Throwable.apiMessage(fallback: String): String {

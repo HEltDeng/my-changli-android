@@ -176,7 +176,7 @@ private fun v1InformationSections(
             ),
             V1InformationSection(
                 "自有服务",
-                "用户主动登录、发布失物招领、提交反馈或使用资料库时，相关账号信息和用户提交内容仅发送至配置完成的我的长理自有后端。生产地址未配置时客户端保持关闭，不回连开发地址。",
+                "用户主动登录、发布失物招领、提交反馈或使用资料库时，相关账号信息和用户提交内容仅发送至配置完成的我的长理自有后端。为区分独立设备与安装实例，App 还会在本机将 Android 系统提供的 ANDROID_ID 做 App 范围内的单向派生后发送 deviceScopedId；原始 ANDROID_ID、IMEI、IMSI、手机序列号和 MAC 地址不会发送。后端再使用服务端密钥保存不可逆的 device_key_hash，并保存本次安装的 installationId、版本信息，用于独立设备统计、安装实例去重、账号安全和服务稳定性。生产地址未配置时客户端保持关闭，不回连开发地址。",
             ),
             V1InformationSection(
                 "本地数据与权限",
@@ -218,7 +218,7 @@ private fun v1InformationSections(
         ReleaseDocumentType.PERSONAL_INFORMATION -> listOf(
             V1InformationSection(
                 "发送至自有后端",
-                "我的长理账号信息、installationId，以及用户主动提交的失物招领内容、可选图片、反馈和资料库交互信息。",
+                "我的长理账号信息、App 本次安装的 installationId、App 范围内单向派生的 deviceScopedId、客户端版本信息，以及用户主动提交的失物招领内容、可选图片、反馈和资料库交互信息。服务端仅保存由服务端密钥再次计算的 device_key_hash，不保存原始 ANDROID_ID；IMEI、IMSI、手机序列号和 MAC 地址不会发送。上述设备相关标识用于独立设备统计、安装实例去重、账号安全和服务稳定性。",
             ),
             V1InformationSection(
                 "不会发送至自有后端",

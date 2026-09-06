@@ -1,5 +1,6 @@
 package com.mychangli.app.core.update
 
+import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.material3.AlertDialog
@@ -283,6 +284,13 @@ fun AppUpdatePrompt(
                 else -> Text(
                     buildString {
                         append(update.version.update_message.ifBlank { "包含体验与稳定性改进。" })
+                        append(
+                            "\n\n当前版本：V${BuildConfig.VERSION_NAME}（${BuildConfig.VERSION_CODE}）" +
+                                "\n最新版本：V${update.version.latest_version_name}（${update.version.latest_version_code}）",
+                        )
+                        update.version.apk_size?.let {
+                            append("\n下载大小：${formatUpdateBytes(it)}")
+                        }
                         if (!releaseSurface && update.mandatory) {
                             append("\n\n当前为本地规则演示，不会锁定或替换应用。")
                         }
@@ -323,7 +331,11 @@ fun AppUpdatePrompt(
             }
         },
         dismissButton = if (isMandatory) {
-            null
+            {
+                TextButton(
+                    onClick = { (appContext as? Activity)?.finishAffinity() },
+                ) { Text("退出应用") }
+            }
         } else {
             {
                 TextButton(

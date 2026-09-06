@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,7 +47,6 @@ import com.mychangli.app.utils.event.AppEventBus
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), DrawerController {
@@ -136,22 +136,23 @@ class MainActivity : ComponentActivity(), DrawerController {
                         var availableUpdate by remember {
                             mutableStateOf<VersionCheckResult.Available?>(null)
                         }
+                        var updateCheckComplete by remember { mutableStateOf(false) }
                         LaunchedEffect(Unit) {
                             CampusToolsSession.restore()
-                        }
-                        LaunchedEffect(Unit) {
-                            delay(1_800)
                             val result = AppUpdateChecker.check()
                             val update = result as? VersionCheckResult.Available
                             if (
                                 update != null &&
-                                AppUpdateCooldown.isPromptAllowed(
+                                (
+                                    update.mandatory || AppUpdateCooldown.isPromptAllowed(
                                     this@MainActivity,
                                     update.version.latest_version_code,
+                                    )
                                 )
                             ) {
                                 availableUpdate = update
                             }
+                            updateCheckComplete = true
                         }
                         LaunchedEffect(accountState) {
                             val signedIn = accountState as? AccountSessionState.SignedIn
@@ -161,24 +162,46 @@ class MainActivity : ComponentActivity(), DrawerController {
                                 LostFoundRepository.activateGuest()
                             }
                         }
-                        Surface(color = AppTheme.colors.bgPrimaryColor) {
-                            MainScreen(navigator = mainTabNavigator)
-                        }
-                        availableUpdate?.let { update ->
-                            AppUpdatePrompt(
-                                update = update,
-                                context = this@MainActivity,
-                                onLater = {
-                                    AppUpdateCooldown.recordDismissed(
-                                        this@MainActivity,
-                                        update.version.latest_version_code,
+                        when {
+                            !updateCheckComplete -> Surface(color = AppTheme.colors.bgPrimaryColor) {
+                                Text("正在检查版本…")
+                            }
+
+                            availableUpdate?.mandatory == true -> {
+                                AppUpdatePrompt(
+                                    update = requireNotNull(availableUpdate),
+                                    context = this@MainActivity,
+                                    onLater = {},
+                                    onPrimaryAction = {
+                                        AppUpdateCoordinator.begin(
+                                            this@MainActivity,
+                                            requireNotNull(availableUpdate).version,
+                                        )
+                                    },
+                                )
+                            }
+
+                            else -> {
+                                Surface(color = AppTheme.colors.bgPrimaryColor) {
+                                    MainScreen(navigator = mainTabNavigator)
+                                }
+                                availableUpdate?.let { update ->
+                                    AppUpdatePrompt(
+                                        update = update,
+                                        context = this@MainActivity,
+                                        onLater = {
+                                            AppUpdateCooldown.recordDismissed(
+                                                this@MainActivity,
+                                                update.version.latest_version_code,
+                                            )
+                                            availableUpdate = null
+                                        },
+                                        onPrimaryAction = {
+                                            AppUpdateCoordinator.begin(this@MainActivity, update.version)
+                                        },
                                     )
-                                    availableUpdate = null
-                                },
-                                onPrimaryAction = {
-                                    AppUpdateCoordinator.begin(this@MainActivity, update.version)
-                                },
-                            )
+                                }
+                            }
                         }
                     }
                 }

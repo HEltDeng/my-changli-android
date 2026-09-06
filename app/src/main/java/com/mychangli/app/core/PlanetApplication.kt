@@ -6,7 +6,6 @@ import android.content.Context
 import android.os.Debug
 import android.os.Handler
 import android.os.HandlerThread
-import android.provider.Settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -14,6 +13,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.mychangli.app.BuildConfig
 import com.mychangli.app.core.security.SchoolSessionState
+import com.mychangli.app.core.network.campustools.DeviceIdentity
 import com.mychangli.app.feature.common.data.local.room.database.CoursesDataBase
 import com.mychangli.app.feature.mooc.viewmodel.MoocViewModel
 import com.mychangli.app.skin.SkinManager
@@ -83,13 +83,7 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
         }
 
         fun getSystemDeviceId(): String {
-            val androidId =
-                Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
-            return when {
-                androidId.isNullOrEmpty() -> "unknown_device"
-                androidId == "9774d56d682e549c" -> "emulator_device"
-                else -> androidId
-            }
+            return DeviceIdentity.deviceScopedId(appContext) ?: "unknown_device"
         }
     }
 

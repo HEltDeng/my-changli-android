@@ -108,8 +108,8 @@ class V1SourceBoundaryTest {
     fun `release identity endpoint and privacy gate are explicit`() {
         val build = appFile("build.gradle.kts").readText()
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
-        assertTrue(build.contains("versionCode = 35"))
-        assertTrue(build.contains("versionName = \"1.0.3\""))
+        assertTrue(build.contains("versionCode = 36"))
+        assertTrue(build.contains("versionName = \"1.0.4\""))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
         assertTrue(build.contains("Release endpoints must not contain placeholder or loopback hosts"))
@@ -121,7 +121,8 @@ class V1SourceBoundaryTest {
         val campusTools = appFile(
             "src/main/java/com/mychangli/app/core/network/campustools/CampusToolsApi.kt",
         ).readText()
-        assertTrue(campusTools.contains("deviceAuth(DeviceAuthRequest(installationId))"))
+        assertTrue(campusTools.contains("deviceAuth(\n                DeviceAuthRequest("))
+        assertTrue(campusTools.contains("deviceScopedId = deviceScopedId()"))
         assertTrue(campusTools.contains("get() = token ?: deviceToken"))
         assertTrue(campusTools.contains("Only phone accounts can enter the visible account session"))
 

@@ -34,6 +34,24 @@ class CampusToolsAuthContractTest {
     }
 
     @Test
+    fun v104IdentityMetadataIsOptionalForLegacyClientsAndExplicitForNewClients() {
+        val request = gson.toJsonTree(
+            DeviceAuthRequest(
+                installationId = "installation-id",
+                deviceScopedId = "a".repeat(64),
+                versionName = "1.0.4",
+                versionCode = 36,
+            ),
+        ).asJsonObject
+        assertEquals(
+            setOf("installationId", "deviceScopedId", "versionName", "versionCode"),
+            request.keySet(),
+        )
+        assertTrue(request.get("deviceScopedId").asString.matches(Regex("[0-9a-f]{64}")))
+        assertEquals(36, request.get("versionCode").asInt)
+    }
+
+    @Test
     fun registrationAndLoginRequestsUseBackendContractWithoutCredentialLoggingFields() {
         val register = gson.toJsonTree(
             RegisterRequest("19100000000", "local-test-password", "长理同学", "installation-id")

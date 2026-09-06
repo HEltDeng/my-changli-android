@@ -137,10 +137,10 @@ android {
         applicationId = "com.mychangli.app"
         minSdk = 24
         targetSdk = 36
-        // V1.0.2/34 is immutable in production. The in-app updater is the next
-        // legal client change and is built as the V1.0.3/35 release candidate.
-        versionCode = 35
-        versionName = "1.0.3"
+        // V1.0.3/35 is the immutable production baseline. V1.0.4/36 is the
+        // next release candidate after the identity and mandatory-update work.
+        versionCode = 36
+        versionName = "1.0.4"
 
         ndk {
             // 设置支持的SO库架构
