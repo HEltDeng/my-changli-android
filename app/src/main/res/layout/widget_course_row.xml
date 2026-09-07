@@ -9,6 +9,6 @@
     android:orientation="horizontal"
     android:paddingHorizontal="10dp">
     <TextView android:id="@+id/today_time_1" android:layout_width="48dp" android:layout_height="wrap_content" android:maxLines="1" android:text="08:00" android:textColor="@color/widget_primary" android:textSize="12sp" android:textStyle="bold" />
-    <TextView android:id="@+id/today_name_1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1" android:text="高等数学" android:textColor="@color/widget_text_primary" android:textSize="13sp" android:textStyle="bold" />
-    <TextView android:id="@+id/today_room_1" android:layout_width="80dp" android:layout_height="wrap_content" android:ellipsize="end" android:gravity="end" android:maxLines="1" android:text="综合楼 A203" android:textColor="@color/widget_text_secondary" android:textSize="11sp" />
+    <TextView android:id="@+id/today_name_1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1" android:text="概率论与数理统计" android:textColor="@color/widget_text_primary" android:textSize="13sp" android:textStyle="bold" />
+    <TextView android:id="@+id/today_room_1" android:layout_width="80dp" android:layout_height="wrap_content" android:ellipsize="end" android:gravity="end" android:maxLines="1" android:text="云综教A-108" android:textColor="@color/widget_text_secondary" android:textSize="11sp" />
 </LinearLayout>

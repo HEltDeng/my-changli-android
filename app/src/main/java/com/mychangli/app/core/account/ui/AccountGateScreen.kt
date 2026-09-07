@@ -29,13 +29,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mychangli.app.core.account.accountRestrictionMessage
+import com.mychangli.app.R
 import com.mychangli.app.core.network.campustools.AuthUser
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.core.account.AccountInputRules
@@ -87,21 +88,13 @@ fun AccountGateScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 28.dp),
         ) {
-            Box(
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.mipmap.my_changli_icon),
+                contentDescription = "我的长理",
                 modifier = Modifier
-                    .size(58.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(AppTheme.colors.functionalTextColor)
+                    .size(72.dp)
                     .align(Alignment.CenterHorizontally),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "长理",
-                    color = AppTheme.colors.bgCardColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                )
-            }
+            )
             Spacer(Modifier.height(22.dp))
             Text(
                 text = if (registerMode) "创建我的长理账号" else "登录我的长理账号",

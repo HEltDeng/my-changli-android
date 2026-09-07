@@ -1,17 +1,24 @@
 package com.mychangli.app.core
 
+import android.Manifest
 import android.app.Activity
 import android.app.Application
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,6 +37,9 @@ import com.mychangli.app.core.main.ui.MainScreen
 import com.mychangli.app.core.network.campustools.AccountSessionState
 import com.mychangli.app.core.network.campustools.CampusToolsSession
 import com.mychangli.app.core.network.campustools.RemoteConfigurationStore
+import com.mychangli.app.core.notifications.AnnouncementNotificationCoordinator
+import com.mychangli.app.core.notifications.AnnouncementPopupDialog
+import com.mychangli.app.core.notifications.NotificationPermissionPreferences
 import com.mychangli.app.core.privacy.PrivacyConsentManager
 import com.mychangli.app.core.privacy.PrivacyConsentManager.AppConsentState
 import com.mychangli.app.core.privacy.PrivacyConsentScreen
@@ -43,6 +53,7 @@ import com.mychangli.app.core.update.AppUpdateCooldown
 import com.mychangli.app.core.update.AppUpdateCoordinator
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
+import com.mychangli.app.feature.common.ui.AnnouncementDetailActivity
 import com.mychangli.app.utils.event.AppEventBus
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -59,7 +70,16 @@ class MainActivity : ComponentActivity(), DrawerController {
         if (!PrivacyConsentManager.hasAppConsent(this)) return
         store.dispatch(UserAction.initilaize())  //初始化用户信息，对游客模式无影响
         lifecycleScope.launch(Dispatchers.IO) {
-            runCatching { RemoteConfigurationStore.refreshIfStale(30_000L) }
+            val bootstrap = runCatching {
+                RemoteConfigurationStore.refreshIfStale(30_000L)
+            }.getOrNull()
+            runCatching {
+                AnnouncementNotificationCoordinator.process(
+                    this@MainActivity,
+                    bootstrap?.announcements
+                        ?: RemoteConfigurationStore.bootstrap.value?.announcements.orEmpty(),
+                )
+            }
         }
     }
 
@@ -87,6 +107,19 @@ class MainActivity : ComponentActivity(), DrawerController {
             AppSkinTheme {
                 var privacyState by remember {
                     mutableStateOf(PrivacyConsentManager.appConsentState(this@MainActivity))
+                }
+                var showNotificationEducation by remember { mutableStateOf(false) }
+                val announcementPopup by AnnouncementNotificationCoordinator.popup.collectAsState()
+                val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission(),
+                ) { }
+                LaunchedEffect(privacyState) {
+                    if (
+                        privacyState == AppConsentState.ACCEPTED &&
+                        NotificationPermissionPreferences.shouldOfferEducation(this@MainActivity)
+                    ) {
+                        showNotificationEducation = true
+                    }
                 }
                 when (privacyState) {
                     AppConsentState.UNDECIDED -> PrivacyConsentScreen(
@@ -205,6 +238,51 @@ class MainActivity : ComponentActivity(), DrawerController {
                         }
                     }
                 }
+                if (showNotificationEducation) {
+                    AlertDialog(
+                        containerColor = AppTheme.colors.bgCardColor,
+                        onDismissRequest = {
+                            NotificationPermissionPreferences.markEducationShown(this@MainActivity)
+                            showNotificationEducation = false
+                        },
+                        title = { Text("开启通知提醒") },
+                        text = { Text("用于接收上课提醒、重要服务公告等信息。") },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                NotificationPermissionPreferences.markEducationShown(this@MainActivity)
+                                showNotificationEducation = false
+                            }) { Text("暂不开启") }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                NotificationPermissionPreferences.markEducationShown(this@MainActivity)
+                                showNotificationEducation = false
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }) { Text("开启通知") }
+                        },
+                    )
+                }
+                announcementPopup?.let { popup ->
+                    AnnouncementPopupDialog(
+                        announcement = popup,
+                        onDismiss = {
+                            AnnouncementNotificationCoordinator.dismissPopup(popup.id)
+                        },
+                        onOpenDetail = {
+                            AnnouncementNotificationCoordinator.dismissPopup(popup.id)
+                            startActivity(
+                                AnnouncementDetailActivity.intent(
+                                    context = this@MainActivity,
+                                    title = popup.title,
+                                    content = popup.content,
+                                    publishedAt = popup.publishedAt,
+                                ),
+                            )
+                        },
+                    )
+                }
             }
         }
         if (PrivacyConsentManager.hasAppConsent(this)) notifyLocalScheduleComponents()
@@ -231,7 +309,16 @@ class MainActivity : ComponentActivity(), DrawerController {
     private fun runConsentedLifecycleWork() {
         store.dispatch(UserAction.initilaize())
         lifecycleScope.launch(Dispatchers.IO) {
-            runCatching { RemoteConfigurationStore.refreshIfStale(30_000L) }
+            val bootstrap = runCatching {
+                RemoteConfigurationStore.refreshIfStale(30_000L)
+            }.getOrNull()
+            runCatching {
+                AnnouncementNotificationCoordinator.process(
+                    this@MainActivity,
+                    bootstrap?.announcements
+                        ?: RemoteConfigurationStore.bootstrap.value?.announcements.orEmpty(),
+                )
+            }
         }
         store.dispatch(UserAction.RefreshMoocProfileSilently)
         notifyLocalScheduleComponents()

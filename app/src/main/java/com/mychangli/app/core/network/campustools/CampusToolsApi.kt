@@ -294,6 +294,8 @@ data class RemoteAnnouncement(
     val title: String,
     val content: String,
     val publishedAt: Long,
+    val notificationEnabled: Boolean = false,
+    val popupEnabled: Boolean = false,
 )
 data class RemoteFeatureFlag(
     val key: String,

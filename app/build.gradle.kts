@@ -137,10 +137,10 @@ android {
         applicationId = "com.mychangli.app"
         minSdk = 24
         targetSdk = 36
-        // V1.0.3/35 is the immutable production baseline. V1.0.4/36 is the
-        // next release candidate after the identity and mandatory-update work.
-        versionCode = 36
-        versionName = "1.0.4"
+        // V1.0.4/36 is the immutable production baseline. V1.0.5/37 adds
+        // announcement delivery, consent-flow, branding and widget-preview work.
+        versionCode = 37
+        versionName = "1.0.5"
 
         ndk {
             // 设置支持的SO库架构

@@ -1,5 +1,7 @@
 package com.mychangli.app.profileSettings.ui.compose
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -140,6 +142,19 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
                     "account" -> Route.goAccountCenter(context)
                     "bind" -> Route.goBindingUser(context)
                     "reminders" -> Route.goCourseReminders(context)
+                    "notifications" -> runCatching {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            },
+                        )
+                    }.onFailure {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = android.net.Uri.parse("package:${context.packageName}")
+                            },
+                        )
+                    }
                     "update" -> if (!checkingUpdate) {
                         checkingUpdate = true
                         scope.launch {
@@ -604,6 +619,12 @@ private fun createMainSettingItems(checkingUpdate: Boolean): List<SettingItemUiM
     SettingItemUiModel.Option("account", "我的长理账号", Icons.Outlined.AccountCircle),
     SettingItemUiModel.Option("bind", "绑定学号", Icons.Outlined.AccountCircle),
     SettingItemUiModel.Option("reminders", "上课提醒 & 桌面小组件", Icons.Outlined.NotificationsActive),
+    SettingItemUiModel.Option(
+        "notifications",
+        "通知设置",
+        Icons.Outlined.NotificationsActive,
+        subtitle = "上课提醒与重要公告",
+    ),
     SettingItemUiModel.Option(
         "update",
         "检查更新",

@@ -1,6 +1,7 @@
 package com.mychangli.app.core.privacy
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,22 +10,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mychangli.app.R
 import com.mychangli.app.core.theme.AppTheme
 
 const val NON_OFFICIAL_STATEMENT =
@@ -38,62 +41,54 @@ fun PrivacyConsentScreen(
     onOpenAgreement: () -> Unit,
 ) {
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
             .background(AppTheme.colors.bgPrimaryColor)
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 28.dp),
+            .padding(horizontal = 28.dp, vertical = 24.dp),
     ) {
+        Image(
+            painter = painterResource(R.mipmap.my_changli_icon),
+            contentDescription = "我的长理",
+            modifier = Modifier
+                .size(96.dp)
+                .clip(RoundedCornerShape(26.dp)),
+        )
         Text(
             text = "欢迎使用我的长理",
             color = AppTheme.colors.primaryTextColor,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 24.dp),
         )
         Text(
-            text = "请先了解应用身份与个人信息处理方式",
+            text = "一款面向校园生活的实用工具",
             color = AppTheme.colors.secondaryTextColor,
-            fontSize = 14.sp,
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp),
         )
-        Surface(
-            color = AppTheme.colors.bgCardColor,
-            shape = RoundedCornerShape(22.dp),
+        Text(
+            text = "继续使用即表示你已阅读并同意《隐私政策》和《用户协议》。",
+            color = AppTheme.colors.secondaryTextColor,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 24.dp),
+                .padding(top = 34.dp),
+        )
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.padding(20.dp),
-            ) {
-                Text(
-                    text = NON_OFFICIAL_STATEMENT,
-                    color = AppTheme.colors.primaryTextColor,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 24.sp,
-                )
-                Text(
-                    text = "同意后，应用才会执行远程配置、版本检查、自有账号恢复等非必要联网。通知权限仍只在你主动启用提醒时另行申请。",
-                    color = AppTheme.colors.secondaryTextColor,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp,
-                )
-                Text(
-                    text = "用户主动使用校园查询时，可输入本人学校账号及按学校登录流程出现的验证码；学号、学校密码、验证码、学校 Cookie 和学校 token 不会发送到“我的长理”自有后端。",
-                    color = AppTheme.colors.secondaryTextColor,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onOpenPrivacy) { Text("隐私政策") }
-                    TextButton(onClick = onOpenAgreement) { Text("用户协议") }
-                }
-            }
+            TextButton(onClick = onOpenPrivacy) { Text("隐私政策") }
+            TextButton(onClick = onOpenAgreement) { Text("用户协议") }
         }
-        Spacer(Modifier.height(24.dp))
         Button(
             onClick = onAccept,
             colors = ButtonDefaults.buttonColors(
@@ -101,7 +96,9 @@ fun PrivacyConsentScreen(
             ),
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = 22.dp)
                 .height(52.dp),
+            shape = RoundedCornerShape(18.dp),
         ) { Text("同意并继续", fontWeight = FontWeight.Bold) }
         OutlinedButton(
             onClick = onDecline,
@@ -109,11 +106,13 @@ fun PrivacyConsentScreen(
                 .fillMaxWidth()
                 .padding(top = 10.dp)
                 .height(52.dp),
+            shape = RoundedCornerShape(18.dp),
         ) { Text("暂不同意") }
         Text(
-            text = "暂不同意不会反复弹窗。你仍可查看本地协议说明，之后可主动重新选择。",
+            text = "暂不同意不会反复弹窗，之后可主动重新选择。",
             color = AppTheme.colors.greyTextColor,
             fontSize = 12.sp,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 12.dp),
         )
     }
