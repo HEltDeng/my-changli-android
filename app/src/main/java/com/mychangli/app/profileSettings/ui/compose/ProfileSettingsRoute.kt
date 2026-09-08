@@ -70,8 +70,9 @@ import com.mychangli.app.core.network.campustools.CampusToolsSession
 import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
-import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdateCoordinator
+import com.mychangli.app.core.update.AppUpdatePolicyController
+import com.mychangli.app.core.update.AppUpdatePolicyState
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.core.web.PublicWebsiteNavigator
@@ -158,13 +159,22 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
                     "update" -> if (!checkingUpdate) {
                         checkingUpdate = true
                         scope.launch {
-                            updateResult = AppUpdateChecker.check(forceRefresh = true)
-                            if (updateResult === VersionCheckResult.Latest) {
-                                updateMessage = "当前已是最新版本"
-                                updateResult = null
-                            } else if (updateResult === VersionCheckResult.Unavailable) {
-                                updateMessage = "暂时无法检查更新，请稍后再试"
-                                updateResult = null
+                            when (val state = AppUpdatePolicyController.refresh(forceRefresh = true)) {
+                                is AppUpdatePolicyState.NO_UPDATE -> {
+                                    updateMessage = "当前已是最新版本"
+                                    updateResult = null
+                                }
+                                is AppUpdatePolicyState.ERROR -> {
+                                    updateMessage = "暂时无法检查更新，请稍后再试"
+                                    updateResult = null
+                                }
+                                is AppUpdatePolicyState.OPTIONAL_UPDATE -> {
+                                    updateResult = state.update
+                                }
+                                is AppUpdatePolicyState.FORCE_UPDATE -> {
+                                    updateResult = state.update
+                                }
+                                else -> Unit
                             }
                             checkingUpdate = false
                         }
@@ -236,6 +246,17 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
             update = update,
             context = context,
             onLater = { updateResult = null },
+            onRefreshPolicy = {
+                scope.launch {
+                    updateResult = when (
+                        val state = AppUpdatePolicyController.refresh(forceRefresh = true)
+                    ) {
+                        is AppUpdatePolicyState.OPTIONAL_UPDATE -> state.update
+                        is AppUpdatePolicyState.FORCE_UPDATE -> state.update
+                        else -> null
+                    }
+                }
+            },
             onPrimaryAction = {
                 AppUpdateCoordinator.begin(context, update.version)
             },

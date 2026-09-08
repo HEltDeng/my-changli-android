@@ -3,6 +3,8 @@ package com.mychangli.app.core.network
 import com.mychangli.app.core.network.campustools.RemoteAppVersion
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.core.update.VersionPolicy
+import com.mychangli.app.core.update.AppUpdatePolicyState
+import com.mychangli.app.core.update.AppUpdateStateMachine
 import com.mychangli.app.core.update.UpdateTargetPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,9 +45,9 @@ class AppUpdatePolicyTest {
     }
 
     @Test
-    fun numericVersionWinsWhenServerUpdateFlagIsStale() {
+    fun serverCanDisableUpdateEvenWhenAReleaseNumberIsNewer() {
         val result = VersionPolicy.evaluate(10, updateAvailable = false, latest = version(11))
-        assertTrue(result is VersionCheckResult.Available)
+        assertEquals(VersionCheckResult.Latest, result)
     }
 
     @Test
@@ -56,8 +58,52 @@ class AppUpdatePolicyTest {
     }
 
     @Test
-    fun forceFlagOrMinimumVersionMarksUpgradeMandatory() {
-        assertTrue((VersionPolicy.evaluate(10, true, version(11, force = true)) as VersionCheckResult.Available).mandatory)
-        assertTrue((VersionPolicy.evaluate(10, true, version(11, minimum = 11)) as VersionCheckResult.Available).mandatory)
+    fun onlyTheCurrentServerDecisionMarksUpgradeMandatory() {
+        assertFalse(
+            (VersionPolicy.evaluate(10, true, version(11, force = true)) as VersionCheckResult.Available).mandatory,
+        )
+        assertFalse(
+            (VersionPolicy.evaluate(10, true, version(11, minimum = 11)) as VersionCheckResult.Available).mandatory,
+        )
+        assertTrue(
+            (
+                VersionPolicy.evaluate(
+                    10,
+                    true,
+                    version(11),
+                    mandatoryUpdate = true,
+                    policyRevision = 21,
+                ) as VersionCheckResult.Available
+                ).mandatory,
+        )
+    }
+
+    @Test
+    fun forceDecisionCanTransitionInBothDirections() {
+        val optional = VersionPolicy.evaluate(
+            10, true, version(11), mandatoryUpdate = false, policyRevision = 20,
+        ) as VersionCheckResult.Available
+        val forced = VersionPolicy.evaluate(
+            10, true, version(11), mandatoryUpdate = true, policyRevision = 21,
+        ) as VersionCheckResult.Available
+        val revoked = VersionPolicy.evaluate(
+            10, true, version(11), mandatoryUpdate = false, policyRevision = 22,
+        ) as VersionCheckResult.Available
+        assertFalse(optional.mandatory)
+        assertTrue(forced.mandatory)
+        assertFalse(revoked.mandatory)
+        assertEquals(22, revoked.policyRevision)
+        assertTrue(AppUpdateStateMachine.resolve(forced, optional) is AppUpdatePolicyState.FORCE_UPDATE)
+        assertTrue(AppUpdateStateMachine.resolve(revoked, forced) is AppUpdatePolicyState.OPTIONAL_UPDATE)
+        assertTrue(
+            AppUpdateStateMachine.resolve(VersionCheckResult.Latest, revoked) is
+                AppUpdatePolicyState.NO_UPDATE,
+        )
+        // A failed refresh keeps the previous value only for diagnostics; the
+        // ERROR state itself is never rendered as a cached force gate.
+        assertTrue(
+            AppUpdateStateMachine.resolve(VersionCheckResult.Unavailable, forced) is
+                AppUpdatePolicyState.ERROR,
+        )
     }
 }

@@ -322,6 +322,14 @@ data class RemoteAppVersion(
     val force_update: Boolean = false,
     val published_at: Long? = null,
 )
+data class RemoteUpdatePolicy(
+    val updateEnabled: Boolean = false,
+    val forceUpdateEnabled: Boolean = false,
+    val latestVersionCode: Int = 0,
+    val minimumSupportedVersionCode: Int = 1,
+    val policyRevision: Long = 0,
+    val updatedAt: Long? = null,
+)
 data class VersionCheckResponse(
     val updateAvailable: Boolean = false,
     val forceUpdate: Boolean = false,
@@ -329,11 +337,17 @@ data class VersionCheckResponse(
     val mandatoryUpdate: Boolean = false,
     val currentVersionCode: Int = 0,
     val latestVersion: RemoteAppVersion? = null,
+    val policy: RemoteUpdatePolicy? = null,
+    val policyRevision: Long = 0,
+    val policyUpdatedAt: Long? = null,
+    val requestTimestamp: Long? = null,
+    val decision: String = "NONE",
 )
 data class PublicBootstrap(
     val flags: List<RemoteFeatureFlag> = emptyList(),
     val announcements: List<RemoteAnnouncement> = emptyList(),
     val version: RemoteAppVersion? = null,
+    val updatePolicy: RemoteUpdatePolicy? = null,
 )
 
 data class RemoteServiceUpdate(
@@ -395,6 +409,7 @@ interface CampusToolsApi {
     @GET("public/version/android")
     suspend fun versionCheck(
         @Query("currentVersionCode") currentVersionCode: Int,
+        @Query("cacheBust") cacheBust: Long? = null,
     ): ApiEnvelope<VersionCheckResponse>
 
     @GET("public/service-updates")

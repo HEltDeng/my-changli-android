@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -37,11 +38,13 @@ import com.mychangli.app.BuildConfig
 import com.mychangli.app.R
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
-import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdateCoordinator
+import com.mychangli.app.core.update.AppUpdatePolicyController
+import com.mychangli.app.core.update.AppUpdatePolicyState
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.core.web.PublicWebsiteNavigator
+import kotlinx.coroutines.launch
 
 class AboutActivity : ComponentActivity() {
     companion object {
@@ -68,19 +71,25 @@ class AboutActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
+    val scope = rememberCoroutineScope()
     var checkMessage by remember { mutableStateOf("") }
     var availableUpdate by remember { mutableStateOf<VersionCheckResult.Available?>(null) }
 
     LaunchedEffect(autoCheckUpdate) {
         if (autoCheckUpdate) {
             checkMessage = "正在检查…"
-            when (val result = AppUpdateChecker.check()) {
-                VersionCheckResult.Latest -> checkMessage = "当前已是最新版本"
-                VersionCheckResult.Unavailable -> checkMessage = "暂时无法检查更新"
-                is VersionCheckResult.Available -> {
+            when (val state = AppUpdatePolicyController.refresh(forceRefresh = true)) {
+                is AppUpdatePolicyState.NO_UPDATE -> checkMessage = "当前已是最新版本"
+                is AppUpdatePolicyState.ERROR -> checkMessage = "暂时无法检查更新"
+                is AppUpdatePolicyState.OPTIONAL_UPDATE -> {
                     checkMessage = ""
-                    availableUpdate = result
+                    availableUpdate = state.update
                 }
+                is AppUpdatePolicyState.FORCE_UPDATE -> {
+                    checkMessage = ""
+                    availableUpdate = state.update
+                }
+                else -> Unit
             }
         }
     }
@@ -186,6 +195,16 @@ fun AboutScreen(activity: Activity? = null, autoCheckUpdate: Boolean = false) {
             update = update,
             context = activity,
             onLater = { availableUpdate = null },
+            onRefreshPolicy = {
+                scope.launch {
+                    val state = AppUpdatePolicyController.refresh(forceRefresh = true)
+                    availableUpdate = when (state) {
+                        is AppUpdatePolicyState.OPTIONAL_UPDATE -> state.update
+                        is AppUpdatePolicyState.FORCE_UPDATE -> state.update
+                        else -> null
+                    }
+                }
+            },
             onPrimaryAction = {
                 activity?.let { AppUpdateCoordinator.begin(it, update.version) }
             },

@@ -48,9 +48,10 @@ import com.mychangli.app.core.privacy.ReleaseDocumentType
 import com.mychangli.app.feature.lostfound.data.LostFoundRepository
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.core.theme.AppTheme
-import com.mychangli.app.core.update.AppUpdateChecker
 import com.mychangli.app.core.update.AppUpdateCooldown
 import com.mychangli.app.core.update.AppUpdateCoordinator
+import com.mychangli.app.core.update.AppUpdatePolicyController
+import com.mychangli.app.core.update.AppUpdatePolicyState
 import com.mychangli.app.core.update.AppUpdatePrompt
 import com.mychangli.app.core.update.VersionCheckResult
 import com.mychangli.app.feature.common.ui.AnnouncementDetailActivity
@@ -80,6 +81,9 @@ class MainActivity : ComponentActivity(), DrawerController {
                         ?: RemoteConfigurationStore.bootstrap.value?.announcements.orEmpty(),
                 )
             }
+        }
+        lifecycleScope.launch {
+            AppUpdatePolicyController.refresh(forceRefresh = true)
         }
     }
 
@@ -166,26 +170,13 @@ class MainActivity : ComponentActivity(), DrawerController {
                     )
                     AppConsentState.ACCEPTED -> {
                         val accountState by CampusToolsSession.state.collectAsState()
-                        var availableUpdate by remember {
-                            mutableStateOf<VersionCheckResult.Available?>(null)
-                        }
-                        var updateCheckComplete by remember { mutableStateOf(false) }
+                        val updatePolicyState by AppUpdatePolicyController.state.collectAsState()
+                        var suppressedOptionalVersion by remember { mutableStateOf<Int?>(null) }
                         LaunchedEffect(Unit) {
                             CampusToolsSession.restore()
-                            val result = AppUpdateChecker.check()
-                            val update = result as? VersionCheckResult.Available
-                            if (
-                                update != null &&
-                                (
-                                    update.mandatory || AppUpdateCooldown.isPromptAllowed(
-                                    this@MainActivity,
-                                    update.version.latest_version_code,
-                                    )
-                                )
-                            ) {
-                                availableUpdate = update
+                            if (AppUpdatePolicyController.state.value is AppUpdatePolicyState.IDLE) {
+                                AppUpdatePolicyController.refresh(forceRefresh = true)
                             }
-                            updateCheckComplete = true
                         }
                         LaunchedEffect(accountState) {
                             val signedIn = accountState as? AccountSessionState.SignedIn
@@ -195,20 +186,45 @@ class MainActivity : ComponentActivity(), DrawerController {
                                 LostFoundRepository.activateGuest()
                             }
                         }
+                        val forceUpdate = when (val state = updatePolicyState) {
+                            is AppUpdatePolicyState.FORCE_UPDATE -> state.update
+                            is AppUpdatePolicyState.CHECKING ->
+                                (state.previous as? VersionCheckResult.Available)
+                                    ?.takeIf { it.mandatory }
+                            else -> null
+                        }
+                        val optionalUpdate = (updatePolicyState as? AppUpdatePolicyState.OPTIONAL_UPDATE)
+                            ?.update
+                            ?.takeIf {
+                                suppressedOptionalVersion != it.version.latest_version_code &&
+                                AppUpdateCooldown.isPromptAllowed(
+                                    this@MainActivity,
+                                    it.version.latest_version_code,
+                                )
+                            }
                         when {
-                            !updateCheckComplete -> Surface(color = AppTheme.colors.bgPrimaryColor) {
+                            updatePolicyState is AppUpdatePolicyState.IDLE ||
+                                (updatePolicyState is AppUpdatePolicyState.CHECKING &&
+                                    forceUpdate == null &&
+                                    (updatePolicyState as AppUpdatePolicyState.CHECKING).previous == null) ->
+                                Surface(color = AppTheme.colors.bgPrimaryColor) {
                                 Text("正在检查版本…")
                             }
 
-                            availableUpdate?.mandatory == true -> {
+                            forceUpdate != null -> {
                                 AppUpdatePrompt(
-                                    update = requireNotNull(availableUpdate),
+                                    update = forceUpdate,
                                     context = this@MainActivity,
                                     onLater = {},
+                                    onRefreshPolicy = {
+                                        lifecycleScope.launch {
+                                            AppUpdatePolicyController.refresh(forceRefresh = true)
+                                        }
+                                    },
                                     onPrimaryAction = {
                                         AppUpdateCoordinator.begin(
                                             this@MainActivity,
-                                            requireNotNull(availableUpdate).version,
+                                            forceUpdate.version,
                                         )
                                     },
                                 )
@@ -218,7 +234,7 @@ class MainActivity : ComponentActivity(), DrawerController {
                                 Surface(color = AppTheme.colors.bgPrimaryColor) {
                                     MainScreen(navigator = mainTabNavigator)
                                 }
-                                availableUpdate?.let { update ->
+                                optionalUpdate?.let { update ->
                                     AppUpdatePrompt(
                                         update = update,
                                         context = this@MainActivity,
@@ -227,7 +243,13 @@ class MainActivity : ComponentActivity(), DrawerController {
                                                 this@MainActivity,
                                                 update.version.latest_version_code,
                                             )
-                                            availableUpdate = null
+                                            suppressedOptionalVersion =
+                                                update.version.latest_version_code
+                                        },
+                                        onRefreshPolicy = {
+                                            lifecycleScope.launch {
+                                                AppUpdatePolicyController.refresh(forceRefresh = true)
+                                            }
                                         },
                                         onPrimaryAction = {
                                             AppUpdateCoordinator.begin(this@MainActivity, update.version)

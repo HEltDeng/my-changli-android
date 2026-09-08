@@ -74,7 +74,6 @@ object AppUpdateCoordinator {
     private const val KEY_SHA256 = "sha256"
     private const val KEY_SIZE = "size"
     private const val KEY_UPDATE_MESSAGE = "update_message"
-    private const val KEY_FORCE_UPDATE = "force_update"
     private const val KEY_APK_PATH = "apk_path"
     const val INSTALL_STATUS_ACTION = "com.mychangli.app.action.APP_UPDATE_INSTALL_STATUS"
 
@@ -368,7 +367,6 @@ object AppUpdateCoordinator {
             .putString(KEY_SHA256, version.apk_sha256)
             .putLong(KEY_SIZE, version.apk_size ?: 0L)
             .putString(KEY_UPDATE_MESSAGE, version.update_message)
-            .putBoolean(KEY_FORCE_UPDATE, version.force_update)
             .putString(KEY_APK_PATH, file.absolutePath)
             .remove("session_id")
             .apply()
@@ -393,7 +391,9 @@ object AppUpdateCoordinator {
                 download_url = prefs.getString(KEY_DOWNLOAD_URL, null),
                 apk_sha256 = prefs.getString(KEY_SHA256, null),
                 apk_size = prefs.getLong(KEY_SIZE, 0L).takeIf { it > 0L },
-                force_update = prefs.getBoolean(KEY_FORCE_UPDATE, false),
+                // Installation recovery is artifact state, not update policy.
+                // A historical local force bit must never re-lock the App.
+                force_update = false,
             ),
             apkFile = File(path),
         )

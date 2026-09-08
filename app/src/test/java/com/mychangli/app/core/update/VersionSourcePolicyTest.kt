@@ -23,6 +23,18 @@ class VersionSourcePolicyTest {
         val result = VersionSourcePolicy.fromWebsiteManifest(33, manifest)
         assertTrue(result is VersionCheckResult.Available)
         assertEquals(34, (result as VersionCheckResult.Available).version.latest_version_code)
+        assertEquals(false, result.mandatory)
+    }
+
+    @Test
+    fun websiteManifestCannotCreateAForcedUpdate() {
+        val result = VersionSourcePolicy.fromWebsiteManifest(
+            33,
+            manifest.copy(forceUpdate = true, minimumVersionCode = 34),
+        ) as VersionCheckResult.Available
+        assertEquals(false, result.mandatory)
+        assertEquals(false, result.version.force_update)
+        assertEquals(1, result.version.minimum_version_code)
     }
 
     @Test

@@ -13,6 +13,8 @@ import retrofit2.http.Query
 data class OfficialReleaseManifest(
     @SerializedName("versionName") val versionName: String = "",
     @SerializedName("versionCode") val versionCode: Int = 0,
+    // Legacy fields are accepted while old static manifests age out, but a
+    // static release document is never authoritative for live enforcement.
     @SerializedName("minimumVersionCode") val minimumVersionCode: Int = 1,
     @SerializedName("downloadUrl") val downloadUrl: String = "",
     @SerializedName("apkSha256") val apkSha256: String? = null,
@@ -23,17 +25,16 @@ data class OfficialReleaseManifest(
 ) {
     fun toRemoteAppVersion(): RemoteAppVersion? {
         if (versionCode < 1 || versionName.isBlank()) return null
-        if (minimumVersionCode < 1 || minimumVersionCode > versionCode) return null
         if (!UpdateTargetPolicy.isSafeHttps(downloadUrl)) return null
         return RemoteAppVersion(
             latest_version_code = versionCode,
-            minimum_version_code = minimumVersionCode,
+            minimum_version_code = 1,
             latest_version_name = versionName,
             update_message = updateMessage,
             download_url = downloadUrl,
             apk_sha256 = apkSha256,
             apk_size = apkSize,
-            force_update = forceUpdate,
+            force_update = false,
         )
     }
 }

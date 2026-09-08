@@ -8,6 +8,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
@@ -25,12 +26,18 @@ import com.mychangli.app.core.network.campustools.RemoteAppVersion
 import com.mychangli.app.core.network.ServiceEndpointPolicy
 import com.mychangli.app.core.theme.AppTheme
 import java.net.URI
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 sealed interface VersionCheckResult {
     data object Latest : VersionCheckResult
     data class Available(
         val version: RemoteAppVersion,
         val mandatory: Boolean,
+        val policyRevision: Long = 0,
     ) : VersionCheckResult
     data object Unavailable : VersionCheckResult
 }
@@ -40,16 +47,21 @@ object VersionPolicy {
         currentVersionCode: Int,
         updateAvailable: Boolean,
         latest: RemoteAppVersion?,
+        mandatoryUpdate: Boolean = false,
+        policyRevision: Long = 0,
     ): VersionCheckResult {
         if (latest == null || latest.latest_version_code < 1) return VersionCheckResult.Latest
-        // versionCode is the authoritative ordering signal. The boolean is a
-        // server hint and must not hide a numerically newer release if an old
-        // cache or an inconsistent response leaves it false.
-        if (latest.latest_version_code <= currentVersionCode) {
+        // Version ordering answers only whether a newer release exists. The
+        // server's current response is authoritative for both updateEnabled
+        // and mandatoryUpdate; local comparisons never create FORCE_UPDATE.
+        if (!updateAvailable || latest.latest_version_code <= currentVersionCode) {
             return VersionCheckResult.Latest
         }
-        val mandatory = latest.force_update || currentVersionCode < latest.minimum_version_code
-        return VersionCheckResult.Available(latest, mandatory)
+        return VersionCheckResult.Available(
+            version = latest,
+            mandatory = mandatoryUpdate,
+            policyRevision = policyRevision,
+        )
     }
 }
 
@@ -68,7 +80,71 @@ object VersionSourcePolicy {
             currentVersionCode = currentVersionCode,
             updateAvailable = latest.latest_version_code > currentVersionCode,
             latest = latest,
+            mandatoryUpdate = false,
         )
+    }
+}
+
+/** Server-driven update gate. Every successful refresh replaces the old decision. */
+sealed interface AppUpdatePolicyState {
+    data object IDLE : AppUpdatePolicyState
+    data class CHECKING(val previous: VersionCheckResult?) : AppUpdatePolicyState
+    data class NO_UPDATE(val checkedAtMillis: Long) : AppUpdatePolicyState
+    data class OPTIONAL_UPDATE(val update: VersionCheckResult.Available) : AppUpdatePolicyState
+    data class FORCE_UPDATE(val update: VersionCheckResult.Available) : AppUpdatePolicyState
+    data class ERROR(
+        val previous: VersionCheckResult?,
+        val checkedAtMillis: Long,
+    ) : AppUpdatePolicyState
+}
+
+object AppUpdateStateMachine {
+    fun resolve(
+        result: VersionCheckResult,
+        previous: VersionCheckResult?,
+        checkedAtMillis: Long = System.currentTimeMillis(),
+    ): AppUpdatePolicyState = when (result) {
+        VersionCheckResult.Latest -> AppUpdatePolicyState.NO_UPDATE(checkedAtMillis)
+        VersionCheckResult.Unavailable -> AppUpdatePolicyState.ERROR(
+            previous = previous,
+            checkedAtMillis = checkedAtMillis,
+        )
+        is VersionCheckResult.Available -> if (result.mandatory) {
+            AppUpdatePolicyState.FORCE_UPDATE(result)
+        } else {
+            AppUpdatePolicyState.OPTIONAL_UPDATE(result)
+        }
+    }
+}
+
+object AppUpdatePolicyController {
+    private val refreshMutex = Mutex()
+    private val mutableState = MutableStateFlow<AppUpdatePolicyState>(
+        AppUpdatePolicyState.IDLE,
+    )
+    val state: StateFlow<AppUpdatePolicyState> = mutableState.asStateFlow()
+
+    suspend fun refresh(forceRefresh: Boolean = true): AppUpdatePolicyState =
+        refreshMutex.withLock {
+            val previous = resolvedResult(mutableState.value)
+            mutableState.value = AppUpdatePolicyState.CHECKING(previous)
+            val next = AppUpdateStateMachine.resolve(
+                AppUpdateChecker.check(forceRefresh),
+                previous,
+            )
+            // A newer successful server response always replaces FORCE_UPDATE
+            // in both directions. ERROR deliberately never re-locks from cache.
+            mutableState.value = next
+            next
+        }
+
+    private fun resolvedResult(state: AppUpdatePolicyState): VersionCheckResult? = when (state) {
+        AppUpdatePolicyState.IDLE -> null
+        is AppUpdatePolicyState.CHECKING -> state.previous
+        is AppUpdatePolicyState.NO_UPDATE -> VersionCheckResult.Latest
+        is AppUpdatePolicyState.OPTIONAL_UPDATE -> state.update
+        is AppUpdatePolicyState.FORCE_UPDATE -> state.update
+        is AppUpdatePolicyState.ERROR -> state.previous
     }
 }
 
@@ -98,17 +174,22 @@ object AppUpdateChecker {
     suspend fun check(forceRefresh: Boolean = false): VersionCheckResult {
         val backendResult = if (ServiceEndpointPolicy.isCampusToolsConfigured()) {
             runCatching {
-                val envelope = CampusToolsApiClient.unauthenticated.versionCheck(BuildConfig.VERSION_CODE)
+                val envelope = CampusToolsApiClient.unauthenticated.versionCheck(
+                    BuildConfig.VERSION_CODE,
+                    VersionRequestPolicy.cacheBust(forceRefresh),
+                )
                 val data = envelope.data.takeIf { envelope.ok } ?: return@runCatching null
-                val latest = data.latestVersion
-                    ?.takeIf { it.latest_version_code > 0 && it.latest_version_name.isNotBlank() }
-                    ?: return@runCatching null
-                val result = VersionPolicy.evaluate(
+                val latest = data.latestVersion?.takeIf {
+                    it.latest_version_code > 0 && it.latest_version_name.isNotBlank()
+                }
+                VersionPolicy.evaluate(
                     BuildConfig.VERSION_CODE,
                     data.updateAvailable,
                     latest,
+                    mandatoryUpdate = data.mandatoryUpdate,
+                    policyRevision = data.policyRevision,
                 )
-                result.takeIf { isSafeResult(it) }
+                    .takeIf { isSafeResult(it) }
             }.getOrNull()
         } else {
             null
@@ -213,6 +294,7 @@ fun AppUpdatePrompt(
     update: VersionCheckResult.Available,
     onLater: () -> Unit,
     onPrimaryAction: () -> Unit,
+    onRefreshPolicy: (() -> Unit)? = null,
     context: Context? = null,
 ) {
     val appContext = context ?: LocalContext.current
@@ -332,9 +414,14 @@ fun AppUpdatePrompt(
         },
         dismissButton = if (isMandatory) {
             {
-                TextButton(
-                    onClick = { (appContext as? Activity)?.finishAffinity() },
-                ) { Text("退出应用") }
+                Row {
+                    onRefreshPolicy?.let { refresh ->
+                        TextButton(onClick = refresh) { Text("重新检查") }
+                    }
+                    TextButton(
+                        onClick = { (appContext as? Activity)?.finishAffinity() },
+                    ) { Text("退出应用") }
+                }
             }
         } else {
             {
