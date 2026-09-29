@@ -12,6 +12,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,8 +26,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mychangli.app.core.Route
+import com.mychangli.app.core.config.AppConfigPayload
 import com.mychangli.app.core.main.navigation.MainTabDestination
 import com.mychangli.app.core.main.navigation.MainTabNavigator
+import com.mychangli.app.core.network.campustools.RemoteConfigurationStore
 import com.mychangli.app.core.theme.AppTheme
 import com.mychangli.app.feature.common.compose_ui.FunctionDestination
 import com.mychangli.app.feature.common.compose_ui.openFunctionShortcut
@@ -46,6 +49,7 @@ fun MainScreen(
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val appConfigState by RemoteConfigurationStore.appConfig.collectAsState()
     val scrollConnection = rememberFloatingTabBarScrollConnection()
     val hazeState = rememberHazeState()
     val destinations = MainTabDestination.ordered
@@ -132,7 +136,7 @@ fun MainScreen(
                     .hazeSource(hazeState),
             ) { page ->
                 when (destinations[page]) {
-                    MainTabDestination.Overview -> OverviewTabRoute()
+                    MainTabDestination.Overview -> OverviewTabRoute(appConfigState.envelope.config)
                     MainTabDestination.Feature -> FeatureScreen(
                         isActive = pagerState.settledPage == page && !pagerState.isScrollInProgress,
                     )
@@ -161,7 +165,7 @@ fun MainScreen(
 private const val TabSwitchAnimationDurationMillis = 220
 
 @Composable
-private fun OverviewTabRoute() {
+private fun OverviewTabRoute(config: AppConfigPayload) {
     val context = LocalContext.current
     val viewModel: OverviewViewModel = viewModel()
 
@@ -169,9 +173,9 @@ private fun OverviewTabRoute() {
         viewModel = viewModel,
         onBindClick = { Route.goBindingUser(context) },
         onQuickActionClick = { actionId ->
-            val shortcut = primaryFunctionShortcuts().firstOrNull { it.id == actionId }
+            val shortcut = primaryFunctionShortcuts(config).firstOrNull { it.id == actionId }
             when {
-                shortcut != null -> openFunctionShortcut(context, shortcut.destination)
+                shortcut != null -> openFunctionShortcut(context, shortcut)
                 actionId == FunctionDestination.ScoreInquiry.name -> Route.goScoreInquiry(context)
                 actionId == FunctionDestination.Electronic.name -> Route.goElectronic(context)
             }

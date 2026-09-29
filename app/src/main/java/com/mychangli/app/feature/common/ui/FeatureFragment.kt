@@ -100,6 +100,7 @@ fun FeatureScreen(
     isActive: Boolean = true,
 ) {
     val context = LocalContext.current
+    val appConfigState by RemoteConfigurationStore.appConfig.collectAsState()
     val serviceUpdates by RemoteConfigurationStore.serviceUpdates.collectAsState()
     val isRefreshing by RemoteConfigurationStore.serviceUpdatesRefreshing.collectAsState()
     val clientUpdates = remember(serviceUpdates) {
@@ -107,11 +108,11 @@ fun FeatureScreen(
     }
     val scope = rememberCoroutineScope()
     var dialogUpdate by remember { mutableStateOf<RemoteServiceUpdate?>(null) }
-    val learningItems = remember(context) {
-        learningFunctionShortcuts().map { it.toFunctionItemData(context) }
+    val learningItems = remember(context, appConfigState.envelope.configVersion) {
+        learningFunctionShortcuts(appConfigState.envelope.config).map { it.toFunctionItemData(context) }
     }
-    val lifeItems = remember(context) {
-        lifeFunctionShortcuts().map { it.toFunctionItemData(context) }
+    val lifeItems = remember(context, appConfigState.envelope.configVersion) {
+        lifeFunctionShortcuts(appConfigState.envelope.config).map { it.toFunctionItemData(context) }
     }
 
     LaunchedEffect(isActive) {

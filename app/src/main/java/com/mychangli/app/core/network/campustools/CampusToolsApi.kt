@@ -1,6 +1,7 @@
 package com.mychangli.app.core.network.campustools
 
 import com.mychangli.app.BuildConfig
+import com.mychangli.app.core.config.AppConfigPayload
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.security.CredentialCipher
 import com.mychangli.app.core.network.ServiceEndpointPolicy
@@ -348,6 +349,14 @@ data class PublicBootstrap(
     val announcements: List<RemoteAnnouncement> = emptyList(),
     val version: RemoteAppVersion? = null,
     val updatePolicy: RemoteUpdatePolicy? = null,
+    @SerializedName("schemaVersion") val schemaVersion: Int? = null,
+    @SerializedName("configVersion") val configVersion: Long? = null,
+    @SerializedName("minAppVersionCode") val minAppVersionCode: Int? = null,
+    @SerializedName("maxAppVersionCode") val maxAppVersionCode: Int? = null,
+    @SerializedName("issuedAt") val issuedAt: Long? = null,
+    @SerializedName("expiresAt") val expiresAt: Long? = null,
+    @SerializedName("configHash") val configHash: String? = null,
+    @SerializedName("config") val config: AppConfigPayload? = null,
 )
 
 data class RemoteServiceUpdate(
@@ -404,7 +413,10 @@ interface CampusToolsApi {
     ): ApiEnvelope<DeleteAccountResult>
 
     @GET("public/bootstrap")
-    suspend fun publicBootstrap(): ApiEnvelope<PublicBootstrap>
+    suspend fun publicBootstrap(
+        @Query("schemaVersion") schemaVersion: Int? = null,
+        @Query("appVersionCode") appVersionCode: Int? = null,
+    ): ApiEnvelope<PublicBootstrap>
 
     @GET("public/version/android")
     suspend fun versionCheck(

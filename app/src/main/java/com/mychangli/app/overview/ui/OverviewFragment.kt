@@ -6,9 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.mychangli.app.core.Route
+import com.mychangli.app.core.network.campustools.RemoteConfigurationStore
 import com.mychangli.app.core.theme.AppSkinTheme
 import com.mychangli.app.feature.common.compose_ui.FunctionDestination
 import com.mychangli.app.feature.common.compose_ui.openFunctionShortcut
@@ -33,13 +36,15 @@ class OverviewFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AppSkinTheme {
+                    val appConfigState by RemoteConfigurationStore.appConfig.collectAsState()
                     OverviewScreen(
                         viewModel = viewModel,
                         onBindClick = { Route.goBindingUser(requireContext()) },
                         onQuickActionClick = { actionId ->
-                            val shortcut = primaryFunctionShortcuts().firstOrNull { it.id == actionId }
+                            val shortcut = primaryFunctionShortcuts(appConfigState.envelope.config)
+                                .firstOrNull { it.id == actionId }
                             when {
-                                shortcut != null -> openFunctionShortcut(requireContext(), shortcut.destination)
+                                shortcut != null -> openFunctionShortcut(requireContext(), shortcut)
                                 actionId == FunctionDestination.ScoreInquiry.name -> Route.goScoreInquiry(requireContext())
                                 actionId == FunctionDestination.Electronic.name -> Route.goElectronic(requireContext())
                             }

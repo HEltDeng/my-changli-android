@@ -105,7 +105,7 @@ fun FunctionItem(
             text = item.title,
             color = AppTheme.colors.primaryTextColor,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,

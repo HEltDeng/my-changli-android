@@ -201,16 +201,8 @@ class MainActivity : ComponentActivity(), DrawerController {
                                     this@MainActivity,
                                     it.version.latest_version_code,
                                 )
-                            }
+                        }
                         when {
-                            updatePolicyState is AppUpdatePolicyState.IDLE ||
-                                (updatePolicyState is AppUpdatePolicyState.CHECKING &&
-                                    forceUpdate == null &&
-                                    (updatePolicyState as AppUpdatePolicyState.CHECKING).previous == null) ->
-                                Surface(color = AppTheme.colors.bgPrimaryColor) {
-                                Text("正在检查版本…")
-                            }
-
                             forceUpdate != null -> {
                                 AppUpdatePrompt(
                                     update = forceUpdate,

@@ -1,6 +1,8 @@
 package com.mychangli.app.feature.common.compose_ui
 
+import com.mychangli.app.core.config.BuiltInAppConfig
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,5 +29,29 @@ class FunctionCatalogTest {
         val lifeIds = lifeFunctionShortcuts().map(FunctionShortcut::id)
 
         assertTrue("lost_found" in lifeIds)
+    }
+
+    @Test
+    fun `remote navigation changes title order visibility and url without changing action`() {
+        val config = BuiltInAppConfig.envelope().config.copy(
+            navigation = BuiltInAppConfig.envelope().config.navigation.map { item ->
+                when (item.actionId) {
+                    "grade" -> item.copy(
+                        title = "综合成绩",
+                        order = 1,
+                        url = "https://mychangliapp.cn/features.html",
+                    )
+                    "classroom" -> item.copy(visible = false)
+                    else -> item
+                }
+            },
+        )
+
+        val primary = primaryFunctionShortcuts(config)
+
+        assertEquals("grade", primary.first().id)
+        assertEquals("综合成绩", primary.first().titleOverride)
+        assertEquals("https://mychangliapp.cn/features.html", primary.first().url)
+        assertFalse(primary.any { it.id == "classroom" })
     }
 }

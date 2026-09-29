@@ -20,6 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mychangli.app.R
 import com.mychangli.app.core.Route
+import com.mychangli.app.core.config.AppConfigNavigationItem
+import com.mychangli.app.core.config.AppConfigPayload
+import com.mychangli.app.core.config.AppConfigValidator
+import com.mychangli.app.core.web.OfficialWebsiteActivity
 import com.mychangli.app.widget.view.CustomToast
 
 @Immutable
@@ -30,6 +34,8 @@ data class FunctionShortcut(
     val tintColor: Color,
     val destination: FunctionDestination,
     @StringRes val statusRes: Int? = null,
+    val titleOverride: String? = null,
+    val url: String? = null,
 )
 
 enum class FunctionDestination {
@@ -45,13 +51,27 @@ enum class FunctionDestination {
     AccountBook,
     ResourceLibrary,
     Mandarin,
+    OfficialWebsite,
 }
 
 /**
  * 首页正在按这些稳定 ID 查找快捷入口，因此这里保留原有顺序、ID 与跳转。
  */
-fun primaryFunctionShortcuts(): List<FunctionShortcut> =
-    v1VisibleFunctionCatalog().selectById(
+fun primaryFunctionShortcuts(config: AppConfigPayload? = null): List<FunctionShortcut> =
+    config?.let {
+        dynamicShortcuts(
+            config = it,
+            allowedActionIds = setOf(
+                "schedule",
+                "grade",
+                "classroom",
+                "homework",
+                "electric",
+                "exam",
+                "calendar",
+            ),
+        )
+    } ?: v1VisibleFunctionCatalog().selectById(
         "schedule",
         "grade",
         "classroom",
@@ -64,16 +84,36 @@ fun primaryFunctionShortcuts(): List<FunctionShortcut> =
 /**
  * 保留旧接口，避免已有调用方因服务页重新分区而失效。
  */
-fun secondaryFunctionShortcuts(): List<FunctionShortcut> =
-    v1VisibleFunctionCatalog().selectById(
+fun secondaryFunctionShortcuts(config: AppConfigPayload? = null): List<FunctionShortcut> =
+    config?.let {
+        dynamicShortcuts(
+            config = it,
+            allowedActionIds = setOf("cet", "lost_found", "document", "mandarin"),
+        )
+    } ?: v1VisibleFunctionCatalog().selectById(
         "cet",
         "lost_found",
         "document",
         "mandarin",
     )
 
-fun learningFunctionShortcuts(): List<FunctionShortcut> =
-    v1VisibleFunctionCatalog().selectById(
+fun learningFunctionShortcuts(config: AppConfigPayload? = null): List<FunctionShortcut> =
+    config?.let {
+        dynamicShortcuts(
+            config = it,
+            allowedActionIds = setOf(
+                "schedule",
+                "grade",
+                "classroom",
+                "homework",
+                "exam",
+                "document",
+                "cet",
+                "mandarin",
+            ),
+            section = "learning",
+        )
+    } ?: v1VisibleFunctionCatalog().selectById(
         "schedule",
         "grade",
         "classroom",
@@ -87,8 +127,14 @@ fun learningFunctionShortcuts(): List<FunctionShortcut> =
 fun sportsFunctionShortcuts(): List<FunctionShortcut> =
     emptyList()
 
-fun lifeFunctionShortcuts(): List<FunctionShortcut> =
-    v1VisibleFunctionCatalog().selectById(
+fun lifeFunctionShortcuts(config: AppConfigPayload? = null): List<FunctionShortcut> =
+    config?.let {
+        dynamicShortcuts(
+            config = it,
+            allowedActionIds = setOf("electric", "calendar", "lost_found"),
+            section = "life",
+        )
+    } ?: v1VisibleFunctionCatalog().selectById(
         "electric",
         "calendar",
         "lost_found",
@@ -97,12 +143,21 @@ fun lifeFunctionShortcuts(): List<FunctionShortcut> =
 fun FunctionShortcut.toFunctionItemData(context: Context): FunctionItemData =
     FunctionItemData(
         id = id,
-        title = context.getString(titleRes),
+        title = titleOverride ?: context.getString(titleRes),
         icon = icon,
         tintColor = tintColor,
         statusLabel = statusRes?.let(context::getString),
-        onClick = { openFunctionShortcut(context, destination) },
+        onClick = { openFunctionShortcut(context, this) },
     )
+
+fun openFunctionShortcut(context: Context, shortcut: FunctionShortcut) {
+    val url = shortcut.url
+    if (!url.isNullOrBlank() && AppConfigValidator.isSafeOfficialUrl(url)) {
+        context.startActivity(OfficialWebsiteActivity.createIntent(context, url))
+        return
+    }
+    openFunctionShortcut(context, shortcut.destination)
+}
 
 fun openFunctionShortcut(context: Context, destination: FunctionDestination) {
     when (destination) {
@@ -118,6 +173,9 @@ fun openFunctionShortcut(context: Context, destination: FunctionDestination) {
         FunctionDestination.AccountBook -> Route.goAccountBook(context)
         FunctionDestination.ResourceLibrary -> Route.goResourceLibrary(context)
         FunctionDestination.Mandarin -> Route.goMande(context)
+        FunctionDestination.OfficialWebsite -> context.startActivity(
+            OfficialWebsiteActivity.createIntent(context, "https://mychangliapp.cn/"),
+        )
     }
 }
 
@@ -213,6 +271,58 @@ private fun functionCatalog(): List<FunctionShortcut> = listOf(
  */
 private fun v1VisibleFunctionCatalog(): List<FunctionShortcut> =
     functionCatalog().filterNot { it.id == "calendar" }
+
+private fun dynamicShortcuts(
+    config: AppConfigPayload,
+    allowedActionIds: Set<String>,
+    section: String? = null,
+): List<FunctionShortcut> {
+    val staticByActionId = functionCatalog().associateBy(FunctionShortcut::id)
+    return config.navigation
+        .asSequence()
+        .filter { it.visible && it.actionId in allowedActionIds }
+        .filter { section == null || it.section == section }
+        .sortedWith(compareBy<AppConfigNavigationItem> { it.order }.thenBy { it.id })
+        .mapNotNull { item ->
+            val base = staticByActionId[item.actionId] ?: officialWebsiteShortcut(item)
+            base?.copy(
+                id = item.actionId,
+                titleOverride = item.title,
+                url = item.url,
+                icon = iconFor(item.iconKey) ?: base.icon,
+            )
+        }
+        .toList()
+}
+
+private fun officialWebsiteShortcut(item: AppConfigNavigationItem): FunctionShortcut? =
+    if (item.actionId == "official_web") {
+        FunctionShortcut(
+            id = item.actionId,
+            titleRes = R.string.app_name,
+            icon = iconFor(item.iconKey) ?: Icons.Outlined.Language,
+            tintColor = FunctionColors.Document,
+            destination = FunctionDestination.OfficialWebsite,
+        )
+    } else {
+        null
+    }
+
+private fun iconFor(iconKey: String): ImageVector? = when (iconKey) {
+    "calendar" -> Icons.Outlined.CalendarMonth
+    "assessment" -> Icons.Outlined.Assessment
+    "meeting_room" -> Icons.Outlined.MeetingRoom
+    "assignment" -> Icons.Outlined.Assignment
+    "electric" -> Icons.Outlined.ElectricBolt
+    "event_note" -> Icons.Outlined.EventNote
+    "language" -> Icons.Outlined.Language
+    "find_in_page" -> Icons.Outlined.FindInPage
+    "wallet" -> Icons.Outlined.AccountBalanceWallet
+    "folder" -> Icons.Outlined.FolderOpen
+    "record_voice_over" -> Icons.Outlined.RecordVoiceOver
+    "globe" -> Icons.Outlined.Language
+    else -> null
+}
 
 private fun List<FunctionShortcut>.selectById(vararg ids: String): List<FunctionShortcut> {
     val shortcutsById = associateBy(FunctionShortcut::id)
