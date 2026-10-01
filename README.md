@@ -46,7 +46,7 @@ ads.enabled=false
 
 ## 本地依赖与授权
 
-部分本地二进制依赖（CSUSTDataGet AAR、Lite3DMap 等）授权未确认，不包含在本仓库导出目录中。详见 `LOCAL_ONLY_DEPENDENCIES.md`。
+当前安全 CSUSTDataGet AAR 已纳入本仓库并由构建脚本校验 SHA-256；完整本地补丁源码位置见 SOURCE_OF_TRUTH.md。其他二进制依赖的授权与导出边界仍以 `LOCAL_ONLY_DEPENDENCIES.md` 为准，不因源码整理视为已完成授权。
 
 ## 品牌与合规
 

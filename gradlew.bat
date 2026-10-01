@@ -31,7 +31,7 @@ set APP_BASE_NAME=%~n0
 set APP_HOME=%DIRNAME%
 
 @rem Refuse old or wrong product source before Gradle starts.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%APP_HOME%\tools\Test-MyChangliSourceIdentity.ps1" -Component android -Repository "%APP_HOME%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%APP_HOME%\tools\Test-MyChangliSourceIdentity.ps1" -Component android -Repository "%APP_HOME%."
 if errorlevel 1 exit /b 1
 
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
