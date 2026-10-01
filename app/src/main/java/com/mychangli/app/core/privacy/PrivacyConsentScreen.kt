@@ -3,6 +3,7 @@ package com.mychangli.app.core.privacy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,22 +46,36 @@ fun PrivacyConsentScreen(
     onOpenPrivacy: () -> Unit,
     onOpenAgreement: () -> Unit,
 ) {
+    val brandShape = RoundedCornerShape(26.dp)
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         modifier = Modifier
             .fillMaxSize()
             .background(AppTheme.colors.bgPrimaryColor)
             .statusBarsPadding()
             .padding(horizontal = 28.dp, vertical = 24.dp),
     ) {
-        Image(
-            painter = painterResource(R.mipmap.my_changli_icon),
-            contentDescription = "我的长理",
+        Spacer(modifier = Modifier.height(40.dp))
+        Box(
             modifier = Modifier
-                .size(96.dp)
-                .clip(RoundedCornerShape(26.dp)),
-        )
+                .size(104.dp)
+                .dropShadow(
+                    shape = brandShape,
+                    shadow = Shadow(radius = 14.dp, spread = 1.dp,
+                        color = Color(0x387B9FCB), offset = DpOffset(0.dp, 6.dp)),
+                ),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.my_changli_brand_logo),
+                contentDescription = "我的长理",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(brandShape),
+            )
+        }
         Text(
             text = "欢迎使用我的长理",
             color = AppTheme.colors.primaryTextColor,
@@ -71,24 +91,7 @@ fun PrivacyConsentScreen(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp),
         )
-        Text(
-            text = "继续使用即表示你已阅读并同意《隐私政策》和《用户协议》。",
-            color = AppTheme.colors.secondaryTextColor,
-            fontSize = 14.sp,
-            lineHeight = 21.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 34.dp),
-        )
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            TextButton(onClick = onOpenPrivacy) { Text("隐私政策") }
-            TextButton(onClick = onOpenAgreement) { Text("用户协议") }
-        }
+        Spacer(modifier = Modifier.weight(1f))
         Button(
             onClick = onAccept,
             colors = ButtonDefaults.buttonColors(
@@ -109,12 +112,24 @@ fun PrivacyConsentScreen(
             shape = RoundedCornerShape(18.dp),
         ) { Text("暂不同意") }
         Text(
-            text = "暂不同意不会反复弹窗，之后可主动重新选择。",
-            color = AppTheme.colors.greyTextColor,
+            text = "继续使用即表示你已阅读并同意《隐私政策》和《用户协议》。",
+            color = AppTheme.colors.secondaryTextColor,
             fontSize = 12.sp,
+            lineHeight = 18.sp,
+            maxLines = 2,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 26.dp),
         )
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            TextButton(onClick = onOpenPrivacy) { Text("隐私政策") }
+            TextButton(onClick = onOpenAgreement) { Text("用户协议") }
+        }
     }
 }
 

@@ -29,6 +29,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -89,10 +94,16 @@ fun AccountGateScreen(
                 .padding(horizontal = 24.dp, vertical = 28.dp),
         ) {
             androidx.compose.foundation.Image(
-                painter = painterResource(R.mipmap.my_changli_icon),
+                painter = painterResource(R.drawable.my_changli_brand_logo),
                 contentDescription = "我的长理",
                 modifier = Modifier
                     .size(72.dp)
+                    .dropShadow(
+                        shape = RoundedCornerShape(18.dp),
+                        shadow = Shadow(radius = 10.dp, spread = 1.dp,
+                            color = Color(0x387B9FCB), offset = DpOffset(0.dp, 4.dp)),
+                    )
+                    .clip(RoundedCornerShape(18.dp))
                     .align(Alignment.CenterHorizontally),
             )
             Spacer(Modifier.height(22.dp))

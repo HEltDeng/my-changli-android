@@ -1,5 +1,6 @@
 package com.mychangli.app.profileSettings.ui.model
 
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class SettingItemUiModel {
@@ -9,5 +10,8 @@ sealed class SettingItemUiModel {
         val title: String,
         val icon: ImageVector? = null,
         val subtitle: String? = null,
+        @DrawableRes val iconRes: Int? = null,
+        val preserveOriginalColors: Boolean = false,
+        val showProgress: Boolean = false,
     ) : SettingItemUiModel()
 }

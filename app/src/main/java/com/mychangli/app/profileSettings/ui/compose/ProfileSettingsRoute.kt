@@ -4,6 +4,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -140,8 +144,8 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
             },
             onItemClick = { item ->
                 when (item.id) {
-                    "account" -> Route.goAccountCenter(context)
-                    "bind" -> Route.goBindingUser(context)
+                    "platform-account" -> Route.goAccountCenter(context)
+                    "school-account" -> Route.goBindingUser(context)
                     "reminders" -> Route.goCourseReminders(context)
                     "notifications" -> runCatching {
                         context.startActivity(
@@ -556,26 +560,55 @@ private fun SettingOptionItem(
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 10.dp),
     ) {
-        item.icon?.let { imageVector ->
-            Surface(
-                modifier = Modifier.size(36.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = AppTheme.colors.bgButtonLowlightColor,
-            ) {
-                Icon(
-                    imageVector = imageVector,
-                    contentDescription = null,
-                    tint = AppTheme.colors.functionalTextColor,
-                    modifier = Modifier.padding(8.dp),
-                )
+        when {
+            item.iconRes != null -> {
+                Surface(
+                    modifier = Modifier.size(36.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = AppTheme.colors.bgButtonLowlightColor,
+                ) {
+                    if (item.preserveOriginalColors) {
+                        Image(
+                            painter = painterResource(item.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.padding(8.dp),
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(item.iconRes),
+                            contentDescription = null,
+                            tint = AppTheme.colors.functionalTextColor,
+                            modifier = Modifier.padding(
+                                if (item.id == "platform-account") 4.dp else 8.dp,
+                            ),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.size(12.dp))
             }
-            Spacer(modifier = Modifier.size(12.dp))
+            item.icon != null -> {
+                Surface(
+                    modifier = Modifier.size(36.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = AppTheme.colors.bgButtonLowlightColor,
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = AppTheme.colors.functionalTextColor,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.size(12.dp))
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
                 fontSize = 16.sp,
                 color = AppTheme.colors.primaryTextColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             item.subtitle?.let { subtitle ->
                 Text(
@@ -587,6 +620,15 @@ private fun SettingOptionItem(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+        }
+        if (item.showProgress) {
+            CircularProgressIndicator(
+                color = AppTheme.colors.functionalTextColor,
+                strokeWidth = 2.dp,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(18.dp),
+            )
         }
         Icon(
             imageVector = Icons.Outlined.KeyboardArrowRight,
@@ -635,22 +677,33 @@ private fun InformationDialog(message: String, onDismiss: () -> Unit) {
     )
 }
 
-private fun createMainSettingItems(checkingUpdate: Boolean): List<SettingItemUiModel> = listOf(
+internal fun createMainSettingItems(checkingUpdate: Boolean): List<SettingItemUiModel> = listOf(
     SettingItemUiModel.Header("主要设置"),
-    SettingItemUiModel.Option("account", "我的长理账号", Icons.Outlined.AccountCircle),
-    SettingItemUiModel.Option("bind", "绑定学号", Icons.Outlined.AccountCircle),
-    SettingItemUiModel.Option("reminders", "上课提醒 & 桌面小组件", Icons.Outlined.NotificationsActive),
     SettingItemUiModel.Option(
-        "notifications",
-        "通知设置",
-        Icons.Outlined.NotificationsActive,
-        subtitle = "上课提醒与重要公告",
+        id = "platform-account",
+        title = "我的长理账号",
+        iconRes = R.drawable.my_changli_brand_mark,
     ),
     SettingItemUiModel.Option(
-        "update",
-        "检查更新",
-        Icons.Outlined.SystemUpdate,
-        subtitle = if (checkingUpdate) "正在检查…" else null,
+        id = "school-account",
+        title = "绑定学号",
+        iconRes = R.drawable.ic_student_id_outline,
+    ),
+    SettingItemUiModel.Option(
+        id = "reminders",
+        title = "上课提醒 & 桌面小组件",
+        icon = Icons.Outlined.CalendarMonth,
+    ),
+    SettingItemUiModel.Option(
+        id = "notifications",
+        title = "通知设置",
+        icon = Icons.Outlined.NotificationsActive,
+    ),
+    SettingItemUiModel.Option(
+        id = "update",
+        title = "检查更新",
+        icon = Icons.Outlined.SystemUpdate,
+        showProgress = checkingUpdate,
     ),
 )
 

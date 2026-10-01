@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/my_changli_brand_blue" />
+    <!-- Keep pre-Android-12 launch visuals aligned with the light, elevated brand card. -->
+    <item android:drawable="@android:color/white" />
     <item
-        android:width="144dp"
-        android:height="144dp"
-        android:gravity="center">
-        <bitmap
-            android:gravity="fill"
-            android:src="@mipmap/my_changli_icon" />
-    </item>
+        android:width="216dp"
+        android:height="216dp"
+        android:gravity="center"
+        android:drawable="@drawable/my_changli_splash_card" />
 </layer-list>

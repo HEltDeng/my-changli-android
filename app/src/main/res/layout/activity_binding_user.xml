@@ -79,7 +79,7 @@
                     android:layout_height="72dp"
                     android:layout_gravity="center_horizontal"
                     android:contentDescription="@null"
-                    android:src="@mipmap/my_changli_icon" />
+                    android:src="@drawable/ic_student_id_outline" />
 
                 <TextView
                     android:layout_width="match_parent"
