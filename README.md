@@ -8,12 +8,12 @@
 
 - 项目名称：我的长理
 - Android 包名：`com.mychangli.app`
-- 当前阶段：发布前本地候选
+- 当前正式发布：V1.0.5（versionCode 37）；正式 Tag：`v1.0.5-release-20261001`。后续沿当前正确版本线连续开发。
 - 本应用不是长沙理工大学官方应用
 - 第一版为个人独立开发的免费校园生活辅助工具
 - 真实支付和学校合作尚未接入
-- 生产域名和正式云环境尚未配置
-- 本地调试使用 `127.0.0.1` 与 ADB reverse；Release 配置使用 `.invalid` 占位地址
+- 已部署官网：`https://mychangliapp.cn`；Backend/Admin：`https://api.mychangliapp.cn`。
+- 固定开发目录和发布来源见 [SOURCE_OF_TRUTH.md](SOURCE_OF_TRUTH.md)。构建前执行项目 `04_Tools/Test-MyChangliSourceIdentity.ps1`。
 
 ## 产品方向
 

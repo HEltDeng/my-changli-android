@@ -1,0 +1,368 @@
+﻿#requires -Version 5.1
+
+[CmdletBinding()]
+param(
+    [ValidateSet('ProductionRelease', 'DryRun', 'BuildOnly', 'TestOnly')]
+    [string]$Mode = 'ProductionRelease',
+    [Parameter(Mandatory = $true)][string]$ApkPath,
+    [Parameter(Mandatory = $true)][int]$MinimumVersionCode,
+    [Parameter(Mandatory = $true)][string]$UpdateMessage,
+    [Parameter(Mandatory = $true)][string]$PublishedAt,
+    [string]$DownloadUrl = '',
+    [string[]]$ReleaseItems = @(),
+    [string]$WebsiteRoot = '',
+    [string]$RuntimeRoot = '',
+    [string]$BackendApiBaseUrl = 'https://api.mychangliapp.cn',
+    [string]$AndroidRepo = 'D:\Codex\01_App-应用开发\001_MyChangLi-我的长理\01_Source-当前源码\01_Android',
+    [string]$WebsiteRepo = 'D:\Codex\01_App-应用开发\001_MyChangLi-我的长理\01_Source-当前源码\03_Website',
+    [string]$BackendRepo = 'D:\Codex\01_App-应用开发\001_MyChangLi-我的长理\01_Source-当前源码\02_Backend-Admin',
+    [string]$ApkAnalyzerPath = 'D:\Codex\90_Shared-公共资源\toolchains\android-sdk\cmdline-tools\latest\bin\apkanalyzer.bat',
+    [string]$ApkSignerPath = 'D:\Codex\90_Shared-公共资源\toolchains\android-sdk\build-tools\36.1.0\apksigner.bat',
+    [string]$OldVersionValidationEvidence = '',
+    [string]$ReleaseReportPath = '',
+    [string]$ExpectedSigningCertificateSha256 = '2C3B934931C26719C1A55FA707760A41E18BA15B00561F97691FE1D452F4BF3D',
+    [switch]$HumanReleaseApproval,
+    [string]$ApprovedBy = '',
+    [string]$ApprovalSource = '',
+    [switch]$ForceUpdate,
+    [switch]$CommitRelease,
+    [switch]$SkipBuild
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+if ($SkipBuild) {
+    if ($Mode -eq 'ProductionRelease') {
+        throw '-SkipBuild is not allowed in ProductionRelease mode. Use -Mode BuildOnly, TestOnly, or DryRun explicitly.'
+    }
+    $Mode = 'TestOnly'
+}
+if ([string]::IsNullOrWhiteSpace($WebsiteRoot)) { $WebsiteRoot = $WebsiteRepo }
+if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) {
+    $RuntimeRoot = Join-Path $PSScriptRoot 'runtime\backend-password-runtime'
+}
+
+$gate = [ordered]@{
+    'APK' = 'FAIL'
+    'APK SIGNATURE' = 'FAIL'
+    'APK SHA-256' = 'FAIL'
+    'VERSION IMMUTABILITY' = 'INCOMPLETE'
+    'HUMAN RELEASE APPROVAL' = 'INCOMPLETE'
+    'BACKEND WORKTREE' = 'INCOMPLETE'
+    'BACKEND VERSION' = 'INCOMPLETE'
+    'LATEST.JSON' = 'INCOMPLETE'
+    'WEBSITE DOWNLOAD' = 'INCOMPLETE'
+    'ONLINE APK' = 'INCOMPLETE'
+    'CHANGELOG' = 'INCOMPLETE'
+    'OLD VERSION UPDATE DETECTION' = 'INCOMPLETE'
+    'GIT COMMIT' = 'INCOMPLETE'
+    'RELEASE REPORT' = 'INCOMPLETE'
+    'CONSISTENCY' = 'INCOMPLETE'
+}
+
+function Invoke-Checked {
+    param(
+        [Parameter(Mandatory = $true)][string]$Label,
+        [Parameter(Mandatory = $true)][scriptblock]$Action
+    )
+    Write-Host ("== {0} ==" -f $Label) -ForegroundColor Cyan
+    & $Action
+    if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit code $LASTEXITCODE." }
+}
+
+function Invoke-ApkAnalyzer {
+    param([Parameter(Mandatory = $true)][string]$Property)
+    $value = & $ApkAnalyzerPath manifest $Property $ApkPath 2>$null
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$value)) {
+        throw "Unable to read APK manifest property '$Property'."
+    }
+    return ([string]$value).Trim()
+}
+
+function Get-GitStatus {
+    param([Parameter(Mandatory = $true)][string]$Repo)
+    if (-not (Test-Path -LiteralPath $Repo -PathType Container)) { throw "Git repository is missing: $Repo" }
+    $null = git -C $Repo rev-parse --git-dir 2>$null
+    if ($LASTEXITCODE -ne 0) { throw "Git repository is missing: $Repo" }
+    return @(git -C $Repo status --porcelain)
+}
+
+function Get-GitHead {
+    param([Parameter(Mandatory = $true)][string]$Repo)
+    $head = git -C $Repo rev-parse HEAD 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$head)) {
+        throw "Unable to read Git HEAD: $Repo"
+    }
+    return ([string]$head).Trim()
+}
+
+function Write-Gate {
+    param([Parameter(Mandatory = $true)][string]$Result)
+    Write-Host ''
+    Write-Host 'MYCHANGLI RELEASE GATE' -ForegroundColor Cyan
+    foreach ($entry in $gate.GetEnumerator()) {
+        $color = if ($entry.Value -eq 'PASS') { 'Green' } elseif ($entry.Value -eq 'FAIL') { 'Red' } else { 'Yellow' }
+        Write-Host ('{0,-32} {1}' -f $entry.Key, $entry.Value) -ForegroundColor $color
+    }
+    Write-Host ''
+    Write-Host ('RELEASE RESULT: {0}' -f $Result) -ForegroundColor $(if ($Result -eq 'PASS') { 'Green' } else { 'Red' })
+}
+
+try {
+    foreach ($path in @($ApkPath, $WebsiteRoot, $ApkAnalyzerPath, $ApkSignerPath)) {
+        $pathType = if ($path -eq $WebsiteRoot) { 'Container' } else { 'Leaf' }
+        if (-not (Test-Path -LiteralPath $path -PathType $pathType)) { throw "Required path is missing: $path" }
+    }
+    if ($Mode -eq 'ProductionRelease' -and $MinimumVersionCode -lt 1) { throw 'MinimumVersionCode is invalid.' }
+
+    $packageName = Invoke-ApkAnalyzer -Property 'application-id'
+    $versionName = Invoke-ApkAnalyzer -Property 'version-name'
+    $versionCode = [int](Invoke-ApkAnalyzer -Property 'version-code')
+    $apkHash = (Get-FileHash -LiteralPath $ApkPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    $apkSize = (Get-Item -LiteralPath $ApkPath).Length
+    $gate['APK'] = if ($packageName -eq 'com.mychangli.app' -and $versionCode -gt 0 -and $versionName -match '^\d+\.\d+\.\d+$') { 'PASS' } else { 'FAIL' }
+    if ($gate['APK'] -ne 'PASS') { throw "APK identity is invalid: $packageName / $versionName / $versionCode" }
+    $certOutput = & $ApkSignerPath verify --print-certs $ApkPath 2>&1
+    $certExitCode = $LASTEXITCODE
+    if ($certExitCode -ne 0) { throw 'Unable to inspect APK signing certificate.' }
+    $certificate = ([regex]::Match(($certOutput | Out-String), 'Signer #\d+ certificate SHA-256 digest:\s*([0-9A-Fa-f]{64})')).Groups[1].Value.ToUpperInvariant()
+    $gate['APK SIGNATURE'] = if ($certificate -eq $ExpectedSigningCertificateSha256.ToUpperInvariant()) { 'PASS' } else { 'FAIL' }
+    if ($gate['APK SIGNATURE'] -ne 'PASS') { throw "APK signing certificate mismatch: $certificate" }
+    $gate['APK SHA-256'] = if ($apkHash -match '^[0-9A-F]{64}$' -and $apkSize -gt 0) { 'PASS' } else { 'FAIL' }
+    if ($gate['APK SHA-256'] -ne 'PASS') { throw 'APK SHA-256 or size is invalid.' }
+    $gate['VERSION IMMUTABILITY'] = if ($versionCode -gt 34) { 'PASS' } else { 'FAIL' }
+    if ($gate['VERSION IMMUTABILITY'] -ne 'PASS') {
+        throw 'V1.0.2/34 is immutable. ProductionRelease requires a newer APK.'
+    }
+    if ($Mode -eq 'ProductionRelease' -and -not $CommitRelease) {
+        throw 'ProductionRelease requires -CommitRelease so the website release metadata and APK are committed.'
+    }
+
+    if ([string]::IsNullOrWhiteSpace($DownloadUrl)) {
+        $DownloadUrl = "https://mychangliapp.cn/downloads/我的长理-V$versionName.apk"
+    }
+    # Normalize Unicode path segments once so Website, Backend and manifest
+    # receive the same canonical HTTPS URL.
+    $DownloadUrl = ([Uri]$DownloadUrl).AbsoluteUri
+    if ([string]::IsNullOrWhiteSpace($ReleaseReportPath)) {
+        $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $ReleaseReportPath = Join-Path $projectRoot "05_Output\production-activation\reports\MYCHANG_LI_V${versionName}_RELEASE_REPORT.md"
+    }
+    if ($Mode -eq 'ProductionRelease' -and $PublishedAt -notmatch '^\d{4}-\d{2}-\d{2}$') {
+        throw 'ProductionRelease PublishedAt must be a real YYYY-MM-DD date.'
+    }
+
+    if ($Mode -eq 'ProductionRelease') {
+        if (-not $HumanReleaseApproval) {
+            throw 'ProductionRelease requires -HumanReleaseApproval from the project owner.'
+        }
+        if ([string]::IsNullOrWhiteSpace($ApprovedBy)) {
+            throw 'ProductionRelease HumanReleaseApproval requires -ApprovedBy.'
+        }
+        if ([string]::IsNullOrWhiteSpace($ApprovalSource)) {
+            throw 'ProductionRelease HumanReleaseApproval requires -ApprovalSource.'
+        }
+        $gate['HUMAN RELEASE APPROVAL'] = 'PASS'
+
+        # Android and Website are the release inputs that this closure mutates.
+        # Backend publishing is a database/API operation; a mixed dirty source
+        # tree must be preserved and recorded rather than reset or silently
+        # included in the release.
+        foreach ($repo in @($AndroidRepo, $WebsiteRepo)) {
+            $repoStatus = @(Get-GitStatus -Repo $repo)
+            if ($repoStatus.Count -ne 0) {
+                throw "Git repositories must be clean before a ProductionRelease: $repo"
+            }
+        }
+        $backendStatus = @(Get-GitStatus -Repo $BackendRepo)
+        if ($backendStatus.Count -eq 0) {
+            $gate['BACKEND WORKTREE'] = 'PASS'
+        } else {
+            $gate['BACKEND WORKTREE'] = 'PRESERVED / WAIVED_BY_HUMAN_APPROVAL'
+            Write-Host 'Backend working tree is dirty; preserving all uncommitted changes. This release publishes only the version row/API data and does not deploy local Backend source.' -ForegroundColor Yellow
+        }
+    }
+
+    $syncManifest = Join-Path $PSScriptRoot 'Sync-MyChangliReleaseManifest.ps1'
+    $websiteDeploy = Join-Path $PSScriptRoot 'Invoke-MyChangliWebsiteDeploy.ps1'
+    $backendPublish = Join-Path $PSScriptRoot 'Invoke-MyChangliBackendVersionPublish.ps1'
+    $consistencyCheck = Join-Path $PSScriptRoot 'Invoke-MyChangliReleaseConsistencyCheck.ps1'
+    foreach ($script in @($syncManifest, $websiteDeploy, $backendPublish, $consistencyCheck)) {
+        if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Release helper is missing: $script" }
+    }
+
+    if ($Mode -eq 'DryRun') {
+        Write-Host ("DRY RUN: APK facts are {0} / {1}, SHA {2}. No website, Backend, or production mutation will run." -f $versionName, $versionCode, $apkHash) -ForegroundColor Yellow
+        Write-Gate -Result 'INCOMPLETE (DRY RUN)'
+        exit 0
+    }
+
+    if ($Mode -eq 'BuildOnly' -or $Mode -eq 'TestOnly') {
+        Push-Location -LiteralPath $WebsiteRoot
+        try {
+            Invoke-Checked -Label 'Website tests' -Action { pnpm test }
+            Invoke-Checked -Label 'Website build' -Action { pnpm build }
+        } finally { Pop-Location }
+        Write-Host "${Mode}: no production mutation was run." -ForegroundColor Yellow
+        Write-Gate -Result 'INCOMPLETE (NON-PRODUCTION MODE)'
+        exit 0
+    }
+
+    # ProductionRelease has no skip switches: generate every downstream record from APK facts.
+    $websiteApk = Join-Path $WebsiteRoot "downloads\我的长理-V$versionName.apk"
+    Copy-Item -LiteralPath $ApkPath -Destination $websiteApk -Force
+    & $syncManifest `
+        -WebsiteRoot $WebsiteRoot `
+        -VersionName $versionName `
+        -VersionCode $versionCode `
+        -MinimumVersionCode $MinimumVersionCode `
+        -DownloadUrl $DownloadUrl `
+        -ApkSha256 $apkHash `
+        -ApkSize $apkSize `
+        -UpdateMessage $UpdateMessage `
+        -PublishedAt $PublishedAt `
+        -ReleaseItems $ReleaseItems `
+        -ForceUpdate:$ForceUpdate
+    if ($LASTEXITCODE -ne 0) { throw 'Release manifest synchronization failed.' }
+    $gate['LATEST.JSON'] = 'PASS'
+    $gate['CHANGELOG'] = 'PASS'
+
+    Push-Location -LiteralPath $WebsiteRoot
+    try {
+        Invoke-Checked -Label 'Website tests' -Action { pnpm test }
+        Invoke-Checked -Label 'Website build' -Action { pnpm build }
+    } finally { Pop-Location }
+    & $websiteDeploy -Action Deploy -DistPath (Join-Path $WebsiteRoot 'dist') -RuntimeRoot $RuntimeRoot
+    if ($LASTEXITCODE -ne 0) { throw "Website deployment failed with exit code $LASTEXITCODE." }
+    $gate['WEBSITE DOWNLOAD'] = 'PASS'
+
+    & $backendPublish `
+        -VersionName $versionName `
+        -VersionCode $versionCode `
+        -MinimumVersionCode $MinimumVersionCode `
+        -DownloadUrl $DownloadUrl `
+        -ApkSha256 $apkHash `
+        -ApkSize $apkSize `
+        -UpdateMessage $UpdateMessage `
+        -PackageName $packageName `
+        -SigningCertificateSha256 $certificate `
+        -MetadataVerified `
+        -ForceUpdate:$ForceUpdate `
+        -ApiBaseUrl $BackendApiBaseUrl `
+        -RuntimeRoot $RuntimeRoot
+    if ($LASTEXITCODE -ne 0) { throw "Backend version publication failed with exit code $LASTEXITCODE." }
+    $gate['BACKEND VERSION'] = 'PASS'
+
+    & $consistencyCheck -ApkPath $ApkPath -BackendApiBaseUrl $BackendApiBaseUrl
+    if ($LASTEXITCODE -ne 0) { throw "Release consistency verification failed with exit code $LASTEXITCODE." }
+    $gate['ONLINE APK'] = 'PASS'
+    $gate['CONSISTENCY'] = 'PASS'
+
+    $evidence = ''
+    $installerValidation = 'PENDING_REAL_DEVICE / WAIVED_BY_HUMAN_APPROVAL'
+    $dataRetentionValidation = 'PENDING_REAL_DEVICE / WAIVED_BY_HUMAN_APPROVAL'
+    if (-not [string]::IsNullOrWhiteSpace($OldVersionValidationEvidence) -and (Test-Path -LiteralPath $OldVersionValidationEvidence -PathType Leaf)) {
+        $evidence = Get-Content -LiteralPath $OldVersionValidationEvidence -Raw
+        if ($evidence -match 'OLD VERSION UPDATE DETECTION\s*:\s*PASS') {
+            $gate['OLD VERSION UPDATE DETECTION'] = 'PASS'
+        } elseif ($HumanReleaseApproval) {
+            $gate['OLD VERSION UPDATE DETECTION'] = 'PENDING / WAIVED_BY_HUMAN_APPROVAL'
+        } else {
+            throw 'Old-version validation evidence does not contain an explicit PASS marker.'
+        }
+        if ($evidence -match 'PACKAGE INSTALLER\s*:\s*PASS') {
+            $installerValidation = 'PASS'
+        }
+        if ($evidence -match 'UPGRADE DATA RETENTION\s*:\s*PASS') {
+            $dataRetentionValidation = 'PASS'
+        }
+    } elseif ($HumanReleaseApproval) {
+        $gate['OLD VERSION UPDATE DETECTION'] = 'PENDING / WAIVED_BY_HUMAN_APPROVAL'
+        Write-Host 'Old-version real-device validation is pending; continuing under explicit HumanReleaseApproval.' -ForegroundColor Yellow
+    } else {
+        throw 'ProductionRelease requires old-version validation evidence or explicit HumanReleaseApproval.'
+    }
+
+    & git -C $WebsiteRepo add -- 'config/site-config.json' 'releases/latest.json' "downloads/我的长理-V$versionName.apk"
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to stage website release metadata.' }
+    & git -C $WebsiteRepo diff --cached --quiet
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host 'Website release metadata is already committed; continuing idempotently.' -ForegroundColor Yellow
+    } else {
+        & git -C $WebsiteRepo commit -m "release: publish v$versionName"
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to commit website release metadata.' }
+    }
+    foreach ($repo in @($AndroidRepo, $WebsiteRepo)) {
+        $repoStatus = @(Get-GitStatus -Repo $repo)
+        if ($repoStatus.Count -ne 0) {
+            throw "Git repository is dirty; commit release changes before declaring a ProductionRelease: $repo"
+        }
+    }
+    $backendStatus = @(Get-GitStatus -Repo $BackendRepo)
+    if ($backendStatus.Count -ne 0 -and -not $HumanReleaseApproval) {
+        throw 'Backend Git repository is dirty and no HumanReleaseApproval was supplied.'
+    }
+    $gate['GIT COMMIT'] = 'PASS'
+
+    $reportGate = [ordered]@{}
+    foreach ($entry in $gate.GetEnumerator()) {
+        $reportGate[$entry.Key] = if ($entry.Key -eq 'RELEASE REPORT') { 'PASS' } else { $entry.Value }
+    }
+    $reportLines = @(
+        "# 我的长理 V$versionName Release Report",
+        '',
+        "GeneratedAt: $([DateTimeOffset]::Now.ToString('o'))",
+        'PRODUCTION RELEASE: SUCCESS',
+        'Automated Validation: PASS',
+        "HumanReleaseApproval: $($HumanReleaseApproval.IsPresent)",
+        "ApprovedBy: $ApprovedBy",
+        "ApprovalSource: $ApprovalSource",
+        "Real Device Upgrade Validation: $($gate['OLD VERSION UPDATE DETECTION'])",
+        "PackageInstaller Validation: $installerValidation",
+        "Upgrade Data Retention Validation: $dataRetentionValidation",
+        "Backend working tree: $($gate['BACKEND WORKTREE']) (local uncommitted changes preserved; no Backend source deployment)",
+        '',
+        '## APK facts',
+        "- packageName: $packageName",
+        "- versionName: $versionName",
+        "- versionCode: $versionCode",
+        "- minimumVersionCode: $MinimumVersionCode",
+        "- apkPath: $ApkPath",
+        "- apkSha256: $apkHash",
+        "- apkSize: $apkSize",
+        "- signingCertificateSha256: $certificate",
+        "- metadataVerified: True",
+        "- forceUpdate: $($ForceUpdate.IsPresent)",
+        "- downloadUrl: $DownloadUrl",
+        "- publishedAt: $PublishedAt",
+        '',
+        '## Release gate',
+        ($reportGate.GetEnumerator() | ForEach-Object { "- $($_.Key): $($_.Value)" }),
+        '',
+        '## Git commits',
+        "- Android: $(Get-GitHead -Repo $AndroidRepo)",
+        "- Website: $(Get-GitHead -Repo $WebsiteRepo)",
+        "- Backend: $(Get-GitHead -Repo $BackendRepo)",
+        '',
+        'This report contains release metadata and validation results only. No credential, private key, password, or production secret is recorded.',
+        "Old-version validation evidence: $(if ([string]::IsNullOrWhiteSpace($OldVersionValidationEvidence)) { 'PENDING_REAL_DEVICE / WAIVED_BY_HUMAN_APPROVAL' } else { $OldVersionValidationEvidence })"
+    )
+    $reportParent = Split-Path -Parent $ReleaseReportPath
+    if (-not [string]::IsNullOrWhiteSpace($reportParent)) {
+        New-Item -ItemType Directory -Path $reportParent -Force | Out-Null
+    }
+    $reportLines | Set-Content -LiteralPath $ReleaseReportPath -Encoding UTF8
+    if (-not (Test-Path -LiteralPath $ReleaseReportPath -PathType Leaf)) {
+        throw "Release report was not written: $ReleaseReportPath"
+    }
+    $gate['RELEASE REPORT'] = 'PASS'
+    Write-Host "Release report: $ReleaseReportPath" -ForegroundColor Green
+    Write-Gate -Result 'PASS'
+    exit 0
+} catch {
+    Write-Host ("Release failure: {0}" -f $_.Exception.Message) -ForegroundColor Red
+    Write-Gate -Result 'FAIL / INCOMPLETE'
+    exit 1
+}

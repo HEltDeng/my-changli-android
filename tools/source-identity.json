@@ -1,0 +1,31 @@
+{
+  "product": "我的长理",
+  "applicationId": "com.mychangli.app",
+  "release": {
+    "versionName": "1.0.5",
+    "versionCode": 37,
+    "apkBytes": 7163474,
+    "apkSha256": "936223F8A7D7E40DBB1929433190CE325073AE689E1BA36C4B90B7E56B538E0A",
+    "certificateSha256": "2C3B934931C26719C1A55FA707760A41E18BA15B00561F97691FE1D452F4BF3D",
+    "commit": "d56fc5efc8f1584309a7bc348035780e2c816c27",
+    "tag": "v1.0.5-release-20261001"
+  },
+  "repositories": {
+    "android": {
+      "path": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Source-当前源码\\01_Android",
+      "remote": "https://github.com/HEltDeng/my-changli-android.git",
+      "baseline": "d56fc5efc8f1584309a7bc348035780e2c816c27"
+    },
+    "backend": {
+      "path": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Source-当前源码\\02_Backend-Admin",
+      "remote": "https://github.com/HEltDeng/my-changli-backend.git",
+      "baseline": "30a1c5fb37e7803ecadb2fd43b5b05c34f61eb37"
+    },
+    "website": {
+      "path": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Source-当前源码\\03_Website",
+      "remote": "https://github.com/HEltDeng/my-changli-website.git",
+      "baseline": "196a6ff64080e19eb148e8f2f99791c67a232c3b"
+    }
+  },
+  "dependencySource": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Repositories\\CodexWorkspace-projects\\CSUSTDataGet-1.1.4-safe"
+}
