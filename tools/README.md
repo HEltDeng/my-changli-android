@@ -21,3 +21,9 @@ HTTPS、git@github.com:owner/repo.git、ssh://git@github.com/owner/repo.git 识�
 测试：`python tools/test_source_identity.py --scratch <新的隔离夹具目录>`，15 项正反例；仅在指定夹具中写入。此本地夹具测试不冒充远端恢复证明，远端验收见 FINAL_HANDOVER。
 
 正式 APK 对应 d56fc5e 归档，基线校验不证明重建 APK 哈希相同。发布仍需审核 dirty、签名、产物、用户验收与批准。
+
+## 从远端恢复的检出条件
+
+Windows 恢复时显式使用 `git clone --config core.autocrlf=false --branch main https://github.com/HEltDeng/my-changli-android.git <受控目录>`。既有 V1SourceBoundaryTest 按原始 LF 换行匹配 CampusToolsApi.kt；系统 autocrlf=true 的 CRLF 检出会使其中一项边界测试失败，即使 APK 已能构建。此条件属于恢复步骤，不修改系统全局 Git 配置、不更改业务文件或放宽测试。
+
+已存在的、无用户修改的隔离验收克隆可以在确认身份及 clean 后设置其本地 core.autocrlf=false，再用 `git checkout-index --force --all` 重新检出 Git 中原始字节。此命令只用于可丢弃验收夹具，不能用于覆盖当前开发工作区。然后显式 Validation 预检，使用安装好的 JDK 17/SDK 36.1 和远端跟踪 AAR，以 `--no-build-cache --rerun-tasks` 重建与测试。不要复制其他工程的 build、dist 或 .gradle 输出。
