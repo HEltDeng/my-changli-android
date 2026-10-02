@@ -30,8 +30,9 @@ if "%DIRNAME%" == "" set DIRNAME=.
 set APP_BASE_NAME=%~n0
 set APP_HOME=%DIRNAME%
 
-@rem Refuse old or wrong product source before Gradle starts.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%APP_HOME%\tools\Test-MyChangliSourceIdentity.ps1" -Component android -Repository "%APP_HOME%."
+@rem Explicit Validation mode permits controlled clones; identity checks always run.
+if not defined MYCHANGLI_SOURCE_MODE set MYCHANGLI_SOURCE_MODE=Development
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%APP_HOME%\tools\Test-MyChangliSourceIdentity.ps1" -Component android -Repository "%APP_HOME%." -Mode "%MYCHANGLI_SOURCE_MODE%"
 if errorlevel 1 exit /b 1
 
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.

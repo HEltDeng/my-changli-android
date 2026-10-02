@@ -8,3 +8,5 @@
 - 系统启动图与应用内品牌图分别验证。不得将 adaptive-icon 直接传入 Compose painterResource。
 - 不以构建或截图替代 Owner 最终视觉验收；不得循环冷启动抓帧、清空手机数据或改变手机网络。
 - 发布身份及不可变制品见 docs/releases/v1.0.5-20261001/RELEASE_NOTES.md；历史撤回 v1.0.5 tag 不得移动或覆盖。
+
+涉及 Backend/Admin 或 Website 时，必须显式读取对应 AGENTS.md 和 SOURCE_OF_TRUTH.md，不得假定附加目录指令自动加载。身份检查用法见 tools/README.md。

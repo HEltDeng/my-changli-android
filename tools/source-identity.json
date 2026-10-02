@@ -12,20 +12,54 @@
   },
   "repositories": {
     "android": {
-      "path": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Source-当前源码\\01_Android",
-      "remote": "https://github.com/HEltDeng/my-changli-android.git",
-      "baseline": "d56fc5efc8f1584309a7bc348035780e2c816c27"
+      "baseline": "d56fc5efc8f1584309a7bc348035780e2c816c27",
+      "repositoryId": "github.com/heltdeng/my-changli-android",
+      "markers": [
+        {
+          "path": "app/build.gradle.kts",
+          "pattern": "applicationId\\s*=\\s*\"com\\.mychangli\\.app\""
+        }
+      ]
     },
     "backend": {
-      "path": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Source-当前源码\\02_Backend-Admin",
-      "remote": "https://github.com/HEltDeng/my-changli-backend.git",
-      "baseline": "30a1c5fb37e7803ecadb2fd43b5b05c34f61eb37"
+      "baseline": "30a1c5fb37e7803ecadb2fd43b5b05c34f61eb37",
+      "repositoryId": "github.com/heltdeng/my-changli-backend",
+      "markers": [
+        {
+          "path": "runtime_config.py",
+          "pattern": "MY_CHANGLI_"
+        },
+        {
+          "path": "schema.sql",
+          "pattern": "CREATE TABLE"
+        },
+        {
+          "path": "admin/index.html",
+          "pattern": "长理"
+        }
+      ]
     },
     "website": {
-      "path": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Source-当前源码\\03_Website",
-      "remote": "https://github.com/HEltDeng/my-changli-website.git",
-      "baseline": "196a6ff64080e19eb148e8f2f99791c67a232c3b"
+      "baseline": "196a6ff64080e19eb148e8f2f99791c67a232c3b",
+      "repositoryId": "github.com/heltdeng/my-changli-website",
+      "markers": [
+        {
+          "path": "package.json",
+          "pattern": "\"name\"\\s*:\\s*\"my-changli-website\""
+        },
+        {
+          "path": "index.html",
+          "pattern": "长理"
+        }
+      ]
     }
   },
-  "dependencySource": "D:\\Codex\\01_App-应用开发\\001_MyChangLi-我的长理\\01_Repositories\\CodexWorkspace-projects\\CSUSTDataGet-1.1.4-safe"
+  "schemaVersion": 2,
+  "forbiddenDirectoryNames": [
+    "my-changli-android-current",
+    "my-changli-production-v1.0.4",
+    "my-changli-v1.0.4",
+    "my-changli-timetable-2026-fall",
+    "Historical-Pending-Review-NOT_DEVELOPMENT"
+  ]
 }
