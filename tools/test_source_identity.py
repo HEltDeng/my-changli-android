@@ -16,8 +16,8 @@ class IdentityTests(unittest.TestCase):
         git('remote','set-url','origin','https://github.com/HEltDeng/my-changli-android.git')
         marker=FIXTURE/'app/build.gradle.kts'
         marker.write_bytes(ORIGINAL_MARKER)
-    def check(self,expected=True,repo=None,mode='Validation',extra=()):
-        r=run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',ROOT/'tools/Test-MyChangliSourceIdentity.ps1','-Repository',repo or FIXTURE,'-Mode',mode,*extra])
+    def check(self,expected=True,repo=None,mode='Validation',extra=(),cwd=None):
+        r=run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',ROOT/'tools/Test-MyChangliSourceIdentity.ps1','-Repository',repo or FIXTURE,'-Mode',mode,*extra],cwd=cwd)
         self.assertEqual(r.returncode==0,expected,r.stdout+r.stderr)
     def test_registered_entry(self):
         self.check(repo=ROOT,mode='Development',extra=['-LocalRegistry',REGISTRY])
@@ -28,7 +28,7 @@ class IdentityTests(unittest.TestCase):
         git('remote','set-url','origin','ssh://git@github.com/HEltDeng/my-changli-android.git');self.check()
     def test_descendant(self):
         git('-c','user.name=Identity fixture','-c','user.email=fixture@invalid','commit','--allow-empty','-m','test: isolated descendant identity');self.check()
-    def test_relative_trailing_separator_and_spaces(self):self.check(repo=str(FIXTURE.relative_to(Path.cwd()))+'\\')
+    def test_relative_trailing_separator_and_spaces(self):self.check(repo=FIXTURE.name+'\\',cwd=SCRATCH)
     def test_wrong_owner(self):
         git('remote','set-url','origin','https://github.com/OtherOwner/my-changli-android.git');self.check(False)
     def test_wrong_repository(self):
