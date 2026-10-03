@@ -288,14 +288,21 @@ private fun OptionalDataControls() {
     var schoolStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.mychangli.app.core.network.campustools.SchoolBindingSync.status()) }
     androidx.compose.runtime.LaunchedEffect(updates.value) { schoolStatus = com.mychangli.app.core.network.campustools.SchoolBindingSync.status() }
     val accepted = PrivacyConsentManager.hasAppConsent(context)
+    val switchColors = androidx.compose.material3.SwitchDefaults.colors(
+        checkedTrackColor = AppTheme.colors.commonColor,
+        checkedThumbColor = AppTheme.colors.bgCardColor,
+        uncheckedTrackColor = AppTheme.colors.bgLightGrayColor,
+        uncheckedThumbColor = AppTheme.colors.secondaryTextColor,
+        uncheckedBorderColor = AppTheme.colors.controlDividerColor,
+    )
     if (!accepted) Text("请先在欢迎页确认基础政策；可选项目可随后在本页单独开启。", color = AppTheme.colors.functionalTextColor)
     Text("安装与使用统计：" + if (statistics) "已开启" else "已关闭")
-    androidx.compose.material3.Switch(checked = statistics, enabled = accepted, onCheckedChange = {
+    androidx.compose.material3.Switch(checked = statistics, enabled = accepted, colors = switchColors, onCheckedChange = {
         statistics = it
         com.mychangli.app.core.network.campustools.InstallationTelemetry.decide(it)
     })
     Text("学校及学号同步：" + schoolStatus)
-    androidx.compose.material3.Switch(checked = school, enabled = accepted, onCheckedChange = {
+    androidx.compose.material3.Switch(checked = school, enabled = accepted, colors = switchColors, onCheckedChange = {
         school = it
         com.mychangli.app.core.network.campustools.SchoolBindingSync.decide(it)
         schoolStatus = com.mychangli.app.core.network.campustools.SchoolBindingSync.status()
