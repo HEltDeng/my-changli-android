@@ -192,7 +192,6 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
         ProfilePage.PRIVACY -> ProfileSubPage(
             modifier = modifier,
             title = "隐私与合规",
-            subtitle = "产品信息、政策与数据清单",
             items = createPrivacyItems(),
             onBack = { page = ProfilePage.MAIN },
             onItemClick = { item ->
@@ -218,7 +217,6 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
         ProfilePage.ACCOUNT_DATA -> ProfileSubPage(
             modifier = modifier,
             title = "账号与数据管理",
-            subtitle = "管理账号与本机缓存",
             items = createAccountDataItems(),
             onBack = { page = ProfilePage.MAIN },
             onItemClick = { item ->
@@ -325,7 +323,6 @@ private fun ProfileSettingsScreen(
 @Composable
 private fun ProfileSubPage(
     title: String,
-    subtitle: String,
     items: List<SettingItemUiModel>,
     onBack: () -> Unit,
     onItemClick: (SettingItemUiModel.Option) -> Unit,
@@ -340,39 +337,7 @@ private fun ProfileSubPage(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 10.dp),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = AppTheme.colors.bgCardColor,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clickable(onClick = onBack),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ArrowBack,
-                    contentDescription = "返回",
-                    tint = AppTheme.colors.iconPrimaryColor,
-                    modifier = Modifier.padding(10.dp),
-                )
-            }
-            Column(modifier = Modifier.padding(start = 12.dp)) {
-                Text(
-                    text = title,
-                    color = AppTheme.colors.primaryTextColor,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = subtitle,
-                    color = AppTheme.colors.secondaryTextColor,
-                    fontSize = 13.sp,
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(18.dp))
+        com.mychangli.app.core.theme.SecondaryPageHeader(title, onBack)
         SettingsCard(items = items, onItemClick = onItemClick)
         Spacer(modifier = Modifier.height(112.dp))
     }
@@ -728,13 +693,11 @@ private fun createAccountDataItems(): List<SettingItemUiModel> = listOf(
         "delete-account",
         "注销账号",
         Icons.Outlined.AccountCircle,
-        subtitle = "进入账号中心确认注销",
     ),
     SettingItemUiModel.Option(
         "clear-cache",
         "清除缓存",
         Icons.Outlined.DeleteOutline,
-        subtitle = "清理本机工具缓存",
     ),
 )
 

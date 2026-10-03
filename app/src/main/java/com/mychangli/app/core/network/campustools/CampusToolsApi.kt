@@ -809,16 +809,20 @@ object CampusToolsSession {
 
     private fun persistSignedIn(accessToken: String, user: AuthUser) {
         check(user.accountType == "PHONE") { "Only phone accounts can enter the visible account session" }
+        val previousUser = cachedUser?.id
         deviceToken = null
         token = accessToken
         cachedUser = user
         mutableState.value = AccountSessionState.SignedIn(user)
+        SchoolBindingSync.accountChanged(previousUser, user.id)
     }
 
     private fun clearPhoneSession() {
+        val previousUser = cachedUser?.id
         token = null
         cachedUser = null
         mutableState.value = AccountSessionState.SignedOut
+        SchoolBindingSync.accountChanged(previousUser, null)
     }
 
     private suspend fun ensureDeviceIdentityLocked() {
@@ -885,13 +889,22 @@ object CampusToolsApiClient {
         get() = OkHttpClient.Builder()
             .apply {
                 // adb reverse is local to this app's Debug endpoint; preserve device proxy settings.
-                if (BuildConfig.DEBUG && BuildConfig.CAMPUS_TOOLS_API_BASE_URL.startsWith("http://127.0.0.1:")) {
+                if ((BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "candidate") && BuildConfig.CAMPUS_TOOLS_API_BASE_URL.startsWith("http://127.0.0.1:")) {
                     proxy(java.net.Proxy.NO_PROXY)
                 }
             }
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
+            .addNetworkInterceptor { chain ->
+                // Candidate transport never follows a redirect into production.
+                if (BuildConfig.BUILD_TYPE == "candidate" &&
+                    (chain.request().url.scheme + "://" + chain.request().url.host + ":" + chain.request().url.port !=
+                        java.net.URI(BuildConfig.CAMPUS_TOOLS_API_BASE_URL).let { it.scheme + "://" + it.host + ":" + (if (it.port == -1) 443 else it.port) })) {
+                    throw java.io.IOException("Candidate endpoint boundary rejected")
+                }
+                chain.proceed(chain.request())
+            }
             .addInterceptor(UnavailableEndpointInterceptor())
             .build()
 

@@ -70,6 +70,12 @@ val campusToolsApiBaseUrlDebug: String =
         ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_DEBUG")
         ?: "http://127.0.0.1:8787/api/v1/"
 val campusToolsApiBaseUrlRelease = "https://api.mychangliapp.cn/api/v1/"
+// An explicit local acceptance build uses adb reverse; never falls back to production.
+val candidateApiBaseUrl = providers.gradleProperty("candidateApiBaseUrl").orNull
+    ?: "http://127.0.0.1:8787/api/v1/"
+check(candidateApiBaseUrl in setOf("http://127.0.0.1:8787/api/v1/", "https://candidate.mychangliapp.cn/api/v1/")) {
+    "Candidate endpoint must be the isolated local or dedicated HTTPS service"
+}
 
 tasks.register("verifyReleaseEndpointSafety") {
     group = "verification"
@@ -217,6 +223,14 @@ android {
             buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", "false")
         }
 
+        create("candidate") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".candidate"
+            versionNameSuffix = "-test.20261003.1"
+            matchingFallbacks += listOf("release")
+            buildConfigField("String", "CAMPUS_TOOLS_API_BASE_URL", "\"$candidateApiBaseUrl\"")
+        }
+
         create("benchmark") {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
@@ -315,6 +329,7 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
 }
 
 tasks.matching { task ->
+    task.name == "assembleCandidate" || task.name == "installCandidate" ||
     task.name == "assembleRelease" ||
         task.name == "bundleRelease" ||
         task.name == "installRelease"

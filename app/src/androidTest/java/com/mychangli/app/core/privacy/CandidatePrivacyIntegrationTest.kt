@@ -50,7 +50,7 @@ class CandidatePrivacyIntegrationTest {
         CampusToolsSession.login("19000000001","Synthetic-User-20261003!")
         SchoolBindingSync.verified("009900001",owner)
         delay(400)
-        assertEquals("需为当前平台账号确认",SchoolBindingSync.status())
+        assertEquals("当前账号尚未验证学校绑定",SchoolBindingSync.status())
         SchoolBindingSync.decide(false)
         val end=System.currentTimeMillis()+20000
         while (p.getBoolean("withdraw_pending",false) && System.currentTimeMillis()<end) { delay(150);SchoolBindingSync.foreground() }

@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import com.mychangli.app.core.theme.SecondaryPageHeader
+import com.mychangli.app.core.theme.SecondaryCard
+import com.mychangli.app.core.theme.SecondaryRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -58,7 +63,7 @@ enum class ReleaseDocumentType(val value: String, @param:StringRes val titleRes:
 
 private data class V1InformationSection(val title: String, val body: String)
 
-class ReleaseInformationActivity : ComponentActivity() {
+class ReleaseInformationActivity : com.mychangli.app.base.ComposeActivity() {
     companion object {
         private const val EXTRA_TYPE = "release_document_type"
 
@@ -78,29 +83,18 @@ class ReleaseInformationActivity : ComponentActivity() {
 @Composable
 private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocumentType) {
     Scaffold(
+        containerColor = AppTheme.colors.overviewPageBackgroundColor,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(type.titleRes), color = AppTheme.colors.titleTopColor) },
-                navigationIcon = {
-                    IconButton(onClick = activity::finish) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_back),
-                            contentDescription = "返回",
-                            tint = AppTheme.colors.titleTopColor,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppTheme.colors.bgTopBarColor,
-                ),
-            )
+            Column(Modifier.statusBarsPadding().padding(horizontal = 16.dp)) {
+                SecondaryPageHeader(if(type == ReleaseDocumentType.STATISTICS) "数据授权管理" else stringResource(type.titleRes), activity::finish)
+            }
         },
     ) { paddingValues ->
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppTheme.colors.bgPrimaryColor)
+                .background(AppTheme.colors.overviewPageBackgroundColor)
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
@@ -140,7 +134,7 @@ private fun V1InformationScreen(activity: ComponentActivity, type: ReleaseDocume
                 )
             }
             if (type == ReleaseDocumentType.PRIVACY) {
-                Text("可选项目均不影响无关校园查询；基础协议同意不代表开启可选同步。", color = AppTheme.colors.secondaryTextColor)
+                Text("可拒绝非必要统计和学校同步，仍使用无关校园查询。已拒绝或撤回的范围不会因升级自动恢复。", color = AppTheme.colors.secondaryTextColor)
                 OptionalDataEntry(activity)
             }
             if (type == ReleaseDocumentType.STATISTICS) OptionalDataControls()
@@ -175,13 +169,13 @@ private fun v1InformationSections(
 ): List<V1InformationSection> =
     when (type) {
         ReleaseDocumentType.STATISTICS -> listOf(
-            V1InformationSection("安装与使用统计", "用于统计安装与使用情况，帮助优化机型适配和功能体验。开启后处理品牌、型号、系统与 App 版本、安装及设备辅助标识和前台使用记录。它不是下载次数，也不代表绝对人数。逐次记录最多保留 180 天；关闭并撤回会停止采集、清理待发数据，联网后删除可选设备及使用记录。"),
-            V1InformationSection("学校及学号同步", "单独开启后，学校绑定成功或你确认现有有效绑定时，同步学校、学号、绑定状态、来源和必要时间，用于账号识别与服务支持。以当前我的长理账号关联，学号保留前导零。学校校验发生在客户端，不是后台独立的官方实名认证。学校密码、Cookie、验证码、令牌、课表和成绩均不上传自有后端。解绑保留历史关联至撤回或注销；关闭并撤回删除本安装的学校关联。"),
+            V1InformationSection("安装与使用统计", "用于安装去重、使用统计和账号关联，帮助改进功能与服务。明确确认当前授权范围后自动处理品牌、型号、系统与 App 版本、安装及设备辅助标识和前台使用记录。它不是下载次数，也不代表绝对人数。逐次记录最多保留 180 天；关闭并撤回会停止采集、清理待发数据，联网后删除可选设备及使用记录。"),
+            V1InformationSection("学校及学号同步", "在欢迎页明确确认当前授权范围后，学校绑定成功或已有有效本地绑定时自动，同步学校、学号、绑定状态、来源和必要时间，用于账号识别与服务支持。以当前安装及已验证的我的长理账号关联，学号保留前导零。学校校验发生在客户端，不是后台独立的官方实名认证。学校密码、Cookie、验证码、令牌、课表和成绩均不上传自有后端。解绑保留历史关联至撤回或注销；关闭并撤回删除本安装的学校关联。"),
         )
         ReleaseDocumentType.PRIVACY -> listOf(
             V1InformationSection(
                 "学校账号与校园查询",
-                "用户主动绑定学校账号时，App 会处理学号、学校密码及按学校登录流程出现的验证码，并直接连接长沙理工大学统一认证、教务、网络教学和校园卡服务，用于查询用户本人的课表、成绩、考试、空教室、MOOC、校历、电量与校园卡相关信息。学校密码、Cookie/session 和校园查询结果不会发送至“我的长理”自有后端。学校及学号仅在单独同意后同步；其他学校信息仍在本机处理。",
+                "用户主动绑定学校账号时，App 会处理学号、学校密码及按学校登录流程出现的验证码，并直接连接长沙理工大学统一认证、教务、网络教学和校园卡服务，用于查询用户本人的课表、成绩、考试、空教室、MOOC、校历、电量与校园卡相关信息。学校密码、Cookie/session 和校园查询结果不会发送至“我的长理”自有后端。学校及学号仅在明确确认当前授权范围后自动同步；其他学校信息仍在本机处理。",
             ),
             V1InformationSection(
                 "传输与本地保存",
@@ -189,7 +183,7 @@ private fun v1InformationSections(
             ),
             V1InformationSection(
                 "自有服务",
-                "本次安装的随机标识和安装凭证用于建立自有服务身份，独立于平台登录账号。在单独同意“安装与使用统计”后，App 才读取并上报厂商、品牌、系统型号、Android/API 版本、App 版本及前台使用事件，并在本机将 ANDROID_ID 作应用隔离派生，服务端再使用仓库外密钥 HMAC 派生保存设备辅助标识。该标识仍是可关联数据，仅在应用签名、系统用户和设备等范围内辅助去重，不用于登录或恢复注销账号。原始 ANDROID_ID 仅在本机参与应用隔离派生，不上传；不读取 IMEI、IMSI、硬件序列号、通讯录、广告标识、应用列表和精确位置。拒绝不影响课表、成绩等无关功能。可在“隐私与合规—隐私政策—安装与使用统计”关闭并撤回；撤回立即停止采集、清除待发统计资料，在线提交删除请求，离线时下次前台联网重试。服务端删除可选机型、设备关联及前台事件，保留最小安装服务身份和历史激活事实。逐次事件最多保留 180 天，设备资料保留至撤回或关联账号注销清理；备份按既定灾备保留流程限制访问。学校密码和校园查询结果不上传自有后端。另经单独确认，仅同步学校标识、字符串学号、绑定状态、客户端校验来源及必要时间，用于当前平台账号识别与服务支持；学校同步与设备统计分别控制。",
+                "本次安装的随机标识和安装凭证用于建立自有服务身份，独立于平台登录账号。在欢迎页明确确认当前列明范围后，App 自动读取并上报厂商、品牌、系统型号、Android/API 版本、App 版本及前台使用事件，并在本机将 ANDROID_ID 作应用隔离派生，服务端再使用仓库外密钥 HMAC 派生保存设备辅助标识。该标识仍是可关联数据，仅在应用签名、系统用户和设备等范围内辅助去重，不用于登录或恢复注销账号。原始 ANDROID_ID 仅在本机参与应用隔离派生，不上传；不读取 IMEI、IMSI、硬件序列号、通讯录、广告标识、应用列表和精确位置。拒绝不影响课表、成绩等无关功能。可在“隐私与合规—隐私政策—数据授权管理”关闭并撤回；撤回立即停止采集、清除待发统计资料，在线提交删除请求，离线时下次前台联网重试。服务端删除可选机型、设备关联及前台事件，保留最小安装服务身份和历史激活事实。逐次事件最多保留 180 天，设备资料保留至撤回或关联账号注销清理；备份按既定灾备保留流程限制访问。学校密码和校园查询结果不上传自有后端。明确确认当前学校同步范围后自动同步学校标识、字符串学号、绑定状态、客户端校验来源及必要时间，用于当前平台账号识别与服务支持；此前拒绝或撤回的项目不会自动恢复，可在数据授权管理中分别撤回。学校同步失败会保留最小必要待发任务重试，不影响本机绑定成功。未登录平台时仅关联当前安装，后续登录须通过平台会话验证；不将学校绑定当作平台注册。",
             ),
             V1InformationSection(
                 "本地数据与权限",
@@ -231,7 +225,7 @@ private fun v1InformationSections(
         ReleaseDocumentType.PERSONAL_INFORMATION -> listOf(
             V1InformationSection(
                 "发送至自有后端",
-                "本次安装的随机标识和安装凭证用于建立自有服务身份，独立于平台登录账号。在单独同意“安装与使用统计”后，App 才读取并上报厂商、品牌、系统型号、Android/API 版本、App 版本及前台使用事件，并在本机将 ANDROID_ID 作应用隔离派生，服务端再使用仓库外密钥 HMAC 派生保存设备辅助标识。该标识仍是可关联数据，仅在应用签名、系统用户和设备等范围内辅助去重，不用于登录或恢复注销账号。原始 ANDROID_ID 仅在本机参与应用隔离派生，不上传；不读取 IMEI、IMSI、硬件序列号、通讯录、广告标识、应用列表和精确位置。拒绝不影响课表、成绩等无关功能。可在“隐私与合规—隐私政策—安装与使用统计”关闭并撤回；撤回立即停止采集、清除待发统计资料，在线提交删除请求，离线时下次前台联网重试。服务端删除可选机型、设备关联及前台事件，保留最小安装服务身份和历史激活事实。逐次事件最多保留 180 天，设备资料保留至撤回或关联账号注销清理；备份按既定灾备保留流程限制访问。学校密码和校园查询结果不上传自有后端。另经单独确认，仅同步学校标识、字符串学号、绑定状态、客户端校验来源及必要时间，用于当前平台账号识别与服务支持；学校同步与设备统计分别控制。",
+                "本次安装的随机标识和安装凭证用于建立自有服务身份，独立于平台登录账号。在欢迎页明确确认当前列明范围后，App 自动读取并上报厂商、品牌、系统型号、Android/API 版本、App 版本及前台使用事件，并在本机将 ANDROID_ID 作应用隔离派生，服务端再使用仓库外密钥 HMAC 派生保存设备辅助标识。该标识仍是可关联数据，仅在应用签名、系统用户和设备等范围内辅助去重，不用于登录或恢复注销账号。原始 ANDROID_ID 仅在本机参与应用隔离派生，不上传；不读取 IMEI、IMSI、硬件序列号、通讯录、广告标识、应用列表和精确位置。拒绝不影响课表、成绩等无关功能。可在“隐私与合规—隐私政策—数据授权管理”关闭并撤回；撤回立即停止采集、清除待发统计资料，在线提交删除请求，离线时下次前台联网重试。服务端删除可选机型、设备关联及前台事件，保留最小安装服务身份和历史激活事实。逐次事件最多保留 180 天，设备资料保留至撤回或关联账号注销清理；备份按既定灾备保留流程限制访问。学校密码和校园查询结果不上传自有后端。明确确认当前学校同步范围后自动同步学校标识、字符串学号、绑定状态、客户端校验来源及必要时间，用于当前平台账号识别与服务支持；此前拒绝或撤回的项目不会自动恢复，可在数据授权管理中分别撤回。学校同步失败会保留最小必要待发任务重试，不影响本机绑定成功。未登录平台时仅关联当前安装，后续登录须通过平台会话验证；不将学校绑定当作平台注册。",
             ),
             V1InformationSection(
                 "不会发送至自有后端",
@@ -260,23 +254,9 @@ private fun v1InformationSections(
 
 @Composable
 private fun OptionalDataEntry(activity: ComponentActivity) {
-    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    var status by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    var schoolStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    androidx.compose.runtime.DisposableEffect(owner) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                status = if (com.mychangli.app.core.network.campustools.InstallationTelemetry.choice(activity) == 1) "已开启" else "已关闭"
-                schoolStatus = com.mychangli.app.core.network.campustools.SchoolBindingSync.status()
-            }
-        }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
+    androidx.compose.material3.TextButton(onClick = { Route.goReleaseInformation(activity, ReleaseDocumentType.STATISTICS) }) {
+        Text("数据授权管理")
     }
-    Button(onClick = { Route.goReleaseInformation(activity, ReleaseDocumentType.STATISTICS) },
-        modifier = Modifier.fillMaxWidth()) { Text("安装与使用统计 · " + status) }
-    OutlinedButton(onClick = { Route.goReleaseInformation(activity, ReleaseDocumentType.STATISTICS) },
-        modifier = Modifier.fillMaxWidth()) { Text("学校及学号同步 · " + schoolStatus) }
 }
 
 @Composable
@@ -285,31 +265,25 @@ private fun OptionalDataControls() {
     val context = androidx.compose.ui.platform.LocalContext.current
     var statistics by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.mychangli.app.core.network.campustools.InstallationTelemetry.choice(context) == 1) }
     var school by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.mychangli.app.core.network.campustools.SchoolBindingSync.allowed()) }
-    var schoolStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.mychangli.app.core.network.campustools.SchoolBindingSync.status()) }
-    androidx.compose.runtime.LaunchedEffect(updates.value) { schoolStatus = com.mychangli.app.core.network.campustools.SchoolBindingSync.status() }
-    val accepted = PrivacyConsentManager.hasAppConsent(context)
-    val switchColors = androidx.compose.material3.SwitchDefaults.colors(
-        checkedTrackColor = AppTheme.colors.commonColor,
-        checkedThumbColor = AppTheme.colors.bgCardColor,
-        uncheckedTrackColor = AppTheme.colors.bgLightGrayColor,
-        uncheckedThumbColor = AppTheme.colors.secondaryTextColor,
-        uncheckedBorderColor = AppTheme.colors.controlDividerColor,
-    )
-    if (!accepted) Text("请先在欢迎页确认基础政策；可选项目可随后在本页单独开启。", color = AppTheme.colors.functionalTextColor)
-    Text("安装与使用统计：" + if (statistics) "已开启" else "已关闭")
-    androidx.compose.material3.Switch(checked = statistics, enabled = accepted, colors = switchColors, onCheckedChange = {
-        statistics = it
-        com.mychangli.app.core.network.campustools.InstallationTelemetry.decide(it)
-    })
-    Text("学校及学号同步：" + schoolStatus)
-    androidx.compose.material3.Switch(checked = school, enabled = accepted, colors = switchColors, onCheckedChange = {
-        school = it
-        com.mychangli.app.core.network.campustools.SchoolBindingSync.decide(it)
-        schoolStatus = com.mychangli.app.core.network.campustools.SchoolBindingSync.status()
-    })
-    if (school && accepted) OutlinedButton(onClick = {
-        com.mychangli.app.core.network.campustools.SchoolBindingSync.decide(true)
-        schoolStatus = com.mychangli.app.core.network.campustools.SchoolBindingSync.status()
-    }, modifier = Modifier.fillMaxWidth()) { Text("确认同步当前账号的有效学校绑定") }
-    Text("关闭即停止对应采集并请求撤回；离线时删除请求将在下次前台联网发送。不会解除本机学校绑定。", color = AppTheme.colors.secondaryTextColor, fontSize = 13.sp)
+    var confirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val records = context.getSharedPreferences("privacy_consent", 0)
+    Text("已确认政策版本：${records.getInt("privacy_consent_version", 0)}", color = AppTheme.colors.primaryTextColor)
+    SecondaryCard {
+        SecondaryRow("安装与使用统计", if(statistics) "已授权" else "未授权 / 已撤回")
+        SecondaryRow("学校及学号同步", if(school) "已授权" else "未授权 / 已撤回")
+        if(statistics) SecondaryRow("撤回安装与使用统计", onClick = { confirm = "statistics" })
+        if(school) SecondaryRow("撤回学校及学号同步", onClick = { confirm = "school" })
+    }
+    Text(com.mychangli.app.core.network.campustools.SchoolBindingSync.status() + "", color = AppTheme.colors.secondaryTextColor)
+    Text("撤回立即停止对应处理并清理待发数据，同时提出删除请求；离线时将在下次前台联网重试。本机学校绑定、安装身份和核心功能保留。", color = AppTheme.colors.secondaryTextColor)
+    confirm?.let { kind -> androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirm = null }, title = { Text("撤回授权并请求删除") },
+        text = { Text("停止后续处理并删除服务器对应可选资料；不会清除本机学校绑定或账号。") },
+        confirmButton = { Button(onClick = {
+            if(kind == "statistics") { com.mychangli.app.core.network.campustools.InstallationTelemetry.decide(false); statistics = false }
+            else { com.mychangli.app.core.network.campustools.SchoolBindingSync.decide(false); school = false }
+            confirm = null
+        }) { Text("确认撤回") } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { confirm = null }) { Text("取消") } }) }
+    @Suppress("UNUSED_VARIABLE") val observedRevision = updates.value
 }

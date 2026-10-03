@@ -144,48 +144,12 @@ private fun CenterTip(text: String) {
 }
 
 @Composable
-private fun DetailTopBar(
-    title: String,
-    subtitle: String,
-    onBack: () -> Unit,
-    onRefresh: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AppTheme.colors.bgPrimaryColor)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "返回",
-                tint = AppTheme.colors.primaryTextColor
-            )
+private fun DetailTopBar(title: String, subtitle: String, onBack: () -> Unit, onRefresh: () -> Unit) {
+    Column(Modifier.fillMaxWidth().background(AppTheme.colors.overviewPageBackgroundColor).padding(horizontal = 16.dp)) {
+        com.mychangli.app.core.theme.SecondaryPageHeader(title, onBack) {
+            IconButton(onClick = onRefresh) { Icon(Icons.Filled.Refresh, "刷新", tint = AppTheme.colors.iconPrimaryColor) }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = AppTheme.colors.primaryTextColor,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp
-            )
-            if (subtitle.isNotBlank()) {
-                Text(
-                    text = subtitle,
-                    color = AppTheme.colors.greyTextColor,
-                    fontSize = 12.sp
-                )
-            }
-        }
-        IconButton(onClick = onRefresh) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = "刷新",
-                tint = AppTheme.colors.primaryTextColor
-            )
-        }
+        if (subtitle.isNotBlank()) Text(subtitle, color = AppTheme.colors.greyTextColor, fontSize = 12.sp)
     }
 }
 

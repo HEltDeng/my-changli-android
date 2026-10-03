@@ -1,6 +1,11 @@
 package com.mychangli.app.feature.schedule.reminder
 
 import android.Manifest
+import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
+import com.mychangli.app.core.theme.*
+import androidx.core.app.NotificationManagerCompat
+import android.app.NotificationManager
 import android.app.AlarmManager
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -64,7 +69,8 @@ import kotlinx.coroutines.launch
 
 class CourseReminderSettingsActivity : ComposeActivity() {
     private var notificationPermissionGranted by mutableStateOf(false)
-    private var exactAlarmGranted by mutableStateOf(false)
+    private var exactAlarmGranted by mutableStateOf<Boolean?>(null)
+    private var channelEnabled by mutableStateOf<Boolean?>(null)
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -86,6 +92,9 @@ class CourseReminderSettingsActivity : ComposeActivity() {
                 onBack = ::finish,
                 notificationGranted = notificationPermissionGranted,
                 exactGranted = exactAlarmGranted,
+                channelEnabled = channelEnabled,
+                openChannelSettings = { if (Build.VERSION.SDK_INT >= 26) startActivity(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName).putExtra(Settings.EXTRA_CHANNEL_ID, ReminderChannels.currentId())) else openNotificationSettings() },
+                refreshChannel = ::refreshPermissionState,
                 requestNotification = ::requestNotificationPermission,
                 openNotificationSettings = ::openNotificationSettings,
                 openExactAlarmSettings = ::openExactAlarmSettings,
@@ -105,17 +114,18 @@ class CourseReminderSettingsActivity : ComposeActivity() {
     }
 
     private fun refreshPermissionState() {
-        notificationPermissionGranted = Build.VERSION.SDK_INT < 33 ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        exactAlarmGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+        notificationPermissionGranted = hasNotificationPermission()
+        exactAlarmGranted = runCatching { Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            getSystemService(AlarmManager::class.java).canScheduleExactAlarms() }.getOrNull()
+        ReminderChannels.ensure(this)
+        channelEnabled = runCatching { ReminderChannels.enabled(this) }.getOrNull()
     }
 
-    private fun hasNotificationPermission() = Build.VERSION.SDK_INT < 33 ||
-        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    private fun hasNotificationPermission() = NotificationManagerCompat.from(this).areNotificationsEnabled() &&
+        (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
 
     private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= 33 && !hasNotificationPermission()) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) else openNotificationSettings()
     }
 
     private fun openNotificationSettings() {
@@ -133,7 +143,10 @@ class CourseReminderSettingsActivity : ComposeActivity() {
 private fun CourseReminderSettingsScreen(
     onBack: () -> Unit,
     notificationGranted: Boolean,
-    exactGranted: Boolean,
+    exactGranted: Boolean?,
+    channelEnabled: Boolean?,
+    openChannelSettings: () -> Unit,
+    refreshChannel: () -> Unit,
     requestNotification: () -> Unit,
     openNotificationSettings: () -> Unit,
     openExactAlarmSettings: () -> Unit,
@@ -161,76 +174,66 @@ private fun CourseReminderSettingsScreen(
     LaunchedEffect(notificationGranted) {
         if (notificationGranted && CourseReminderPreferences.enabled) enabled = true
     }
-    val disabledCount = courses.count(CourseReminderPreferences::isDisabled)
-    val enabledCount = courses.size - disabledCount
-
+    var page by remember { mutableStateOf("main") }
+    var silent by remember { mutableStateOf(CourseReminderPreferences.silent) }
+    var snooze by remember { mutableStateOf(CourseReminderPreferences.snoozeEnabled) }
+    BackHandler(page != "main") { page = "main" }
+    val state = if (!enabled) "已关闭" else if (notificationGranted && channelEnabled == true && courses.isNotEmpty()) "正常" else "待设置"
     LazyColumn(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize().background(AppTheme.colors.overviewPageBackgroundColor)
+            .statusBarsPadding().navigationBarsPadding().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { ReminderHeader("上课提醒", onBack) }
-        item {
-            ReminderCard {
-                ReminderSwitch("上课提醒", "仅根据本机课表发送系统通知", enabled) { checked ->
+        item { ReminderHeader(when(page) { "status" -> "提醒状态"; "mode" -> "提醒方式"; "lead" -> "提前时间"; else -> "上课提醒" }) { if (page == "main") onBack() else page = "main" } }
+        if (page == "main") {
+            item { SecondaryCard {
+                SecondaryRow("上课提醒", control = { BrandSwitch(enabled) { checked ->
                     if (checked && !notificationGranted) explainPermission = true else {
-                        enabled = checked
-                        CourseReminderPreferences.enabled = checked
-                        reschedule(false)
+                        enabled = checked; CourseReminderPreferences.enabled = checked; reschedule(false)
                     }
-                }
-            }
+                } })
+                SecondaryRow("提前时间", "${lead}分钟", { page = "lead" })
+                SecondaryRow("显示教师和教室", control = { BrandSwitch(showDetails) {
+                    showDetails = it; CourseReminderPreferences.showDetails = it
+                } })
+            } }
+            item { SecondaryCard {
+                SecondaryRow("课程提醒", onClick = openCourseSettings)
+                SecondaryRow("提醒方式", if(silent) "静默" else "普通", { page = "mode" })
+                SecondaryRow("桌面小组件", onClick = openWidgets)
+                SecondaryRow("提醒状态", state, { page = "status" })
+            } }
+        } else if (page == "lead") {
+            item { SecondaryCard { listOf(5,10,15,20,30).forEach { minutes ->
+                SecondaryRow("${minutes}分钟", if(lead == minutes) "已选择" else "", {
+                    lead = minutes; CourseReminderPreferences.leadMinutes = minutes; reschedule(false); page = "main"
+                }, selected = lead == minutes)
+            } } }
+        } else if (page == "mode") {
+            item { SecondaryCard {
+                SecondaryRow("普通提醒", if(!silent) "已选择" else "", { silent = false; CourseReminderPreferences.silent = false; ReminderChannels.ensure(context); refreshChannel() }, selected = !silent)
+                SecondaryRow("静默提醒", if(silent) "已选择" else "", { silent = true; CourseReminderPreferences.silent = true; ReminderChannels.ensure(context); refreshChannel() }, selected = silent)
+                SecondaryRow("允许稍后提醒", control = { BrandSwitch(snooze) { snooze = it; CourseReminderPreferences.snoozeEnabled = it } })
+                SecondaryRow("系统渠道设置", onClick = openChannelSettings)
+            } }
+            item { Text("静默提醒不播放声音或震动。通知中的“稍后5分钟 / 10分钟”延后当前课程提醒，课程结束或取消后停止。系统渠道和免打扰设置优先。", color = AppTheme.colors.secondaryTextColor) }
+        } else {
+            item { SecondaryCard {
+                SecondaryRow("上课提醒", if(enabled) "已开启" else "已关闭")
+                SecondaryRow("通知权限", if(notificationGranted) "已允许" else "未允许")
+                SecondaryRow("通知渠道", when(channelEnabled) { true -> "已开启"; false -> "已关闭"; null -> "读取失败" })
+                SecondaryRow("精确提醒", when { exactGranted == null -> "读取失败"; Build.VERSION.SDK_INT < 31 -> "无需额外授权"; exactGranted -> "可用"; else -> "未授权" })
+                SecondaryRow("本地课程", if(courses.isEmpty()) "暂无课程" else "${courses.size}节")
+                SecondaryRow("已安排提醒", "${CourseReminderPreferences.scheduledRequestCodes.size}项")
+                SecondaryRow("管理通知权限", onClick = openNotificationSettings)
+                SecondaryRow("管理通知渠道", onClick = openChannelSettings)
+                if(Build.VERSION.SDK_INT >= 31) SecondaryRow("管理精确提醒权限", onClick = openExactAlarmSettings)
+                SecondaryRow("重新安排提醒", onClick = { reschedule() })
+            } }
+            item { Text("依据本机课表安排通知。未获精确提醒能力时使用系统允许的普通调度，可能延迟；开启权限不能保证所有消息准时送达。", color = AppTheme.colors.secondaryTextColor) }
+            if(message.isNotBlank()) item { Text(message, color = AppTheme.colors.functionalTextColor) }
         }
-        item {
-            ReminderCard {
-                Text("提前时间", fontWeight = FontWeight.Bold, color = AppTheme.colors.primaryTextColor)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(listOf(5, 10, 15, 20, 30)) { minutes ->
-                        FilterChip(selected = lead == minutes, onClick = {
-                            lead = minutes
-                            CourseReminderPreferences.leadMinutes = minutes
-                            reschedule(false)
-                        }, label = { Text("$minutes 分") })
-                    }
-                }
-                ReminderSwitch("显示教师和教室", "关闭后通知只显示课程名称与时间", showDetails) {
-                    showDetails = it
-                    CourseReminderPreferences.showDetails = it
-                }
-            }
-        }
-        item {
-            ReminderNavigationCard(
-                title = "课程提醒",
-                subtitle = when {
-                    courses.isEmpty() -> "暂无本地课程，导入后可逐节设置"
-                    disabledCount == 0 -> "所有课程均已开启提醒 · 共 ${courses.size} 节"
-                    else -> "已开启 $enabledCount 节 · 已关闭 $disabledCount 节"
-                },
-                onClick = openCourseSettings,
-            )
-        }
-        item {
-            ReminderNavigationCard(
-                title = "桌面小组件",
-                subtitle = "在桌面查看下一节课和今日课表",
-                icon = { Icon(Icons.Rounded.Widgets, null, tint = AppTheme.colors.functionalTextColor) },
-                onClick = openWidgets,
-            )
-        }
-        item {
-            ReminderCard {
-                Text("提醒状态", fontWeight = FontWeight.Bold, color = AppTheme.colors.primaryTextColor)
-                Text(if (notificationGranted) "通知权限：已允许" else "通知权限：未允许，提醒无法启用", color = AppTheme.colors.secondaryTextColor, fontSize = 13.sp)
-                if (!notificationGranted) TextButton(onClick = openNotificationSettings) { Text("打开通知设置") }
-                Text(if (exactGranted) "精确提醒：可用" else "精确提醒：不可用，提醒可能略有延迟", color = AppTheme.colors.secondaryTextColor, fontSize = 13.sp)
-                if (!exactGranted) TextButton(onClick = openExactAlarmSettings) { Text("管理精确提醒权限") }
-            }
-        }
-        item {
-            OutlinedButton(onClick = { reschedule() }, modifier = Modifier.fillMaxWidth()) { Text("重新安排提醒") }
-            if (message.isNotBlank()) Text(message, color = AppTheme.colors.secondaryTextColor, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-            Spacer(Modifier.height(24.dp))
-        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 
     if (explainPermission) {
@@ -246,10 +249,7 @@ private fun CourseReminderSettingsScreen(
 
 @Composable
 internal fun ReminderHeader(title: String, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, "返回", tint = AppTheme.colors.primaryTextColor) }
-        Text(title, fontSize = 23.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.primaryTextColor)
-    }
+    SecondaryPageHeader(title, onBack)
 }
 
 @Composable
@@ -294,6 +294,6 @@ internal fun ReminderSwitch(title: String, subtitle: String, checked: Boolean, o
             Text(title, fontWeight = FontWeight.SemiBold, color = AppTheme.colors.primaryTextColor)
             Text(subtitle, color = AppTheme.colors.secondaryTextColor, fontSize = 12.sp)
         }
-        Switch(checked = checked, onCheckedChange = onChecked)
+        BrandSwitch(checked = checked, onCheckedChange = onChecked)
     }
 }

@@ -15,6 +15,14 @@ object CourseReminderPreferences {
         get() = store.decodeInt("lead_minutes", 15).takeIf { it in setOf(5, 10, 15, 20, 30) } ?: 15
         set(value) { store.encode("lead_minutes", value.coerceIn(5, 30)) }
 
+    var silent: Boolean
+        get() = store.decodeBool("silent", false)
+        set(value) { store.encode("silent", value) }
+
+    var snoozeEnabled: Boolean
+        get() = store.decodeBool("snooze_enabled", true)
+        set(value) { store.encode("snooze_enabled", value) }
+
     var showDetails: Boolean
         get() = store.decodeBool("show_details", true)
         set(value) { store.encode("show_details", value) }

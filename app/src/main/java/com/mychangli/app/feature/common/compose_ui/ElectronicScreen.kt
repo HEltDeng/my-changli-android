@@ -152,29 +152,7 @@ fun ElectronicScreen(
             .fillMaxSize()
             .background(colors.campusSnowColor)
     ) {
-        // ── Top Bar ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
-                    tint = colors.campusInkColor
-                )
-            }
-            Text(
-                text = "电费查询",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.W700,
-                color = colors.campusInkColor,
-                letterSpacing = (-0.25).sp
-            )
-        }
+        com.mychangli.app.core.theme.SecondaryScaffoldHeader("电费查询", onBack)
 
         // ── Scrollable Content ──
         Column(

@@ -153,33 +153,9 @@ fun CalendarScreen(
 
 @Composable
 private fun ListTopBar(onBack: () -> Unit, onRefresh: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(AppTheme.colors.bgPrimaryColor)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "返回",
-                tint = AppTheme.colors.primaryTextColor
-            )
-        }
-        Text(
-            text = "学期校历",
-            color = AppTheme.colors.primaryTextColor,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 16.sp,
-            modifier = Modifier.weight(1f)
-        )
-        IconButton(onClick = onRefresh) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = "刷新",
-                tint = AppTheme.colors.primaryTextColor
-            )
+    Column(Modifier.fillMaxWidth().background(AppTheme.colors.overviewPageBackgroundColor).padding(horizontal = 16.dp)) {
+        com.mychangli.app.core.theme.SecondaryPageHeader("学期校历", onBack) {
+            IconButton(onClick = onRefresh) { Icon(Icons.Filled.Refresh, "刷新", tint = AppTheme.colors.iconPrimaryColor) }
         }
     }
 }

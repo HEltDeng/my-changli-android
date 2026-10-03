@@ -26,14 +26,14 @@
             android:gravity="center_vertical"
             android:minHeight="64dp"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
             <ImageButton
                 android:id="@+id/binding_back"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:background="@drawable/secondary_back_circle"
                 android:contentDescription="@string/common_back"
                 android:padding="12dp"
                 android:src="?attr/homeAsUpIndicator"
@@ -43,10 +43,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center"
+                android:gravity="start|center_vertical"
+                android:layout_marginStart="12dp"
                 android:text="@string/binding_page_title"
                 android:textColor="@color/color_text_primary"
-                android:textSize="20sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <View

@@ -235,10 +235,12 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name="com.mychangli.app.feature.common.ui.MandeActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
             android:name="com.mychangli.app.feature.common.ui.CetActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity

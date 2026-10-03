@@ -163,6 +163,14 @@ class MoocCoursePageActivity : BaseActivity<ActivityMoocCoursePageBinding>() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun initView() {
         super.initView()
+        binding.pageHeader.setContent {
+            com.mychangli.app.core.theme.AppSkinTheme {
+                MoocPageHeader(onBack = { onBackPressedDispatcher.onBackPressed() },
+                    onRefresh = { binding.wvCourse.url?.let(binding.wvCourse::loadUrl) },
+                    onExternal = { binding.wvCourse.url?.let { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) } },
+                    onClose = ::finish)
+            }
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -674,4 +682,24 @@ class MoocCoursePageActivity : BaseActivity<ActivityMoocCoursePageBinding>() {
         }
         super.onDestroy()
     }
+}
+
+
+@androidx.compose.runtime.Composable
+private fun MoocPageHeader(onBack: () -> Unit, onRefresh: () -> Unit, onExternal: () -> Unit, onClose: () -> Unit) {
+    val menu = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val confirm = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    com.mychangli.app.core.theme.SecondaryPageHeader("课程网页", onBack, actions = {
+        androidx.compose.material3.TextButton(onClick = { menu.value = true }) { androidx.compose.material3.Text("更多") }
+        androidx.compose.material3.DropdownMenu(expanded = menu.value, onDismissRequest = { menu.value = false }) {
+            androidx.compose.material3.DropdownMenuItem(text = { androidx.compose.material3.Text("重新打开当前页面") }, onClick = { menu.value=false;confirm.value=true })
+            androidx.compose.material3.DropdownMenuItem(text = { androidx.compose.material3.Text("在浏览器打开") }, onClick = { menu.value=false;onExternal() })
+            androidx.compose.material3.DropdownMenuItem(text = { androidx.compose.material3.Text("关闭页面") }, onClick = onClose)
+        }
+    })
+    if(confirm.value) androidx.compose.material3.AlertDialog(onDismissRequest = { confirm.value=false },
+        title = { androidx.compose.material3.Text("重新打开页面") },
+        text = { androidx.compose.material3.Text("未提交的表单可能丢失。此操作不会自动重发上一次提交。") },
+        confirmButton = { androidx.compose.material3.Button(onClick = { confirm.value=false;onRefresh() }) { androidx.compose.material3.Text("继续") } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { confirm.value=false }) { androidx.compose.material3.Text("取消") } })
 }

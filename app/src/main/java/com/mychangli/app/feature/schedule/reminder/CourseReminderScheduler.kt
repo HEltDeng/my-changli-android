@@ -23,6 +23,7 @@ object CourseReminderScheduler {
 
     suspend fun reschedule(context: Context) {
         cancelAll(context)
+        ReminderSnooze.restore(context)
         if (!CourseReminderPreferences.enabled) return
         val now = ZonedDateTime.now()
         val courses = CourseScheduleRepository.loadCourses(context)
@@ -52,8 +53,9 @@ object CourseReminderScheduler {
                 leadMinutes = CourseReminderPreferences.leadMinutes,
             )
             val trigger = reminderAt.toInstant().toEpochMilli()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarm.canScheduleExactAlarms()) {
-                alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarm.canScheduleExactAlarms()) {
+                try { alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending) }
+                catch (_: SecurityException) { alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending) }
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending)
             } else {

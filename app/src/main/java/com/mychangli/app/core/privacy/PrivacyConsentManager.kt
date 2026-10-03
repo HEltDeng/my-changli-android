@@ -9,7 +9,7 @@ object PrivacyConsentManager {
     private const val KEY_APP_DECLINED_VERSION = "privacy_declined_version"
 
     /** Increment when a material policy change requires renewed consent. */
-    const val CURRENT_APP_CONSENT_VERSION = 3
+    const val CURRENT_APP_CONSENT_VERSION = 4
 
     enum class AppConsentState { ACCEPTED, DECLINED, UNDECIDED }
 
@@ -33,6 +33,28 @@ object PrivacyConsentManager {
             .putInt(KEY_APP_CONSENT_VERSION, CURRENT_APP_CONSENT_VERSION)
             .remove(KEY_APP_DECLINED_VERSION)
             .apply()
+    }
+
+    /** Called only by explicit confirmation, never Application startup or policy viewing. */
+    fun confirmCurrentPolicy(context: Context, includeOptional: Boolean) {
+        acceptAppConsent(context)
+        val telemetry = com.mychangli.app.core.network.campustools.InstallationTelemetry
+        val school = com.mychangli.app.core.network.campustools.SchoolBindingSync
+        // Existing explicit refusals and withdrawals remain effective.
+        if (!includeOptional || telemetry.choice(context) == 0) telemetry.decide(includeOptional)
+        if (!includeOptional || !school.hasDecision()) school.decide(includeOptional)
+        val purposes = buildList {
+            add("core")
+            if (telemetry.choice(context) == 1) add("installation_usage")
+            if (school.allowed()) add("school_identity")
+        }.joinToString(",")
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putLong("confirmed_at", System.currentTimeMillis())
+            .putString("confirmed_purposes", purposes)
+            .putString("confirmation_source", if(includeOptional) "WELCOME_CONTINUE" else "CORE_ONLY_CONTINUE")
+            .commit()
+        school.foreground()
+        telemetry.foreground()
     }
 
     fun declineAppConsent(context: Context) {

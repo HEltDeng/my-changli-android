@@ -1,5 +1,6 @@
 package com.mychangli.app.core
 
+import androidx.compose.foundation.layout.fillMaxSize
 import android.Manifest
 import android.app.Activity
 import android.app.Application
@@ -63,11 +64,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), DrawerController {
+    private var notificationsAllowed by mutableStateOf(false)
+    private fun readNotifications() = androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled()
     private val store by lazy { UserStore() }
     private val mainTabNavigator by lazy(LazyThreadSafetyMode.NONE) { MainTabNavigator() }
 
     override fun onResume() {
         super.onResume()
+        notificationsAllowed = readNotifications()
         AppUpdateCoordinator.resumePendingInstall(this)
         if (!PrivacyConsentManager.hasAppConsent(this)) return
         store.dispatch(UserAction.initilaize())  //初始化用户信息，对游客模式无影响
@@ -113,23 +117,15 @@ class MainActivity : ComponentActivity(), DrawerController {
                 var privacyState by remember {
                     mutableStateOf(PrivacyConsentManager.appConsentState(this@MainActivity))
                 }
-                var showNotificationEducation by remember { mutableStateOf(false) }
+                var showNoticeList by remember { mutableStateOf(false) }
                 val announcementPopup by AnnouncementNotificationCoordinator.popup.collectAsState()
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission(),
-                ) { }
-                LaunchedEffect(privacyState) {
-                    if (
-                        privacyState == AppConsentState.ACCEPTED &&
-                        NotificationPermissionPreferences.shouldOfferEducation(this@MainActivity)
-                    ) {
-                        showNotificationEducation = true
-                    }
-                }
+                ) { notificationsAllowed = readNotifications() }
                 when (privacyState) {
                     AppConsentState.UNDECIDED -> PrivacyConsentScreen(
                         onAccept = {
-                            PrivacyConsentManager.acceptAppConsent(this@MainActivity)
+                            PrivacyConsentManager.confirmCurrentPolicy(this@MainActivity, includeOptional = true)
                             privacyState = AppConsentState.ACCEPTED
                             runConsentedLifecycleWork()
                         },
@@ -168,6 +164,11 @@ class MainActivity : ComponentActivity(), DrawerController {
                             )
                         },
                         onExit = { finishAffinity() },
+                        onCoreOnly = {
+                            PrivacyConsentManager.confirmCurrentPolicy(this@MainActivity, includeOptional = false)
+                            privacyState = AppConsentState.ACCEPTED
+                            runConsentedLifecycleWork()
+                        },
                     )
                     AppConsentState.ACCEPTED -> {
                         val accountState by CampusToolsSession.state.collectAsState()
@@ -226,10 +227,10 @@ class MainActivity : ComponentActivity(), DrawerController {
                             }
 
                             else -> {
-                                Surface(color = AppTheme.colors.bgPrimaryColor) {
+                                if (notificationsAllowed) Surface(color = AppTheme.colors.bgPrimaryColor) {
                                     MainScreen(navigator = mainTabNavigator)
                                 }
-                                optionalUpdate?.let { update ->
+                                optionalUpdate?.takeIf { notificationsAllowed }?.let { update ->
                                     AppUpdatePrompt(
                                         update = update,
                                         context = this@MainActivity,
@@ -255,33 +256,40 @@ class MainActivity : ComponentActivity(), DrawerController {
                         }
                     }
                 }
-                if (showNotificationEducation) {
+                if (privacyState == AppConsentState.ACCEPTED && !notificationsAllowed) {
+                    androidx.activity.compose.BackHandler { finishAffinity() }
+                    Surface(color = AppTheme.colors.overviewPageBackgroundColor, modifier = androidx.compose.ui.Modifier.fillMaxSize()) {}
                     AlertDialog(
                         containerColor = AppTheme.colors.bgCardColor,
-                        onDismissRequest = {
-                            NotificationPermissionPreferences.markEducationShown(this@MainActivity)
-                            showNotificationEducation = false
-                        },
+                        onDismissRequest = { finishAffinity() },
+                        properties = androidx.compose.ui.window.DialogProperties(dismissOnClickOutside = false),
                         title = { Text("开启通知提醒") },
-                        text = { Text("用于接收上课提醒、重要服务公告等信息。") },
-                        dismissButton = {
-                            TextButton(onClick = {
-                                NotificationPermissionPreferences.markEducationShown(this@MainActivity)
-                                showNotificationEducation = false
-                            }) { Text("暂不开启") }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                NotificationPermissionPreferences.markEducationShown(this@MainActivity)
-                                showNotificationEducation = false
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            }) { Text("开启通知") }
-                        },
+                        text = { androidx.compose.foundation.layout.Column {
+                            Text("用于接收上课提醒和重要服务通知")
+                            TextButton(onClick = { showNoticeList = true }) { Text("查看重要服务公告") }
+                        } },
+                        dismissButton = { TextButton(onClick = { finishAffinity() }) { Text("退出应用") } },
+                        confirmButton = { androidx.compose.material3.Button(onClick = {
+                            val prefs = getSharedPreferences("notification_permission_v1", MODE_PRIVATE)
+                            val requested = prefs.getBoolean("system_requested", false)
+                            if (Build.VERSION.SDK_INT >= 33 && !requested) {
+                                prefs.edit().putBoolean("system_requested", true).apply()
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                        }) { Text("开启通知") } },
                     )
                 }
-                announcementPopup?.let { popup ->
+                if(showNoticeList) {
+                    val notices = RemoteConfigurationStore.bootstrap.value?.announcements.orEmpty()
+                    AlertDialog(onDismissRequest = { showNoticeList = false }, title = { Text("重要服务公告") },
+                        text = { androidx.compose.foundation.layout.Column {
+                            if(notices.isEmpty()) Text("暂无已加载公告，请联网后重试")
+                            notices.forEach { notice -> TextButton(onClick = {
+                                startActivity(AnnouncementDetailActivity.intent(this@MainActivity, notice.title, notice.content, notice.publishedAt))
+                            }) { Text(notice.title) } }
+                        } }, confirmButton = { TextButton(onClick = { showNoticeList = false }) { Text("返回") } })
+                }
+                announcementPopup?.takeIf { notificationsAllowed }?.let { popup ->
                     AnnouncementPopupDialog(
                         announcement = popup,
                         onDismiss = {

@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
@@ -255,49 +256,17 @@ private fun OfficialWebsiteScreen(
     Scaffold(
         containerColor = AppTheme.colors.overviewPageBackgroundColor,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "我的长理官网",
-                        color = AppTheme.colors.titleTopColor,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = ::navigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "返回",
-                            tint = AppTheme.colors.titleTopColor,
-                        )
+            var menu by remember { mutableStateOf(false) }
+            Column(Modifier.statusBarsPadding().padding(horizontal = 16.dp)) {
+                com.mychangli.app.core.theme.SecondaryPageHeader("我的长理官网", ::navigateBack) {
+                    androidx.compose.material3.TextButton(onClick = { menu = true }) { Text("更多") }
+                    androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("刷新") }, onClick = { menu = false; mainFrameFailed = false; webView?.url?.let { webView?.loadUrl(it) } })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("在浏览器打开") }, onClick = { menu = false; onOpenExternal(PublicWebsiteNavigator.HOME_URL) })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("关闭页面") }, onClick = onClose)
                     }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            mainFrameFailed = false
-                            webView?.reload()
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = "刷新网页",
-                            tint = AppTheme.colors.titleTopColor,
-                        )
-                    }
-                    IconButton(
-                        onClick = { onOpenExternal(PublicWebsiteNavigator.HOME_URL) },
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                            contentDescription = "在浏览器中打开",
-                            tint = AppTheme.colors.titleTopColor,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppTheme.colors.bgTopBarColor,
-                ),
-            )
+                }
+            }
         },
     ) { paddingValues ->
         Box(
