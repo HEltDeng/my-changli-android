@@ -98,7 +98,7 @@ class V1SourceBoundaryTest {
 
         val bindingCopy = appFile("src/main/res/values/strings.xml").readText()
         assertTrue(bindingCopy.contains("绑定学校账号后，可以查看你的课程、成绩等校园信息。"))
-        assertTrue(bindingCopy.contains("你的账号信息和成绩数据不会被我们获取或保存，仅用于提供校园查询服务。更多说明请查看隐私与合规。"))
+        assertTrue(bindingCopy.contains("学校密码仅在本机安全保存并用于学校登录，不上传至我的长理服务器。"))
         assertTrue(bindingCopy.contains("查看隐私政策与个人信息清单"))
         assertTrue(bindingCopy.contains("遇到问题？尝试网页登录"))
         assertFalse(bindingCopy.contains("连接对应学校服务"))
@@ -108,8 +108,8 @@ class V1SourceBoundaryTest {
     fun `release identity endpoint and privacy gate are explicit`() {
         val build = appFile("build.gradle.kts").readText()
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
-        assertTrue(build.contains("versionCode = 38"))
-        assertTrue(build.contains("versionName = \"1.0.6\""))
+        assertTrue(build.contains("versionCode = 39"))
+        assertTrue(build.contains("versionName = \"1.0.7\""))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
         assertTrue(build.contains("Release endpoints must not contain placeholder or loopback hosts"))
@@ -121,7 +121,7 @@ class V1SourceBoundaryTest {
         val campusTools = appFile(
             "src/main/java/com/mychangli/app/core/network/campustools/CampusToolsApi.kt",
         ).readText()
-        assertTrue(campusTools.contains("deviceAuth(\n                DeviceAuthRequest("))
+        assertTrue(campusTools.replace("\r\n", "\n").contains("deviceAuth(\n                DeviceAuthRequest("))
         assertTrue(campusTools.contains("installationSecret = InstallationIdentity.secret"))
         assertFalse(campusTools.contains("deviceScopedId = deviceScopedId()"))
         assertTrue(campusTools.contains("get() = token ?: deviceToken"))

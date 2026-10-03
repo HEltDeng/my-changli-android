@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 /** Local-only account and school-data operations exposed from Settings. */
 object AccountDataManager {
     fun clearSchoolBinding() {
+        com.mychangli.app.core.network.campustools.SchoolBindingSync.unbind()
         StudentInfoManager.clear()
         SchoolSessionState.invalidate()
         runBlocking(Dispatchers.IO) {

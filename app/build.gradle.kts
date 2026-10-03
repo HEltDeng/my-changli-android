@@ -139,8 +139,8 @@ android {
         targetSdk = 36
         // V1.0.4/36 is the immutable production baseline. V1.0.5/37 adds
         // announcement delivery, consent-flow, branding and widget-preview work.
-        versionCode = 38
-        versionName = "1.0.6"
+        versionCode = 39
+        versionName = "1.0.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

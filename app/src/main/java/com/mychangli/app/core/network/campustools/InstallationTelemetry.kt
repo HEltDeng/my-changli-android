@@ -28,12 +28,13 @@ object InstallationTelemetry {
     private val withdrawalFile get() = File(context.noBackupFilesDir, "pending-device-withdrawal.json")
     private var enrolled = false
     private var started = 0
+    @Volatile internal var lastFailure: String = ""
     fun choice(context: Context): Int = context.getSharedPreferences("optional_device_statistics_v1", 0).getInt("choice", 0)
     fun enabled(): Boolean = choice(context) == 1 && PrivacyConsentManager.hasAppConsent(context)
 
     fun register(application: Application) {
         application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityStarted(activity: Activity) { if (started++ == 0) foreground() }
+            override fun onActivityStarted(activity: Activity) { if (started++ == 0) { foreground(); SchoolBindingSync.foreground() } }
             override fun onActivityStopped(activity: Activity) { started = (started - 1).coerceAtLeast(0) }
             override fun onActivityCreated(a: Activity, b: Bundle?) {}
             override fun onActivityResumed(a: Activity) {}
@@ -45,16 +46,19 @@ object InstallationTelemetry {
     fun decide(allow: Boolean) {
         val wasAllowed = choice(context) == 1
         val withdrawalNeeded = wasAllowed || prefs.getBoolean("withdraw_pending", false)
-        check(prefs.edit().putInt("choice", if (allow) 1 else 2)
-            .putBoolean("withdraw_pending", !allow && withdrawalNeeded).commit())
+        check(prefs.edit().putInt("choice", if (allow) 1 else if (wasAllowed || choice(context) == 3) 3 else 2)
+            .putBoolean("withdraw_pending", prefs.getBoolean("withdraw_pending", false) || (!allow && wasAllowed)).commit())
         job?.cancel()
         if (!allow) pendingFile.delete()
         job = scope.launch {
             mutex.withLock {
                 pendingFile.delete()
                 if (allow) {
-                    withdrawalFile.delete()
                     prefs.edit().remove("last_sent").remove("activated").apply()
+                    if (withdrawalFile.exists()) {
+                        sendWithdrawal()
+                        if (withdrawalFile.exists()) return@withLock
+                    }
                     sendLocked()
                 } else if (withdrawalNeeded) {
                     // Minimal deletion instruction contains no collected device profile.
@@ -70,15 +74,19 @@ object InstallationTelemetry {
         if (job?.isActive == true) return
         job = scope.launch {
             mutex.withLock {
-                if (prefs.getBoolean("withdraw_pending", false)) sendWithdrawal()
+                if (prefs.getBoolean("withdraw_pending", false) || withdrawalFile.exists()) {
+                    sendWithdrawal()
+                    if (withdrawalFile.exists()) return@withLock
+                }
                 if (enabled()) sendLocked()
             }
         }
     }
     private fun base(kind: String): MutableMap<String, Any?> = mutableMapOf(
         "eventId" to UUID.randomUUID().toString(), "kind" to kind,
-        "clientAt" to System.currentTimeMillis(), "protocolVersion" to 2,
+        "clientAt" to System.currentTimeMillis(), "protocolVersion" to 3, "accountIdAtEvent" to CampusToolsSession.currentUser?.id,
         "packageName" to BuildConfig.APPLICATION_ID,
+        "afterWithdrawalEventId" to prefs.getString("completed_withdrawal_id", null),
     )
     private fun readPending(file: File = pendingFile): Map<String, Any?> {
         val raw: Map<String, Any?> = try { gson.fromJson(file.readText(),
@@ -108,7 +116,7 @@ object InstallationTelemetry {
             val event = readPending(withdrawalFile)
             if (post(event)) {
                 withdrawalFile.delete()
-                prefs.edit().putBoolean("withdraw_pending", false).remove("activated").remove("last_sent").apply()
+                prefs.edit().putBoolean("withdraw_pending", false).putString("completed_withdrawal_id", event["eventId"] as String).remove("activated").remove("last_sent").apply()
             }
         } catch (e: CancellationException) { throw e } catch (_: Exception) { /* Retry next foreground. */ }
     }
@@ -123,10 +131,11 @@ object InstallationTelemetry {
                 enrolled = true
             }
             if (!enabled()) return
+            repeat(2) {
             val now = System.currentTimeMillis()
             val versionChanged = prefs.getInt("version", 0) != BuildConfig.VERSION_CODE
             if (!pendingFile.exists()) {
-                if (!versionChanged && now - prefs.getLong("last_sent", 0) in 0 until 15*60*1000) return
+                if (!ForegroundSchedule.due(now, prefs.getLong("last_sent", 0), versionChanged || prefs.getString("last_actor", "") != CampusToolsSession.currentUser?.id.orEmpty())) return
                 // Build and Android ID APIs are called ONLY inside this consent gate.
                 val event = base(if (prefs.getBoolean("activated", false)) "FOREGROUND" else "ACTIVATE")
                 event.putAll(mapOf("consentVersion" to 1, "manufacturer" to Build.MANUFACTURER,
@@ -142,9 +151,13 @@ object InstallationTelemetry {
             if (!enabled()) { pendingFile.delete(); return }
             if (post(event)) {
                 pendingFile.delete()
-                prefs.edit().putLong("last_sent", now).putInt("version", BuildConfig.VERSION_CODE)
+                prefs.edit().putLong("last_sent", (event["clientAt"] as Number).toLong()).putInt("version", (event["appVersionCode"] as Number).toInt())
+                    .putString("last_actor", event["accountIdAtEvent"] as? String ?: "")
                     .putBoolean("activated", true).apply()
+            } else return
             }
-        } catch (e: CancellationException) { throw e } catch (_: Exception) { /* Stable event survives retries. */ }
+        } catch (e: CancellationException) { throw e } catch (e: Exception) {
+            lastFailure = e.javaClass.simpleName + (if (e is retrofit2.HttpException) ":${e.code()}" else "")
+        }
     }
 }

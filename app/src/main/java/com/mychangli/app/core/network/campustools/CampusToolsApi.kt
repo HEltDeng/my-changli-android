@@ -381,6 +381,9 @@ data class RemoteServiceUpdate(
 )
 
 interface CampusToolsApi {
+    @POST("school-binding")
+    suspend fun schoolBinding(@retrofit2.http.Header("Authorization") authorization: String?, @Body data: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<Map<String, @JvmSuppressWildcards Any?>>
+
     @POST("installation-events")
     suspend fun installationEvent(@Body data: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<Map<String, @JvmSuppressWildcards Any?>>
 

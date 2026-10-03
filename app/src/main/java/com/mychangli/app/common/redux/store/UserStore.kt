@@ -72,6 +72,7 @@ class UserStore : Store<UserState, UserAction>() {
                 currentState.uiForLoading = true
                 SchoolSessionState.explicitBindingInFlight.set(true)
                 SchoolSessionState.invalidate()
+                val schoolSyncOwner = com.mychangli.app.core.network.campustools.CampusToolsSession.currentUser?.id
                 CoroutineScope(Dispatchers.IO).launch {
                     var bindingCompleted = false
                     try {
@@ -130,6 +131,7 @@ class UserStore : Store<UserState, UserAction>() {
                                                     studentNumber = action.studentNumber
                                                 )
                                                 SchoolSessionState.markReady()
+                                                com.mychangli.app.core.network.campustools.SchoolBindingSync.verified(action.studentNumber, schoolSyncOwner)
                                                 bindingCompleted = true
                                             } else {
                                                 clearTransientSchoolSession()

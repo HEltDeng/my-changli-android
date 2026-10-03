@@ -39,7 +39,7 @@ class InstallationIntegrationTest {
         while (!preferences.getBoolean("activated", false) && System.currentTimeMillis() < deadline) {
             kotlinx.coroutines.delay(100)
         }
-        assertTrue("Activation must reach the isolated backend", preferences.getBoolean("activated", false))
+        assertTrue("Activation must reach the isolated backend: "+InstallationTelemetry.lastFailure, preferences.getBoolean("activated", false))
         repeat(15) { InstallationTelemetry.foreground() }
         assertEquals(original, InstallationIdentity.id)
         CampusToolsSession.logout()

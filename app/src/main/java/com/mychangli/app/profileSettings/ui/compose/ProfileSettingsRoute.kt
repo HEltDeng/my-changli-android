@@ -103,8 +103,6 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    var showStatisticsDialog by remember { mutableStateOf(false) }
-    if (showStatisticsDialog) com.mychangli.app.core.privacy.DeviceStatisticsConsentDialog { showStatisticsDialog = false }
     var page by remember { mutableStateOf(ProfilePage.MAIN) }
     var bindingSnapshot by remember { mutableStateOf(readProfileBindingSnapshot()) }
     var showCacheDialog by remember { mutableStateOf(false) }
@@ -199,12 +197,8 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
             onBack = { page = ProfilePage.MAIN },
             onItemClick = { item ->
                 when (item.id) {
-                    "device-statistics" -> showStatisticsDialog = true
                     "about" -> Route.goAbout(context)
-                    "privacy-policy" -> if (!PublicWebsiteNavigator.open(
-                            context,
-                            PublicWebsiteNavigator.PRIVACY_URL,
-                        )) updateMessage = "暂时无法打开隐私政策"
+                    "privacy-policy" -> Route.goReleaseInformation(context, ReleaseDocumentType.PRIVACY)
                     "terms" -> if (!PublicWebsiteNavigator.open(
                             context,
                             PublicWebsiteNavigator.TERMS_URL,
@@ -676,7 +670,13 @@ private fun InformationDialog(message: String, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text("检查更新", fontWeight = FontWeight.Bold) },
         text = { Text(message) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("知道了") } },
+        confirmButton = { androidx.compose.material3.Button(
+            onClick = onDismiss, shape = RoundedCornerShape(14.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = AppTheme.colors.bgButtonLowlightColor,
+                contentColor = AppTheme.colors.functionalTextColor),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+        ) { Text("知道了") } },
     )
 }
 
@@ -716,7 +716,6 @@ private fun createSecondarySettingItems(): List<SettingItemUiModel> = listOf(
 )
 
 private fun createPrivacyItems(): List<SettingItemUiModel> = listOf(
-    SettingItemUiModel.Option("device-statistics", "设备与使用统计（可选）", Icons.Outlined.Security),
     SettingItemUiModel.Option("about", "关于我的长理", Icons.Outlined.Info),
     SettingItemUiModel.Option("privacy-policy", "隐私政策", Icons.Outlined.Security),
     SettingItemUiModel.Option("terms", "用户协议", Icons.Outlined.Info),

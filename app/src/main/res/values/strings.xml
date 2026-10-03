@@ -4,7 +4,7 @@
     <string name="release_document_title_third_party">第三方 SDK / 服务</string>
     <string name="release_document_title_personal_information">个人信息清单</string>
     <string name="release_document_title_account_data">账号与数据管理</string>
-    <string name="release_document_footer">我的长理 · 版本 1.0.3</string>
+    <string name="release_document_footer">我的长理 · 隐私政策版本 3</string>
     <string name="release_third_party_android_components">本版本使用 AndroidX、Compose、Material、Room、MMKV、Retrofit、OkHttp、Coil、Glide 等应用运行与界面组件。</string>
     <string name="app_name">我的长理</string>
     <string name="chat">群聊</string>
@@ -219,7 +219,7 @@
     <string name="binding_action">绑定</string>
     <string name="binding_loading">正在验证，请稍候</string>
     <string name="binding_web_login_action">遇到问题？尝试网页登录</string>
-    <string name="binding_privacy_statement">你的账号信息和成绩数据不会被我们获取或保存，仅用于提供校园查询服务。更多说明请查看隐私与合规。</string>
+    <string name="binding_privacy_statement">绑定并同意后可同步学校及学号，用于账号识别与服务支持。学校密码仅在本机安全保存并用于学校登录，不上传至我的长理服务器。</string>
     <string name="binding_privacy_policy_action">查看隐私政策与个人信息清单</string>
     <string name="sso_webview_cancel">关闭</string>
     <string name="password_length_restriction">密码长度至少6位</string>
@@ -261,4 +261,5 @@
     <string name="timetable_selection_accessibility">%1$s，当前已选择</string>
     <string name="widget_next_course_description">我的长理 · 下一节课</string>
     <string name="widget_today_schedule_description">我的长理 · 今日课表</string>
+    <string name="statistics_settings_title">安装与使用统计</string>
 </resources>
