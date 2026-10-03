@@ -40,6 +40,8 @@ import com.mychangli.app.core.network.campustools.RemoteConfigurationStore
 import com.mychangli.app.core.notifications.AnnouncementNotificationCoordinator
 import com.mychangli.app.core.notifications.AnnouncementPopupDialog
 import com.mychangli.app.core.notifications.NotificationPermissionPreferences
+import com.mychangli.app.core.network.campustools.InstallationTelemetry
+import com.mychangli.app.core.privacy.DeviceStatisticsConsentDialog
 import com.mychangli.app.core.privacy.PrivacyConsentManager
 import com.mychangli.app.core.privacy.PrivacyConsentManager.AppConsentState
 import com.mychangli.app.core.privacy.PrivacyConsentScreen
@@ -112,6 +114,7 @@ class MainActivity : ComponentActivity(), DrawerController {
                 var privacyState by remember {
                     mutableStateOf(PrivacyConsentManager.appConsentState(this@MainActivity))
                 }
+                var statisticsPromptClosed by remember { mutableStateOf(false) }
                 var showNotificationEducation by remember { mutableStateOf(false) }
                 val announcementPopup by AnnouncementNotificationCoordinator.popup.collectAsState()
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -174,6 +177,7 @@ class MainActivity : ComponentActivity(), DrawerController {
                         var suppressedOptionalVersion by remember { mutableStateOf<Int?>(null) }
                         LaunchedEffect(Unit) {
                             CampusToolsSession.restore()
+                            InstallationTelemetry.foreground()
                             if (AppUpdatePolicyController.state.value is AppUpdatePolicyState.IDLE) {
                                 AppUpdatePolicyController.refresh(forceRefresh = true)
                             }
@@ -251,6 +255,10 @@ class MainActivity : ComponentActivity(), DrawerController {
                             }
                         }
                     }
+                }
+                if (privacyState == AppConsentState.ACCEPTED && !showNotificationEducation &&
+                    !statisticsPromptClosed && InstallationTelemetry.choice(this@MainActivity) == 0) {
+                    DeviceStatisticsConsentDialog { statisticsPromptClosed = true }
                 }
                 if (showNotificationEducation) {
                     AlertDialog(

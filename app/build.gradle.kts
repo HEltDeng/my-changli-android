@@ -139,12 +139,17 @@ android {
         targetSdk = 36
         // V1.0.4/36 is the immutable production baseline. V1.0.5/37 adds
         // announcement delivery, consent-flow, branding and widget-preview work.
-        versionCode = 37
-        versionName = "1.0.5"
+        versionCode = 38
+        versionName = "1.0.6"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            // 设置支持的SO库架构
-            abiFilters.add("arm64-v8a")
+            // Explicit local instrumentation override; never accepted for a release task.
+            val testAbi = providers.gradleProperty("identityTestAbi").orNull
+            check(testAbi == null || gradle.startParameter.taskNames.none {
+                it.contains("release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
+            }) { "identityTestAbi is only for isolated Debug instrumentation" }
+            abiFilters.add(testAbi ?: "arm64-v8a")
         }
 
         // 兜底值：保证任何未显式覆盖的 variant 都拿得到 BaseUrl。
@@ -407,6 +412,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.junit)
     testImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

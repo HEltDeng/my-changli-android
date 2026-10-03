@@ -121,6 +121,7 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
             startMemoryMonitor()
         }
         appContext = applicationContext
+        com.mychangli.app.core.network.campustools.InstallationTelemetry.register(this)
         setSkin()
         saveDefaultSkin()
     }

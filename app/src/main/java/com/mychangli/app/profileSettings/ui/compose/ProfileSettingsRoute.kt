@@ -103,6 +103,8 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    var showStatisticsDialog by remember { mutableStateOf(false) }
+    if (showStatisticsDialog) com.mychangli.app.core.privacy.DeviceStatisticsConsentDialog { showStatisticsDialog = false }
     var page by remember { mutableStateOf(ProfilePage.MAIN) }
     var bindingSnapshot by remember { mutableStateOf(readProfileBindingSnapshot()) }
     var showCacheDialog by remember { mutableStateOf(false) }
@@ -197,6 +199,7 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
             onBack = { page = ProfilePage.MAIN },
             onItemClick = { item ->
                 when (item.id) {
+                    "device-statistics" -> showStatisticsDialog = true
                     "about" -> Route.goAbout(context)
                     "privacy-policy" -> if (!PublicWebsiteNavigator.open(
                             context,
@@ -713,6 +716,7 @@ private fun createSecondarySettingItems(): List<SettingItemUiModel> = listOf(
 )
 
 private fun createPrivacyItems(): List<SettingItemUiModel> = listOf(
+    SettingItemUiModel.Option("device-statistics", "设备与使用统计（可选）", Icons.Outlined.Security),
     SettingItemUiModel.Option("about", "关于我的长理", Icons.Outlined.Info),
     SettingItemUiModel.Option("privacy-policy", "隐私政策", Icons.Outlined.Security),
     SettingItemUiModel.Option("terms", "用户协议", Icons.Outlined.Info),

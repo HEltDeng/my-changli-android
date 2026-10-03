@@ -15,7 +15,7 @@ object DeviceIdentity {
     private const val APP_NAMESPACE = "com.mychangli.app:device-scoped-v1:"
     private const val KNOWN_INVALID_ANDROID_ID = "9774d56d682e549c"
 
-    fun deviceScopedId(context: Context): String? = deriveDeviceScopedId(
+    fun deviceScopedId(context: Context): String? = if (!InstallationTelemetry.enabled()) null else deriveDeviceScopedId(
         Settings.Secure.getString(
             context.applicationContext.contentResolver,
             Settings.Secure.ANDROID_ID,
@@ -24,7 +24,7 @@ object DeviceIdentity {
 
     fun deriveDeviceScopedId(androidId: String?): String? {
         val normalized = androidId?.trim()?.lowercase()
-            ?.takeIf { it.isNotEmpty() && it != KNOWN_INVALID_ANDROID_ID }
+            ?.takeIf { it.matches(Regex("[0-9a-f]{16}")) && it != "0000000000000000" && it != KNOWN_INVALID_ANDROID_ID }
             ?: return null
         return sha256Hex(APP_NAMESPACE + normalized)
     }

@@ -47,6 +47,7 @@ class CampusToolsApiException(
 ) : IllegalStateException(message)
 data class DeviceAuthRequest(
     @SerializedName("installationId") val installationId: String,
+    @SerializedName("installationSecret") val installationSecret: String? = null,
     @SerializedName("deviceScopedId") val deviceScopedId: String? = null,
     @SerializedName("versionName") val versionName: String? = null,
     @SerializedName("versionCode") val versionCode: Int? = null,
@@ -80,6 +81,7 @@ data class RegisterRequest(
     @SerializedName("password") val password: String,
     @SerializedName("nickname") val nickname: String,
     @SerializedName("installationId") val installationId: String,
+    @SerializedName("installationSecret") val installationSecret: String? = null,
     @SerializedName("deviceScopedId") val deviceScopedId: String? = null,
     @SerializedName("versionName") val versionName: String? = null,
     @SerializedName("versionCode") val versionCode: Int? = null,
@@ -88,6 +90,7 @@ data class LoginRequest(
     @SerializedName("phone") val phone: String,
     @SerializedName("password") val password: String,
     @SerializedName("installationId") val installationId: String,
+    @SerializedName("installationSecret") val installationSecret: String? = null,
     @SerializedName("deviceScopedId") val deviceScopedId: String? = null,
     @SerializedName("versionName") val versionName: String? = null,
     @SerializedName("versionCode") val versionCode: Int? = null,
@@ -378,6 +381,9 @@ data class RemoteServiceUpdate(
 )
 
 interface CampusToolsApi {
+    @POST("installation-events")
+    suspend fun installationEvent(@Body data: Map<String, @JvmSuppressWildcards Any?>): ApiEnvelope<Map<String, @JvmSuppressWildcards Any?>>
+
     @POST("auth/device")
     suspend fun deviceAuth(@Body request: DeviceAuthRequest): ApiEnvelope<AuthData>
 
@@ -554,12 +560,7 @@ object CampusToolsSession {
     val currentUser: AuthUser?
         get() = cachedUser
 
-    val installationId: String
-        get() = store.decodeString(KEY_INSTALLATION_ID)
-            ?.takeIf(String::isNotBlank)
-            ?: UUID.randomUUID().toString().also {
-                check(store.encode(KEY_INSTALLATION_ID, it))
-            }
+    val installationId: String get() = InstallationIdentity.id
 
     var token: String?
         get() {
@@ -677,7 +678,8 @@ object CampusToolsSession {
                     password = password,
                     nickname = nickname.trim(),
                     installationId = installationId,
-                    deviceScopedId = deviceScopedId(),
+                    installationSecret = InstallationIdentity.secret,
+                    deviceScopedId = null,
                     versionName = BuildConfig.VERSION_NAME,
                     versionCode = BuildConfig.VERSION_CODE,
                 )
@@ -698,7 +700,8 @@ object CampusToolsSession {
                     phone = phone.trim(),
                     password = password,
                     installationId = installationId,
-                    deviceScopedId = deviceScopedId(),
+                    installationSecret = InstallationIdentity.secret,
+                    deviceScopedId = null,
                     versionName = BuildConfig.VERSION_NAME,
                     versionCode = BuildConfig.VERSION_CODE,
                 )
@@ -837,7 +840,8 @@ object CampusToolsSession {
             CampusToolsApiClient.unauthenticated.deviceAuth(
                 DeviceAuthRequest(
                     installationId = installationId,
-                    deviceScopedId = deviceScopedId(),
+                    installationSecret = InstallationIdentity.secret,
+                    deviceScopedId = null,
                     versionName = BuildConfig.VERSION_NAME,
                     versionCode = BuildConfig.VERSION_CODE,
                 )
@@ -876,6 +880,12 @@ object CampusToolsApiClient {
 
     private val baseClient: OkHttpClient
         get() = OkHttpClient.Builder()
+            .apply {
+                // adb reverse is local to this app's Debug endpoint; preserve device proxy settings.
+                if (BuildConfig.DEBUG && BuildConfig.CAMPUS_TOOLS_API_BASE_URL.startsWith("http://127.0.0.1:")) {
+                    proxy(java.net.Proxy.NO_PROXY)
+                }
+            }
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
