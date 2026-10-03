@@ -177,11 +177,14 @@ android {
         )
         buildConfigField("boolean", "RELEASE_USER_SURFACE", "false")
         buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", "false")
+        // New automatic consent expansion is still restricted to isolated acceptance builds.
+        buildConfigField("boolean", "AUTOMATIC_SYNC_POLICY_ENABLED", "false")
     }
 
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("boolean", "AUTOMATIC_SYNC_POLICY_ENABLED", "true")
             buildConfigField(
                 "String",
                 "PLANET_API_BASE_URL",
@@ -225,6 +228,7 @@ android {
 
         create("candidate") {
             initWith(getByName("release"))
+            buildConfigField("boolean", "AUTOMATIC_SYNC_POLICY_ENABLED", "true")
             applicationIdSuffix = ".candidate"
             versionNameSuffix = "-test.20261003.1"
             matchingFallbacks += listOf("release")

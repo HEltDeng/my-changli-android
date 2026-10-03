@@ -41,8 +41,10 @@ object PrivacyConsentManager {
         val telemetry = com.mychangli.app.core.network.campustools.InstallationTelemetry
         val school = com.mychangli.app.core.network.campustools.SchoolBindingSync
         // Existing explicit refusals and withdrawals remain effective.
-        if (!includeOptional || telemetry.choice(context) == 0) telemetry.decide(includeOptional)
-        if (!includeOptional || !school.hasDecision()) school.decide(includeOptional)
+        if (!includeOptional || com.mychangli.app.BuildConfig.AUTOMATIC_SYNC_POLICY_ENABLED) {
+            if (!includeOptional || telemetry.choice(context) == 0) telemetry.decide(includeOptional)
+            if (!includeOptional || !school.hasDecision()) school.decide(includeOptional)
+        }
         val purposes = buildList {
             add("core")
             if (telemetry.choice(context) == 1) add("installation_usage")
