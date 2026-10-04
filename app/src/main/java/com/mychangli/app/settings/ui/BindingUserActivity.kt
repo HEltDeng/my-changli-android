@@ -126,11 +126,12 @@ class BindingUserActivity : FullScreenActivity<ActivityBindingUserBinding>() {
                 }
             }
         }
+        back.imageTintList = android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(this, R.color.color_primary_blue))
         ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             view.setPadding(
                 view.paddingLeft,
-                insets.top,
+                insets.top + (10 * resources.displayMetrics.density).toInt(),
                 view.paddingRight,
                 view.paddingBottom
             )

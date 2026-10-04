@@ -218,8 +218,8 @@
     <string name="binding_password_required">请输入统一身份认证密码</string>
     <string name="binding_action">绑定</string>
     <string name="binding_loading">正在验证，请稍候</string>
-    <string name="binding_web_login_action">遇到问题？尝试网页登录</string>
-    <string name="binding_privacy_statement">绑定并同意后可同步学校及学号，用于账号识别与服务支持。学校密码仅在本机安全保存并用于学校登录，不上传至我的长理服务器。</string>
+    <string name="binding_web_login_action">网页登录</string>
+    <string name="binding_privacy_statement">密码仅保存在本地，不上传至我的长理服务器。</string>
     <string name="binding_privacy_policy_action">查看隐私政策与个人信息清单</string>
     <string name="sso_webview_cancel">关闭</string>
     <string name="password_length_restriction">密码长度至少6位</string>

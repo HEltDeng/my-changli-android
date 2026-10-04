@@ -17,10 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Shared secondary navigation; callers own scrolling and system insets. */
+/** Own unconsumed top insets, including display cutouts; parent padding is not duplicated. */
 @Composable
 fun SecondaryPageHeader(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+        .padding(top = 10.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
         Surface(shape = CircleShape, color = AppTheme.colors.bgCardColor) {
             IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Rounded.ArrowBack, "返回", tint = AppTheme.colors.iconPrimaryColor)

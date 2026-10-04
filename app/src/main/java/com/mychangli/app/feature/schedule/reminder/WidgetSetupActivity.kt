@@ -119,12 +119,8 @@ private fun WidgetSetupScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         ReminderHeader("桌面小组件", onBack)
-        Text("在桌面快速查看下一节课和今日剩余课程。", color = AppTheme.colors.secondaryTextColor)
         WidgetChoice("下一节课", "2×2 · 课程、地点、开始时间与倒计时", onAddNext)
         WidgetChoice("今日课表", "4×2 · 今日后续课程并突出下一节", onAddToday)
-        ReminderCard {
-            Text("也可在桌面长按空白处，选择‘小组件’，找到‘我的长理’后添加。", color = AppTheme.colors.secondaryTextColor)
-        }
         if (message.isNotBlank()) {
             ReminderCard {
                 Text(message, color = AppTheme.colors.primaryTextColor)
@@ -140,7 +136,6 @@ private fun WidgetChoice(title: String, subtitle: String, onClick: () -> Unit) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.Bold, color = AppTheme.colors.primaryTextColor)
-                Text(subtitle, color = AppTheme.colors.secondaryTextColor)
             }
             Button(onClick = onClick) { Text("添加") }
         }

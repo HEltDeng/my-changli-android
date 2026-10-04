@@ -34,6 +34,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Widgets
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -177,14 +181,15 @@ private fun CourseReminderSettingsScreen(
     var page by remember { mutableStateOf("main") }
     var silent by remember { mutableStateOf(CourseReminderPreferences.silent) }
     var snooze by remember { mutableStateOf(CourseReminderPreferences.snoozeEnabled) }
-    BackHandler(page != "main") { page = "main" }
+    fun navigateBack() { page = if (page.startsWith("manage_")) "status" else "main" }
+    BackHandler(page != "main") { navigateBack() }
     val state = if (!enabled) "已关闭" else if (notificationGranted && channelEnabled == true && courses.isNotEmpty()) "正常" else "待设置"
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(AppTheme.colors.overviewPageBackgroundColor)
             .statusBarsPadding().navigationBarsPadding().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { ReminderHeader(when(page) { "status" -> "提醒状态"; "mode" -> "提醒方式"; "lead" -> "提前时间"; else -> "上课提醒" }) { if (page == "main") onBack() else page = "main" } }
+        item { ReminderHeader(when(page) { "status" -> "提醒状态"; "mode" -> "提醒方式"; "lead" -> "提前时间"; "manage_notifications" -> "通知权限"; "manage_channel" -> "通知渠道"; "manage_exact" -> "精确提醒"; "manage_schedule" -> "提醒安排"; else -> "上课提醒" }) { if (page == "main") onBack() else navigateBack() } }
         if (page == "main") {
             item { SecondaryCard {
                 SecondaryRow("上课提醒", control = { BrandSwitch(enabled) { checked ->
@@ -216,21 +221,24 @@ private fun CourseReminderSettingsScreen(
                 SecondaryRow("允许稍后提醒", control = { BrandSwitch(snooze) { snooze = it; CourseReminderPreferences.snoozeEnabled = it } })
                 SecondaryRow("系统渠道设置", onClick = openChannelSettings)
             } }
-            item { Text("静默提醒不播放声音或震动。通知中的“稍后5分钟 / 10分钟”延后当前课程提醒，课程结束或取消后停止。系统渠道和免打扰设置优先。", color = AppTheme.colors.secondaryTextColor) }
+        } else if (page == "status") {
+            item { SecondaryCard {
+                ReminderStatusRow("上课提醒", enabled) { page = "main" }
+                ReminderStatusRow("通知权限", notificationGranted) { page = "manage_notifications" }
+                ReminderStatusRow("通知渠道", channelEnabled) { page = "manage_channel" }
+                ReminderStatusRow("精确提醒", exactGranted) { page = "manage_exact" }
+                SecondaryRow("本地课程", if(courses.isEmpty()) "暂无课程" else "${courses.size}节", openCourseSettings)
+                SecondaryRow("已安排提醒", "${CourseReminderPreferences.scheduledRequestCodes.size}项", { page = "manage_schedule" })
+            } }
         } else {
             item { SecondaryCard {
-                SecondaryRow("上课提醒", if(enabled) "已开启" else "已关闭")
-                SecondaryRow("通知权限", if(notificationGranted) "已允许" else "未允许")
-                SecondaryRow("通知渠道", when(channelEnabled) { true -> "已开启"; false -> "已关闭"; null -> "读取失败" })
-                SecondaryRow("精确提醒", when { exactGranted == null -> "读取失败"; Build.VERSION.SDK_INT < 31 -> "无需额外授权"; exactGranted -> "可用"; else -> "未授权" })
-                SecondaryRow("本地课程", if(courses.isEmpty()) "暂无课程" else "${courses.size}节")
-                SecondaryRow("已安排提醒", "${CourseReminderPreferences.scheduledRequestCodes.size}项")
-                SecondaryRow("管理通知权限", onClick = openNotificationSettings)
-                SecondaryRow("管理通知渠道", onClick = openChannelSettings)
-                if(Build.VERSION.SDK_INT >= 31) SecondaryRow("管理精确提醒权限", onClick = openExactAlarmSettings)
-                SecondaryRow("重新安排提醒", onClick = { reschedule() })
+                when(page) {
+                    "manage_notifications" -> SecondaryRow("管理通知权限", onClick = openNotificationSettings)
+                    "manage_channel" -> SecondaryRow("管理通知渠道", onClick = openChannelSettings)
+                    "manage_exact" -> if(Build.VERSION.SDK_INT >= 31) SecondaryRow("管理精确提醒权限", onClick = openExactAlarmSettings) else SecondaryRow("精确提醒", "无需额外授权")
+                    "manage_schedule" -> SecondaryRow("重新安排提醒", onClick = { reschedule() })
+                }
             } }
-            item { Text("依据本机课表安排通知。未获精确提醒能力时使用系统允许的普通调度，可能延迟；开启权限不能保证所有消息准时送达。", color = AppTheme.colors.secondaryTextColor) }
             if(message.isNotBlank()) item { Text(message, color = AppTheme.colors.functionalTextColor) }
         }
         item { Spacer(Modifier.height(24.dp)) }
@@ -245,6 +253,18 @@ private fun CourseReminderSettingsScreen(
             dismissButton = { TextButton(onClick = { explainPermission = false }) { Text("暂不开启") } },
         )
     }
+}
+
+@Composable
+private fun ReminderStatusRow(title: String, enabled: Boolean?, onClick: () -> Unit) {
+    SecondaryRow(title, onClick = onClick, control = {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            val tint = if(enabled == true) Color(0xFF27845A) else AppTheme.colors.secondaryTextColor
+            if(enabled != null) Icon(if(enabled) Icons.Rounded.Check else Icons.Rounded.Close, null, Modifier.size(16.dp), tint = tint)
+            Text(when(enabled) { true -> "已打开"; false -> "未开启"; null -> "读取失败" }, color = tint, fontSize = 14.sp)
+            Icon(Icons.Rounded.ChevronRight, null, tint = AppTheme.colors.secondaryTextColor)
+        }
+    })
 }
 
 @Composable
