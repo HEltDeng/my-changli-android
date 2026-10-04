@@ -66,7 +66,8 @@ class V1SourceBoundaryTest {
             "android.permission.CAMERA",
             "com.amap.api.v2.apikey",
         ).forEach { assertFalse(manifest.contains(it)) }
-        assertFalse(manifest.contains("<data"))
+        assertTrue(manifest.contains("android:scheme=\"mychangli\" android:host=\"activity\""))
+        assertEquals(1, Regex("<data ").findAll(manifest).count())
         assertTrue(manifest.contains("LostFoundActivity"))
         assertTrue(appPath("src/main/res/layout/activity_binding_user.xml").exists())
 
@@ -98,9 +99,9 @@ class V1SourceBoundaryTest {
 
         val bindingCopy = appFile("src/main/res/values/strings.xml").readText()
         assertTrue(bindingCopy.contains("绑定学校账号后，可以查看你的课程、成绩等校园信息。"))
-        assertTrue(bindingCopy.contains("学校密码仅在本机安全保存并用于学校登录，不上传至我的长理服务器。"))
+        assertTrue(bindingCopy.contains("密码仅保存在本地，不上传至我的长理服务器。"))
         assertTrue(bindingCopy.contains("查看隐私政策与个人信息清单"))
-        assertTrue(bindingCopy.contains("遇到问题？尝试网页登录"))
+        assertTrue(bindingCopy.contains("name=\"binding_web_login_action\">网页登录"))
         assertFalse(bindingCopy.contains("连接对应学校服务"))
     }
 
@@ -109,7 +110,8 @@ class V1SourceBoundaryTest {
         val build = appFile("build.gradle.kts").readText()
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
         assertTrue(build.contains("versionCode = 39"))
-        assertTrue(build.contains("versionName = \"1.0.7\""))
+        assertTrue(build.contains("else \"1.0.7\""))
+        assertTrue(build.contains("activityPreview"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))
         assertTrue(build.contains("Release endpoints must not contain placeholder or loopback hosts"))
@@ -164,12 +166,12 @@ class V1SourceBoundaryTest {
             "我的长理官网（最新消息）",
             "我的长理账号",
             "绑定学号",
-            "上课提醒 & 桌面小组件",
+            "上课提醒",
             "检查更新",
             "隐私与合规",
             "账号与数据管理",
         ).forEach { assertTrue(profile.contains(it)) }
-        assertTrue(profile.contains("上课提醒 & 桌面小组件"))
+        assertTrue(profile.contains("上课提醒"))
         assertFalse(profile.contains("通过官网获取新版本"))
 
         val websiteNavigator = appFile(

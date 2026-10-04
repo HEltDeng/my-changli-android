@@ -1,5 +1,6 @@
 package com.mychangli.app.feature.common.ui
 
+import androidx.compose.material.icons.outlined.EventNote
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -109,7 +110,13 @@ fun FeatureScreen(
     val scope = rememberCoroutineScope()
     var dialogUpdate by remember { mutableStateOf<RemoteServiceUpdate?>(null) }
     val learningItems = remember(context, appConfigState.envelope.configVersion) {
-        learningFunctionShortcuts(appConfigState.envelope.config).map { it.toFunctionItemData(context) }
+        learningFunctionShortcuts(appConfigState.envelope.config).map { it.toFunctionItemData(context) } +
+            com.mychangli.app.feature.common.compose_ui.FunctionItemData(
+                id = "campus_activities", title = "校园活动",
+                icon = androidx.compose.material.icons.Icons.Outlined.EventNote,
+                tintColor = androidx.compose.ui.graphics.Color(0xFF3978E8),
+                onClick = { com.mychangli.app.feature.activities.CampusActivitiesActivity.open(context) },
+            )
     }
     val lifeItems = remember(context, appConfigState.envelope.configVersion) {
         lifeFunctionShortcuts(appConfigState.envelope.config).map { it.toFunctionItemData(context) }

@@ -155,6 +155,8 @@ private fun OverviewScreen(
             AdSlot(placement = AdPlacement.HOME_BANNER)
         }
 
+        item { com.mychangli.app.feature.activities.RecentActivities() }
+
         item {
             SectionTitle("待提交作业", "查看全部") { onQuickActionClick("homework") }
         }

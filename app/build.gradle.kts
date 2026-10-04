@@ -70,6 +70,8 @@ val campusToolsApiBaseUrlDebug: String =
         ?: System.getenv("MY_CHANGLI_CAMPUS_TOOLS_API_BASE_URL_DEBUG")
         ?: "http://127.0.0.1:8787/api/v1/"
 val campusToolsApiBaseUrlRelease = "https://api.mychangliapp.cn/api/v1/"
+val activityPreview = providers.gradleProperty("activityPreview").orNull == "true"
+val activityApiBaseUrl = if (activityPreview) "http://127.0.0.1:8794/api/v1/" else campusToolsApiBaseUrlRelease
 // An explicit local acceptance build uses adb reverse; never falls back to production.
 val candidateApiBaseUrl = providers.gradleProperty("candidateApiBaseUrl").orNull
     ?: "http://127.0.0.1:8787/api/v1/"
@@ -121,6 +123,7 @@ tasks.register("verifyReleaseEndpointSafety") {
 
 android {
     namespace = "com.mychangli.app"
+    if (activityPreview) sourceSets.getByName("release").res.srcDir("src/activityPreview/res")
     compileSdk = 36
     compileSdkMinor = 1
     buildFeatures {
@@ -146,7 +149,8 @@ android {
         // V1.0.4/36 is the immutable production baseline. V1.0.5/37 adds
         // announcement delivery, consent-flow, branding and widget-preview work.
         versionCode = 39
-        versionName = "1.0.7"
+        versionName = if (activityPreview) "1.0.7-activities-preview.1" else "1.0.7"
+        buildConfigField("String", "ACTIVITY_API_BASE_URL", "\"$activityApiBaseUrl\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
