@@ -7,3 +7,7 @@
 正式 V1.0.5 和生产部署不能被验证产物替换。历史说明不是默认开发入口。
 
 发布基线 d56fc5efc8f1584309a7bc348035780e2c816c27；Tag v1.0.5-release-20261001，详细证据见 docs/releases/v1.0.5-20261001。依赖恢复见 tools/DEPENDENCY_RECOVERY.md。Windows wrapper 自动检查；IDE/POSIX/直接 Gradle 先显式预检。
+
+## 当前正式发布基线（2026-10-04）
+
+我的长理 V1.0.7 / versionCode 39。验收源码 `e3dd29fef08ed1367433442f7dedb1bdd25a8981`；正式 Tag `v1.0.7-release-20261004`。后续开发沿本次正式源码及其有效后继继续。以上旧版基线说明保留为历史，不再表示最新生产版本。APK 身份及发布证据见 Android `docs/releases/v1.0.7-20261004` 和项目 `02_Releases-正式发布/V1.0.7`。
