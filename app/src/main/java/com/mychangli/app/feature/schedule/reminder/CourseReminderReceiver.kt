@@ -44,6 +44,7 @@ class CourseReminderReceiver : BroadcastReceiver() {
 
     private suspend fun validateAndNotify(context: Context, intent: Intent) {
         if (!CourseReminderPreferences.enabled) return
+        if (intent.action == ReminderSnooze.ACTION_DELIVER && !CourseReminderPreferences.snoozeEnabled) return
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val courseId = intent.getIntExtra(CourseReminderScheduler.EXTRA_COURSE_ID, -1)
         val starts = intent.getLongExtra(CourseReminderScheduler.EXTRA_START_MILLIS, -1L)

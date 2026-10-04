@@ -61,4 +61,18 @@ object CourseReminderPreferences {
         get() = store.decodeString("scheduled_request_codes")
             .orEmpty().split(',').mapNotNull(String::toIntOrNull).toSet()
         set(value) { store.encode("scheduled_request_codes", value.sorted().joinToString(",")) }
+    var scheduledEntries: List<ScheduledReminder>
+        get() = runCatching {
+            val values = org.json.JSONArray(store.decodeString("scheduled_entries", "[]"))
+            (0 until values.length()).map { i -> values.getJSONObject(i).let {
+                ScheduledReminder(it.getInt("code"), it.getString("name"), it.getLong("at"), it.getLong("start"))
+            } }
+        }.getOrDefault(emptyList())
+        set(value) {
+            val values = org.json.JSONArray()
+            value.forEach { values.put(org.json.JSONObject().put("code", it.code).put("name", it.name).put("at", it.at).put("start", it.start)) }
+            store.encode("scheduled_entries", values.toString())
+        }
 }
+
+data class ScheduledReminder(val code: Int, val name: String, val at: Long, val start: Long)

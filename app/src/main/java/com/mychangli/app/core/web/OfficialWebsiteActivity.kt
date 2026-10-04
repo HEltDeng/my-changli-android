@@ -256,15 +256,9 @@ private fun OfficialWebsiteScreen(
     Scaffold(
         containerColor = AppTheme.colors.overviewPageBackgroundColor,
         topBar = {
-            var menu by remember { mutableStateOf(false) }
             Column(Modifier.statusBarsPadding().padding(horizontal = 16.dp)) {
                 com.mychangli.app.core.theme.SecondaryPageHeader("我的长理官网", ::navigateBack) {
-                    androidx.compose.material3.TextButton(onClick = { menu = true }) { Text("更多") }
-                    androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
-                        androidx.compose.material3.DropdownMenuItem(text = { Text("刷新") }, onClick = { menu = false; mainFrameFailed = false; webView?.url?.let { webView?.loadUrl(it) } })
-                        androidx.compose.material3.DropdownMenuItem(text = { Text("在浏览器打开") }, onClick = { menu = false; onOpenExternal(PublicWebsiteNavigator.HOME_URL) })
-                        androidx.compose.material3.DropdownMenuItem(text = { Text("关闭页面") }, onClick = onClose)
-                    }
+                    WebMoreMenu({ webView }, onClose)
                 }
             }
         },

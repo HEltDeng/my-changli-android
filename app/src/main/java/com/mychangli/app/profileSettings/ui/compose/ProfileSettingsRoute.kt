@@ -83,7 +83,7 @@ import com.mychangli.app.core.web.PublicWebsiteNavigator
 import com.mychangli.app.profileSettings.ui.model.SettingItemUiModel
 import kotlinx.coroutines.launch
 
-private enum class ProfilePage { MAIN, PRIVACY, ACCOUNT_DATA }
+private enum class ProfilePage { MAIN, PRIVACY, ACCOUNT_DATA, NOTIFICATIONS }
 
 private data class ProfileBindingSnapshot(
     val studentId: String,
@@ -147,19 +147,8 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
                     "platform-account" -> Route.goAccountCenter(context)
                     "school-account" -> Route.goBindingUser(context)
                     "reminders" -> Route.goCourseReminders(context)
-                    "notifications" -> runCatching {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                            },
-                        )
-                    }.onFailure {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = android.net.Uri.parse("package:${context.packageName}")
-                            },
-                        )
-                    }
+                    "widgets" -> context.startActivity(Intent(context, com.mychangli.app.feature.schedule.reminder.WidgetSetupActivity::class.java))
+                    "notifications" -> page = ProfilePage.NOTIFICATIONS
                     "update" -> if (!checkingUpdate) {
                         checkingUpdate = true
                         scope.launch {
@@ -210,6 +199,24 @@ fun ProfileSettingsRoute(modifier: Modifier = Modifier) {
                         context,
                         ReleaseDocumentType.PERSONAL_INFORMATION,
                     )
+                }
+            },
+        )
+
+        ProfilePage.NOTIFICATIONS -> ProfileSubPage(
+            modifier = modifier, title = "通知设置",
+            items = listOf(
+                SettingItemUiModel.Option("app-notifications", "应用通知", Icons.Outlined.NotificationsActive),
+                SettingItemUiModel.Option("announcements", "服务公告通知", Icons.Outlined.Info),
+            ),
+            onBack = { page = ProfilePage.MAIN },
+            onItemClick = { item ->
+                val target = if (item.id == "announcements" && android.os.Build.VERSION.SDK_INT >= 26)
+                    Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).putExtra(Settings.EXTRA_CHANNEL_ID, "announcement_updates_v1")
+                else Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                runCatching { context.startActivity(target) }.onFailure {
+                    runCatching { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))) }
+                        .onFailure { android.widget.Toast.makeText(context, "暂时无法打开系统设置", android.widget.Toast.LENGTH_SHORT).show() }
                 }
             },
         )
@@ -659,8 +666,13 @@ internal fun createMainSettingItems(checkingUpdate: Boolean): List<SettingItemUi
     ),
     SettingItemUiModel.Option(
         id = "reminders",
-        title = "上课提醒 & 桌面小组件",
-        icon = Icons.Outlined.CalendarMonth,
+        title = "上课提醒",
+        iconRes = R.drawable.notification2,
+    ),
+    SettingItemUiModel.Option(
+        id = "widgets",
+        title = "桌面小组件",
+        iconRes = R.drawable.ic_widget_grid,
     ),
     SettingItemUiModel.Option(
         id = "notifications",

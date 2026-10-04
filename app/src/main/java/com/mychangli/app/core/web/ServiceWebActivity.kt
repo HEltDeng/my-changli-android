@@ -90,19 +90,12 @@ open class ServiceWebActivity : ComposeActivity() {
             setDownloadListener { url, _, _, _, _ -> if(ServiceWebPolicy.httpUrl(url)) external = url }
         }
         setComposeContent {
-            var menu by remember { mutableStateOf(false) }
             var source by remember { mutableStateOf(false) }
             BackHandler { goBack() }
             Surface(color = AppTheme.colors.overviewPageBackgroundColor) {
                 Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
                     Box(Modifier.padding(horizontal = 16.dp)) { SecondaryPageHeader(serviceTitle, ::goBack) {
-                        TextButton(onClick = { menu = true }) { Text("更多") }
-                        DropdownMenu(menu, { menu = false }) {
-                            DropdownMenuItem(text = { Text("刷新") }, onClick = { menu = false; refreshConfirm = true })
-                            DropdownMenuItem(text = { Text("在浏览器打开") }, onClick = { menu = false; external = web.url })
-                            DropdownMenuItem(text = { Text("页面来源") }, onClick = { menu = false; source = true })
-                            DropdownMenuItem(text = { Text("关闭页面") }, onClick = { finish() })
-                        }
+                        WebMoreMenu({ web }, ::finish)
                     } }
                     if(loadProgress < 100 && error == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     error?.let { message -> SecondaryCard {

@@ -9,8 +9,13 @@ object ReminderChannels {
     const val NORMAL = "course_reminders_v1"
     const val SILENT = "course_reminders_silent_v1"
     fun currentId() = if (CourseReminderPreferences.silent) SILENT else NORMAL
-    fun enabled(context: Context): Boolean = Build.VERSION.SDK_INT < 26 ||
-        context.getSystemService(NotificationManager::class.java).getNotificationChannel(currentId())?.importance != NotificationManager.IMPORTANCE_NONE
+    fun enabled(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < 26) return true
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val channel = manager.getNotificationChannel(currentId()) ?: return false
+        if (channel.importance == NotificationManager.IMPORTANCE_NONE) return false
+        return Build.VERSION.SDK_INT < 28 || channel.group == null || manager.getNotificationChannelGroup(channel.group)?.isBlocked != true
+    }
     fun ensure(context: Context) {
         if (Build.VERSION.SDK_INT < 26) return
         val manager = context.getSystemService(NotificationManager::class.java)
