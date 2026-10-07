@@ -20,6 +20,34 @@ val localProperties = Properties().apply {
     }
 }
 
+// Local Debug-only authentication. Never compile these values into the dependency AAR.
+val campusCardSecrets = Properties().apply {
+    val privateFile = rootProject.file("secrets.properties")
+    if (privateFile.isFile) privateFile.inputStream().use { load(it) }
+}
+fun campusCardSecret(name: String): String =
+    providers.environmentVariable(name).orNull ?: campusCardSecrets.getProperty(name).orEmpty()
+val campusCardBasicAuthDebug = campusCardSecret("CAMPUS_CARD_BASIC_AUTH")
+val campusCardChargeAuthDebug = campusCardSecret("CHARGE_AUTH")
+fun javaStringLiteral(value: String): String = "\"" + value
+    .replace("\\", "\\\\").replace("\"", "\\\"")
+    .replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") + "\""
+val verifyCampusCardDebugConfiguration by tasks.registering {
+    group = "verification"
+    notCompatibleWithConfigurationCache("Private Debug configuration must not enter configuration cache.")
+    doLast {
+        check(listOf(campusCardBasicAuthDebug, campusCardChargeAuthDebug).all {
+            it.isNotBlank() && '\r' !in it && '\n' !in it
+        }) { "Configure CAMPUS_CARD_BASIC_AUTH and CHARGE_AUTH in ignored secrets.properties or environment variables. Values are never printed." }
+    }
+}
+val blockUnauditedCampusCardDistribution by tasks.registering {
+    group = "verification"
+    doLast {
+        error("Only local Debug authentication injection is approved. Release/candidate/benchmark packaging requires a separate credential ownership and distribution review.")
+    }
+}
+
 val releaseSigningProperties = Properties()
 val releaseSigningConfigFile = System.getenv("MY_CHANGLI_SIGNING_CONFIG")
     ?.trim()
@@ -143,6 +171,8 @@ android {
     }
     
     defaultConfig {
+        buildConfigField("String", "CAMPUS_CARD_BASIC_AUTH", "\"\"")
+        buildConfigField("String", "CHARGE_AUTH", "\"\"")
         applicationId = "com.mychangli.app"
         minSdk = 24
         targetSdk = 36
@@ -187,6 +217,8 @@ android {
 
     buildTypes {
         debug {
+            buildConfigField("String", "CAMPUS_CARD_BASIC_AUTH", javaStringLiteral(campusCardBasicAuthDebug))
+            buildConfigField("String", "CHARGE_AUTH", javaStringLiteral(campusCardChargeAuthDebug))
             applicationIdSuffix = ".debug"
             buildConfigField("boolean", "AUTOMATIC_SYNC_POLICY_ENABLED", "true")
             buildConfigField(
@@ -304,7 +336,7 @@ val verifyAuthorizedCsustDataGet by tasks.registering {
     group = "verification"
     description = "Verifies the rightsholder-authorized CSUSTDataGet security build before use."
     val artifact = layout.projectDirectory.file(
-        "libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar"
+        "libs/CSUSTDataGet-1.1.4-external-auth.aar"
     )
     inputs.file(artifact)
     doLast {
@@ -322,7 +354,7 @@ val verifyAuthorizedCsustDataGet by tasks.registering {
             }
             digest.digest().joinToString("") { byte -> "%02X".format(byte) }
         }
-        check(actual == "9B03523FA04E9C8B3F5CAAAD49DC282B17EB2AC82E69A49E89764B21ABF71C29") {
+        check(actual == "9BB1E69C98CF1D9E0E484774BDAE48CAC0025D0B5D6E5AB3176FFD583A94061C") {
             "Authorized CSUSTDataGet artifact SHA-256 mismatch"
         }
     }
@@ -330,6 +362,17 @@ val verifyAuthorizedCsustDataGet by tasks.registering {
 
 tasks.named("preBuild").configure {
     dependsOn(verifyAuthorizedCsustDataGet)
+}
+
+tasks.matching { it.name == "generateDebugBuildConfig" || it.name == "preDebugBuild" }.configureEach {
+    dependsOn(verifyCampusCardDebugConfiguration)
+}
+tasks.matching { it.name in setOf(
+    "packageRelease", "assembleRelease", "bundleRelease", "installRelease",
+    "packageCandidate", "assembleCandidate", "bundleCandidate", "installCandidate",
+    "packageBenchmark", "assembleBenchmark", "bundleBenchmark", "installBenchmark"
+) }.configureEach {
+    dependsOn(blockUnauditedCampusCardDistribution)
 }
 
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
@@ -452,7 +495,7 @@ dependencies {
     //csustDataGet
     // Local 1.1.4 security build: authentication and request behavior are unchanged;
     // dependency-internal logs that could expose credentials/cookies are disabled.
-    implementation(files("libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar"))
+    implementation(files("libs/CSUSTDataGet-1.1.4-external-auth.aar"))
 //    implementation(libs.csustdataget)
 //    implementation(files("libs/csust_spider-release.aar"))
     implementation(libs.androidx.constraintlayout.compose)

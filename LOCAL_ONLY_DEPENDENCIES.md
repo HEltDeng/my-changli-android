@@ -1,3 +1,5 @@
+> 2026-10-07：现行依赖已切换为无认证值的 external-auth AAR；旧 no-sensitive-logs 文件和旧恢复步骤仅为历史记录。当前恢复方式、MIT 来源确认及本地 Debug 限制见 [认证配置与 Mac 恢复](docs/csustdataget-debug-auth-recovery.md)。
+
 # 本地专用依赖说明（不上传 GitHub）
 
 以下文件为本地构建所需依赖或授权未确认资源，**不复制到 GitHub 导出目录**，仍在原本地项目中保留。正式构建前需要将其放置到对应位置：

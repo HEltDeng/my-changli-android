@@ -1,5 +1,7 @@
 # 我的长理
 
+> 2026-10-07 开发恢复：当前分支使用不含真实认证值的 CSUSTDataGet AAR。Mac clone 后须创建 ignored 私密配置，再进行本地 Debug 构建。完整步骤及禁止分发边界见 [认证配置与 Mac 恢复](docs/csustdataget-debug-auth-recovery.md)。
+
 “我的长理”是一款面向长沙理工大学师生的非官方 Android 校园工具，优先提供稳定、快速、低维护成本的课表、成绩、考试、体育预约与失物招领能力。
 
 本项目基于 [CreaMakers/changli-planet-app](https://github.com/CreaMakers/changli-planet-app) 二次开发，继续遵循根目录中的 MIT License，并保留原作者版权声明。

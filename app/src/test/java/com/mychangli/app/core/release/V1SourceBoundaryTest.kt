@@ -20,14 +20,14 @@ class V1SourceBoundaryTest {
 
     @Test
     fun `authorized campus dependency is fixed while excluded binaries stay absent`() {
-        val csustDataGet = appFile("libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar")
+        val csustDataGet = appFile("libs/CSUSTDataGet-1.1.4-external-auth.aar")
         assertFalse(appPath("libs/Lite3DMap.jar").exists())
 
         val sha256 = MessageDigest.getInstance("SHA-256")
             .digest(csustDataGet.readBytes())
             .joinToString("") { "%02X".format(it) }
         assertEquals(
-            "9B03523FA04E9C8B3F5CAAAD49DC282B17EB2AC82E69A49E89764B21ABF71C29",
+            "9BB1E69C98CF1D9E0E484774BDAE48CAC0025D0B5D6E5AB3176FFD583A94061C",
             sha256,
         )
 
@@ -39,7 +39,7 @@ class V1SourceBoundaryTest {
         assertFalse(source.contains("com.amap.api"))
 
         val build = appFile("build.gradle.kts").readText()
-        assertTrue(build.contains("CSUSTDataGet-1.1.4-no-sensitive-logs.aar"))
+        assertTrue(build.contains("CSUSTDataGet-1.1.4-external-auth.aar"))
         assertFalse(build.contains("Lite3DMap.jar"))
     }
 

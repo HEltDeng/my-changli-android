@@ -1,3 +1,5 @@
+> 2026-10-07：现行依赖已切换为无认证值的 external-auth AAR；旧 no-sensitive-logs 文件和旧恢复步骤仅为历史记录。当前恢复方式、MIT 来源确认及本地 Debug 限制见 [认证配置与 Mac 恢复](csustdataget-debug-auth-recovery.md)。
+
 # CSUSTDataGet 本地安全构建说明
 
 应用当前使用 `app/libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar`，替代运行时直接解析的远程 `CSUSTDataGet:1.1.4`。

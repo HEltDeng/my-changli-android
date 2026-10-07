@@ -1,3 +1,5 @@
+> 2026-10-07：现行依赖已切换为无认证值的 external-auth AAR；旧 no-sensitive-logs 文件和旧恢复步骤仅为历史记录。当前恢复方式、MIT 来源确认及本地 Debug 限制见 [认证配置与 Mac 恢复](../docs/csustdataget-debug-auth-recovery.md)。
+
 # CSUSTDataGet 安全依赖恢复
 
 现行源码保持原位置：`D:\Codex\01_App-应用开发\001_MyChangLi-我的长理\01_Repositories\CodexWorkspace-projects\CSUSTDataGet-1.1.4-safe`。

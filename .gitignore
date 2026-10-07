@@ -43,8 +43,11 @@ Thumbs.db
 
 # Local-only binaries with unclear redistribution rights
 app/libs/CSUSTDataGet-*.aar
-!app/libs/CSUSTDataGet-1.1.4-no-sensitive-logs.aar
+!app/libs/CSUSTDataGet-1.1.4-external-auth.aar
 app/libs/csust_spider-*.aar
 app/libs/Lite3DMap.jar
 app/libs/develocity-*.jar
 app/src/main/res/drawable-nodpi/csust_emblem.png
+
+# Private local Debug authentication; never stage this file.
+secrets.properties

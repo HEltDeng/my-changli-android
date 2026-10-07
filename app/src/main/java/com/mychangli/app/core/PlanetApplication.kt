@@ -108,6 +108,15 @@ class PlanetApplication : Application(), ViewModelStoreOwner {
 
         super.onCreate()
 
+        // The library contains no authentication defaults. Only the local Debug build may
+        // supply these values; release distribution remains blocked pending a separate review.
+        if (BuildConfig.BUILD_TYPE == "debug") {
+            com.dcelysia.csust_spider.core.CampusCardAuthConfig.configure(
+                BuildConfig.CAMPUS_CARD_BASIC_AUTH,
+                BuildConfig.CHARGE_AUTH,
+            )
+        }
+
 
         initMMKV()
         migrateLegacyCacheIfNeeded()
