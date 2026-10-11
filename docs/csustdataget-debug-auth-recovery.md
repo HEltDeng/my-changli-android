@@ -34,3 +34,7 @@
 - Library clean root commit: 890a353ff3e49d420e76492ef42e7a1dad6333ba
 - AAR SHA-256: 9bb1e69c98cf1d9e0e484774bdae48cac0025d0b5d6e5ab3176ffd583a94061c
 - Library 配置测试：5 / 5 PASS；解包 AAR 已知认证值扫描与 Gitleaks：PASS。
+
+## 2026-10-11 Owner 个人手机联网验收
+
+Owner 本轮明确要求正式后端联网、正式签名 Release 仅安装自己的手机，不官网分发。增加 privateDeviceAcceptance 显式本机构建例外，默认公开 Release/candidate/benchmark 门禁不解除。此例外不把认证值归属标为已确认、不授予公开分发权限；APK 仅本机及 Owner 手机保存，禁止上传。详见 campus-activities-directed-release.md。

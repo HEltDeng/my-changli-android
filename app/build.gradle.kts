@@ -29,6 +29,8 @@ fun campusCardSecret(name: String): String =
     providers.environmentVariable(name).orNull ?: campusCardSecrets.getProperty(name).orEmpty()
 val campusCardBasicAuthDebug = campusCardSecret("CAMPUS_CARD_BASIC_AUTH")
 val campusCardChargeAuthDebug = campusCardSecret("CHARGE_AUTH")
+// Explicit owner-only, locally installed Release acceptance. Never public distribution.
+val privateDeviceAcceptance = providers.gradleProperty("privateDeviceAcceptance").orNull == "true"
 fun javaStringLiteral(value: String): String = "\"" + value
     .replace("\\", "\\\\").replace("\"", "\\\"")
     .replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") + "\""
@@ -45,6 +47,15 @@ val blockUnauditedCampusCardDistribution by tasks.registering {
     group = "verification"
     doLast {
         error("Only local Debug authentication injection is approved. Release/candidate/benchmark packaging requires a separate credential ownership and distribution review.")
+    }
+}
+val verifyPrivateDeviceRelease by tasks.registering {
+    group = "verification"
+    notCompatibleWithConfigurationCache("Private device credentials must not enter configuration cache.")
+    dependsOn(verifyCampusCardDebugConfiguration)
+    doLast {
+        check(privateDeviceAcceptance) { "Private device acceptance must be explicitly selected" }
+        check(!gradle.startParameter.isBuildCacheEnabled) { "Private device Release requires build cache disabled" }
     }
 }
 
@@ -100,6 +111,7 @@ val campusToolsApiBaseUrlDebug: String =
 val campusToolsApiBaseUrlRelease = "https://api.mychangliapp.cn/api/v1/"
 val activityPreview = providers.gradleProperty("activityPreview").orNull == "true"
 val activityApiBaseUrl = if (activityPreview) "http://127.0.0.1:8794/api/v1/" else campusToolsApiBaseUrlRelease
+check(!privateDeviceAcceptance || !activityPreview) { "Network acceptance must use the production activity API" }
 // An explicit local acceptance build uses adb reverse; never falls back to production.
 val candidateApiBaseUrl = providers.gradleProperty("candidateApiBaseUrl").orNull
     ?: "http://127.0.0.1:8787/api/v1/"
@@ -178,8 +190,9 @@ android {
         targetSdk = 36
         // V1.0.4/36 is the immutable production baseline. V1.0.5/37 adds
         // announcement delivery, consent-flow, branding and widget-preview work.
-        versionCode = 39
-        versionName = if (activityPreview) "1.0.7-activities-preview.1" else "1.0.7"
+        versionCode = 40
+        buildConfigField("boolean", "PRIVATE_DEVICE_ACCEPTANCE", "false")
+        versionName = if (activityPreview) "1.0.8-activities-preview.1" else "1.0.8"
         buildConfigField("String", "ACTIVITY_API_BASE_URL", "\"$activityApiBaseUrl\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -238,6 +251,11 @@ android {
             buildConfigField("boolean", "LEGACY_SERVICES_ENABLED", legacyToolsEnabledDebug.toString())
         }
         release {
+            if (privateDeviceAcceptance) {
+                buildConfigField("boolean", "PRIVATE_DEVICE_ACCEPTANCE", "true")
+                buildConfigField("String", "CAMPUS_CARD_BASIC_AUTH", javaStringLiteral(campusCardBasicAuthDebug))
+                buildConfigField("String", "CHARGE_AUTH", javaStringLiteral(campusCardChargeAuthDebug))
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("boolean", "ADS_ENABLED", "false")
@@ -368,11 +386,13 @@ tasks.matching { it.name == "generateDebugBuildConfig" || it.name == "preDebugBu
     dependsOn(verifyCampusCardDebugConfiguration)
 }
 tasks.matching { it.name in setOf(
-    "packageRelease", "assembleRelease", "bundleRelease", "installRelease",
     "packageCandidate", "assembleCandidate", "bundleCandidate", "installCandidate",
     "packageBenchmark", "assembleBenchmark", "bundleBenchmark", "installBenchmark"
 ) }.configureEach {
     dependsOn(blockUnauditedCampusCardDistribution)
+}
+tasks.matching { it.name in setOf("packageRelease", "assembleRelease", "bundleRelease", "installRelease") }.configureEach {
+    dependsOn(if (privateDeviceAcceptance) verifyPrivateDeviceRelease else blockUnauditedCampusCardDistribution)
 }
 
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
