@@ -272,18 +272,26 @@ private fun OptionalDataControls() {
         SecondaryRow("安装与使用统计", if(statistics) "已授权" else "未授权 / 已撤回")
         SecondaryRow("学校及学号同步", if(school) "已授权" else "未授权 / 已撤回")
         if(statistics) SecondaryRow("撤回安装与使用统计", onClick = { confirm = "statistics" })
+        else SecondaryRow("开启安装与使用统计", onClick = { confirm = "enable_statistics" })
         if(school) SecondaryRow("撤回学校及学号同步", onClick = { confirm = "school" })
+        else SecondaryRow("开启学校及学号同步", onClick = { confirm = "enable_school" })
     }
     Text(com.mychangli.app.core.network.campustools.SchoolBindingSync.status() + "", color = AppTheme.colors.secondaryTextColor)
     Text("撤回立即停止对应处理并清理待发数据，同时提出删除请求；离线时将在下次前台联网重试。本机学校绑定、安装身份和核心功能保留。", color = AppTheme.colors.secondaryTextColor)
-    confirm?.let { kind -> androidx.compose.material3.AlertDialog(
-        onDismissRequest = { confirm = null }, title = { Text("撤回授权并请求删除") },
-        text = { Text("停止后续处理并删除服务器对应可选资料；不会清除本机学校绑定或账号。") },
+    confirm?.let { kind ->
+        val enabling = kind.startsWith("enable_")
+        androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirm = null }, title = { Text(if(enabling) "确认开启可选数据处理" else "撤回授权并请求删除") },
+        text = { Text(when(kind) {
+            "enable_statistics" -> "开启后，上报本次安装的品牌、型号、系统及 App 版本、设备辅助标识与前台使用记录，用于安装去重和使用统计。逐次记录最多保留 180 天，可随时在此撤回。不开启仍可使用核心功能。"
+            "enable_school" -> "开启后，同步当前绑定的学校、学号、绑定状态及必要时间，用于账号识别和服务支持；不会上传学校密码、课表或成绩。可随时在此撤回，学校同步与设备统计分别授权。"
+            else -> "停止后续处理并删除服务器对应可选资料；不会清除本机学校绑定或账号。"
+        }) },
         confirmButton = { Button(onClick = {
-            if(kind == "statistics") { com.mychangli.app.core.network.campustools.InstallationTelemetry.decide(false); statistics = false }
-            else { com.mychangli.app.core.network.campustools.SchoolBindingSync.decide(false); school = false }
+            if(kind == "statistics" || kind == "enable_statistics") { com.mychangli.app.core.network.campustools.InstallationTelemetry.decide(enabling); statistics = enabling }
+            else { com.mychangli.app.core.network.campustools.SchoolBindingSync.decide(enabling); school = enabling }
             confirm = null
-        }) { Text("确认撤回") } },
+        }) { Text(if(enabling) "同意并开启" else "确认撤回") } },
         dismissButton = { androidx.compose.material3.TextButton(onClick = { confirm = null }) { Text("取消") } }) }
     @Suppress("UNUSED_VARIABLE") val observedRevision = updates.value
 }
