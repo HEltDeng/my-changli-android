@@ -11,6 +11,7 @@ import com.mychangli.app.feature.mooc.data.MoocDataHelper
 import com.mychangli.app.feature.mooc.data.local.MoocLocalCache
 import com.mychangli.app.feature.mooc.data.model.MoocUiState
 import com.mychangli.app.utils.ResourceUtil
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,6 +81,7 @@ class MoocViewModel(application: Application) : AndroidViewModel(application) {
      * 不需要单独 login，executeWithRetry 内部会自动处理登录重试。
      */
     fun refreshCourses(forceRefresh: Boolean = false) {
+        if (_uiState.value.isRefreshing) return
         viewModelScope.launch {
             val account = StudentInfoManager.studentId
             val password = StudentInfoManager.studentPassword
@@ -112,6 +114,8 @@ class MoocViewModel(application: Application) : AndroidViewModel(application) {
                     loginState = ApiResponse.Success(true),
                     courses = ApiResponse.Success(courseItems)
                 )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 Log.e(TAG, "Fetch mooc courses failed", e)
                 val message = e.message ?: ResourceUtil.getStringRes(R.string.error_unknown)

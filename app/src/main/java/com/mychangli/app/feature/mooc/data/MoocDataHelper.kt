@@ -7,13 +7,18 @@ import com.mychangli.app.feature.mooc.data.model.HomeworkItem
 import com.mychangli.app.feature.mooc.data.model.cleanCourseId
 import com.mychangli.app.overview.ui.model.OverviewHomeworkUiModel
 import com.mychangli.app.overview.ui.model.OverviewTestUiModel
+import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
+import com.mychangli.app.core.security.SchoolSessionCoordinator
+import com.mychangli.app.core.security.SchoolSsoLogin
 import com.dcelysia.csust_spider.core.Resource
 import com.dcelysia.csust_spider.core.RetrofitUtils
 import com.dcelysia.csust_spider.mooc.data.remote.dto.MoocHomework
+import com.dcelysia.csust_spider.mooc.data.remote.api.MoocApi
 import com.dcelysia.csust_spider.mooc.data.remote.dto.MoocTest
 import com.dcelysia.csust_spider.mooc.data.remote.dto.PendingAssignmentCourse
 import com.dcelysia.csust_spider.mooc.data.remote.repository.MoocRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -32,17 +37,33 @@ object MoocDataHelper {
     private val repository by lazy { MoocRepository.instance }
 
     suspend fun clearMoocSession() {
-        runCatching {
-            RetrofitUtils.ClearClient("moocClient")
-        }.onFailure {
-            Log.e(TAG, "Failed to clear MOOC session", it)
-        }
+        expireMoocCookies(RetrofitUtils.totalCookieJar)
     }
 
     private suspend fun awaitLoginResult(username: String, password: String): Resource<Boolean> {
-        return repository.login(username, password)
-            .filter { it !is Resource.Loading }
-            .first()
+        return SchoolSessionCoordinator.instance.withExclusiveSessionChange {
+            val current = StudentInfoManager.credentialsOrNull()
+            if (current == null || current.studentId != username || current.studentPassword != password) {
+                return@withExclusiveSessionChange Resource.Error("学校账号已变化，请重新打开慕课。")
+            }
+            val sso = SchoolSsoLogin.login(username, password)
+                .filter { it !is Resource.Loading }.first()
+            if (sso !is Resource.Success) return@withExclusiveSessionChange sso
+            try {
+                val response = RetrofitUtils.instanceMooc.create(MoocApi::class.java).loginToMooc()
+                val url = response.raw().request.url
+                if (response.isSuccessful && url.host == "pt.csust.edu.cn" &&
+                    url.encodedPath == "/meol/personal.do") {
+                    Resource.Success(true)
+                } else {
+                    Resource.Error("慕课服务暂时不可用，教务课表和成绩仍可独立查询。")
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Resource.Error("慕课连接暂时不可用，教务课表和成绩仍可独立查询。")
+            }
+        }
     }
 
     suspend fun <T> executeWithRetry(
@@ -81,6 +102,14 @@ object MoocDataHelper {
         username: String,
         password: String,
         forceRefresh: Boolean = false
+    ): List<CourseItem> = boundedMoocRefresh {
+        fetchMoocCoursesInternal(username, password, forceRefresh)
+    }
+
+    private suspend fun fetchMoocCoursesInternal(
+        username: String,
+        password: String,
+        forceRefresh: Boolean
     ): List<CourseItem> = withContext(Dispatchers.IO) {
         if (forceRefresh) {
             clearMoocSession()
@@ -106,21 +135,21 @@ object MoocDataHelper {
                 val homeworkCourseData = coroutineScope {
                     homeworkCourses.map { course ->
                         async {
-                            val homeworks = runCatching {
+                            val homeworks = moocRequestOrThrow {
                                 executeWithRetry(username, password) {
                                     repository.getCourseHomeworks(course.id)
                                         .filter { it !is Resource.Loading }
                                         .first()
                                 }
-                            }.getOrNull()
+                            }
 
-                            val tests = runCatching {
+                            val tests = moocRequestOrThrow {
                                 executeWithRetry(username, password) {
                                     repository.getCourseTests(course.id)
                                         .filter { it !is Resource.Loading }
                                         .first()
                                 }
-                            }.getOrNull()
+                            }
 
                             CourseLoadResult(course, homeworks, tests)
                         }
@@ -134,7 +163,7 @@ object MoocDataHelper {
                 }
 
                 val homeworkCourseIds = homeworkCourses.map { it.id }.toSet()
-                val allCourses = (allCoursesResult as? Resource.Success)?.data.orEmpty()
+                val allCourses = requireMoocSuccess(allCoursesResult)
                 val remainingCourses = allCourses
                     .map { it.copy(id = it.id.cleanCourseId()) }
                     .distinctBy { it.id }
@@ -143,16 +172,15 @@ object MoocDataHelper {
                 val testOnlyData = coroutineScope {
                     remainingCourses.map { rawCourse ->
                         async {
-                            val tests = runCatching {
+                            val tests = moocRequestOrThrow {
                                 executeWithRetry(username, password) {
                                     repository.getCourseTests(rawCourse.id)
                                         .filter { it !is Resource.Loading }
                                         .first()
                                 }
-                            }.getOrNull()
+                            }
 
-                            val pendingTests = (tests as? Resource.Success)?.data
-                                ?.filterActivePendingTests().orEmpty()
+                            val pendingTests = requireMoocSuccess(tests).filterActivePendingTests()
 
                             if (pendingTests.isNotEmpty()) {
                                 CourseLoadResult(
@@ -191,8 +219,8 @@ object MoocDataHelper {
 
     private fun buildCourseItems(results: List<CourseLoadResult>): List<CourseItem> {
         return results.map { result ->
-            val homeworkList = (result.homeworks as? Resource.Success)?.data.orEmpty()
-            val testList = (result.tests as? Resource.Success)?.data.orEmpty()
+            val homeworkList = requireMoocSuccess(result.homeworks)
+            val testList = requireMoocSuccess(result.tests)
 
             CourseItem(
                 course = result.course,

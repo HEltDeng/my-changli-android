@@ -108,7 +108,7 @@ class V1SourceBoundaryTest {
     fun `release identity endpoint and privacy gate are explicit`() {
         val build = appFile("build.gradle.kts").readText()
         assertTrue(build.contains("applicationId = \"com.mychangli.app\""))
-        assertTrue(build.contains("versionCode = 39"))
+        assertTrue(build.contains("versionCode = 41"))
         assertTrue(build.contains("versionName = \"1.0.7\""))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/"))
         assertTrue(build.contains("https://api.mychangliapp.cn/api/v1/legacy-disabled/"))

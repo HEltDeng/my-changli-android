@@ -3,7 +3,6 @@ package com.mychangli.app.core.security
 import com.mychangli.app.common.data.local.mmkv.StudentInfoManager
 import com.dcelysia.csust_spider.core.Resource
 import com.dcelysia.csust_spider.education.data.remote.services.AuthService
-import com.dcelysia.csust_spider.mooc.data.remote.repository.MoocRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
@@ -123,7 +122,7 @@ class SchoolSessionCoordinator internal constructor(
                     }
                 },
                 authenticator = SchoolSessionAuthenticator { credentials ->
-                    val ssoResult = MoocRepository.instance
+                    val ssoResult = SchoolSsoLogin
                         .login(credentials.studentId, credentials.studentPassword)
                         .filter { it !is Resource.Loading }
                         .first()

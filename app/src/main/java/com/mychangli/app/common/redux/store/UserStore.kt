@@ -12,6 +12,7 @@ import com.mychangli.app.common.redux.action.UserAction
 import com.mychangli.app.common.redux.state.UserState
 import com.mychangli.app.core.PlanetApplication
 import com.mychangli.app.core.Store
+import com.mychangli.app.core.security.SchoolSsoLogin
 import com.mychangli.app.core.security.SchoolSessionCoordinator
 import com.mychangli.app.core.security.SchoolSessionResult
 import com.mychangli.app.core.security.SchoolSessionState
@@ -80,7 +81,7 @@ class UserStore : Store<UserState, UserAction>() {
                             CsustRetrofitUtils.ClearClient("moocClient")
                             CsustRetrofitUtils.ClearClient("EducationClient")
                             try {
-                                val ssoResult = MoocRepository.instance
+                                val ssoResult = SchoolSsoLogin
                                     .login(action.studentNumber, action.studentPassword)
                                     .filter { it !is com.dcelysia.csust_spider.core.Resource.Loading }
                                     .first()
@@ -172,7 +173,7 @@ class UserStore : Store<UserState, UserAction>() {
                                             postBindingDialog(action.context) { activity ->
                                                 NormalResponseDialog(
                                                     activity,
-                                                    "身份验证未完成，请检查账号信息或网络后重试。",
+                                                    ssoResult.msg,
                                                     "绑定失败"
                                                 ).show()
                                             }

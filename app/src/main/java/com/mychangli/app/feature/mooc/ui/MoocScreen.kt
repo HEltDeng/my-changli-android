@@ -248,7 +248,11 @@ private fun SummaryCard(courses: ApiResponse<List<CourseItem>>) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = if (count > 0) "当前有 $count 门课程需要处理" else "正在整理课程待办",
+                text = when (courses) {
+                    is ApiResponse.Success -> if (count > 0) "当前有 $count 门课程需要处理" else "暂无未完成作业或测试"
+                    is ApiResponse.Error -> "暂时无法获取课程待办"
+                    else -> "正在整理课程待办"
+                },
                 color = colors.primaryTextColor,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black
