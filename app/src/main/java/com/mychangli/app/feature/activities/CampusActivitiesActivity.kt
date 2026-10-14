@@ -16,6 +16,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.shadow
+import com.mychangli.app.core.Route
+import com.mychangli.app.overview.ui.compose.SectionTitle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +60,7 @@ class CampusActivitiesActivity : ComposeActivity() {
 }
 
 class ActivitiesViewModel : ViewModel() {
+    var isBound by mutableStateOf(StudentInfoManager.hasCompleteBinding); private set
     var items by mutableStateOf<List<CampusActivity>>(emptyList()); private set
     var selected by mutableStateOf<CampusActivity?>(null); private set
     var selectedId by mutableStateOf<String?>(null); private set
@@ -75,14 +81,19 @@ class ActivitiesViewModel : ViewModel() {
             finally { busy = false }
         }
     }
-    fun refresh() = run {
-        items = ActivityRepository.list(mine)
-        selectedId?.let { selected = ActivityRepository.detail(it) }
+    fun refresh() {
+        isBound = StudentInfoManager.hasCompleteBinding
+        if (!isBound && selectedId == null) { items = emptyList(); error = null; return }
+        run {
+            val loaded = ActivityRepository.list(mine)
+            isBound = StudentInfoManager.hasCompleteBinding
+            items = if (isBound) loaded else emptyList()
+            selectedId?.let { selected = ActivityRepository.detail(it) }
+        }
     }
     fun open(id: String) { selectedId = id;run { selected = ActivityRepository.detail(id) } }
     fun back() { selectedId = null;selected = null;refresh() }
     fun tab(value: Boolean) { mine=value;refresh() }
-    fun confirmSchool() = run { identity = ActivityRepository.readSchoolIdentity() }
     fun enroll(a: CampusActivity) = run {
         pending = a
         val current = ActivityRepository.identity()
@@ -124,16 +135,16 @@ class ActivitiesViewModel : ViewModel() {
 }
 
 @Composable private fun ActivityCard(a: CampusActivity, onOpen: ()->Unit, onEnroll: ()->Unit, busy: Boolean, compact: Boolean = false) {
-    Surface(shape=RoundedCornerShape(18.dp),color=Color.White,border=BorderStroke(1.dp,Color(0xFFE2ECFA)),modifier=Modifier.fillMaxWidth()) {
+    Surface(shape=RoundedCornerShape(if(compact)28.dp else 18.dp),color=Color.White,border=BorderStroke(0.5.dp,Color(0xFFE2ECFA)),modifier=Modifier.fillMaxWidth()) {
         Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Column(Modifier.fillMaxWidth().clickable(onClick=onOpen),verticalArrangement=Arrangement.spacedBy(7.dp)) {
                 Text(a.title,fontSize=if(compact)16.sp else 18.sp,fontWeight=FontWeight.Bold,color=AppTheme.colors.primaryTextColor)
-                Text("${a.category} · ${a.organizer_name}",fontSize=13.sp,color=ActivityBlue)
-                Text("${activityTime(a.start_at)} · ${a.location}",fontSize=14.sp)
+                Text(if(compact) a.organizer_name else "${a.category} · ${a.organizer_name}",fontSize=13.sp,color=ActivityBlue)
+                Text("${activityTime(a.start_at)} · ${a.location}",fontSize=14.sp, maxLines=if(compact)1 else Int.MAX_VALUE, overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 if(!compact) Text("报名截止 ${activityTime(a.signup_end_at)}",fontSize=12.sp,color=AppTheme.colors.secondaryTextColor)
                 Text("已报名 ${a.registered_count} / ${a.capacity ?: "不限"} · ${a.state_label}"+(if(a.registration_status=="ACTIVE")" · 我已报名" else if(a.registration_status=="CANCELLED")" · 我已取消" else ""),fontSize=13.sp)
             }
-            if(a.can_register) Button(onClick=onEnroll,enabled=!busy,colors=ButtonDefaults.buttonColors(containerColor=ActivityBlue),modifier=Modifier.fillMaxWidth()) { Text("我要报名") }
+            if(a.can_register) Button(onClick=onEnroll,enabled=!busy,colors=ButtonDefaults.buttonColors(containerColor=ActivityBlue),modifier=if(compact) Modifier.align(Alignment.End) else Modifier.fillMaxWidth()) { Text("我要报名") }
         }
     }
 }
@@ -161,6 +172,7 @@ class ActivitiesViewModel : ViewModel() {
 
 @Composable private fun ActivityCenter(model: ActivitiesViewModel,onBack:()->Unit) {
     ActivityResume(model)
+    val context = LocalContext.current
     var cancel by remember { mutableStateOf<CampusActivity?>(null) }
     var filter by remember { mutableStateOf("待参加") }
     BackHandler(model.selectedId!=null) { model.back() }
@@ -168,20 +180,23 @@ class ActivitiesViewModel : ViewModel() {
         Row(Modifier.fillMaxWidth().padding(horizontal=8.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
             IconButton(onClick={if(model.selectedId!=null)model.back() else onBack()}) { Icon(Icons.AutoMirrored.Filled.ArrowBack,"返回") }
             Text(if(model.selectedId==null)"校园活动" else "活动详情",fontSize=20.sp,fontWeight=FontWeight.Bold)
-            Spacer(Modifier.weight(1f));TextButton(onClick=model::refresh,enabled=!model.busy){Text("刷新")}
+            Spacer(Modifier.weight(1f));TextButton(onClick=model::refresh,enabled=!model.busy){Text("刷新", color=ActivityBlue)}
         }
         if(model.busy) LinearProgressIndicator(modifier=Modifier.fillMaxWidth(),color=ActivityBlue)
         model.error?.let { message ->
             Column(Modifier.padding(16.dp)) { Text(message,color=MaterialTheme.colorScheme.error);TextButton(onClick=model::refresh,enabled=!model.busy){Text("重新加载")} }
         }
         if(model.selectedId==null) {
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly) {
-                FilterChip(selected=!model.mine,onClick={model.tab(false)},label={Text("发现活动")})
-                FilterChip(selected=model.mine,onClick={model.tab(true)},label={Text("我的活动")})
+            Row(Modifier.fillMaxWidth().padding(top=12.dp, bottom=16.dp), horizontalArrangement=Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
+                ActivityTab("发现活动", !model.mine) { model.tab(false) }
+                ActivityTab("我的活动", model.mine) { model.tab(true) }
             }
-            if(!model.mine) TextButton(onClick=model::confirmSchool,enabled=!model.busy,modifier=Modifier.padding(horizontal=16.dp)) { Text("确认学校身份 · 查看本学院活动") }
-            if(model.mine) Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly) {
-                listOf("待参加","已完成","已取消").forEach { name -> FilterChip(selected=filter==name,onClick={filter=name},label={Text(name)}) }
+            if(!model.isBound) TextButton(
+                onClick={Route.goBindingUser(context)},
+                modifier=Modifier.align(Alignment.CenterHorizontally)
+            ) { Text("先绑定学号，查看本学院活动", color=ActivityBlue, fontSize=14.sp) }
+            if(model.mine && model.items.isNotEmpty()) Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
+                listOf("待参加","已完成","已取消").forEach { name -> ActivityTab(name, filter==name) { filter=name } }
             }
             val visible=model.items.filter { a -> !model.mine || when(filter) {
                 "已取消" -> a.registration_status=="CANCELLED" || a.state=="CANCELLED"
@@ -189,7 +204,12 @@ class ActivitiesViewModel : ViewModel() {
                 else -> a.registration_status=="ACTIVE" && a.state !in setOf("ENDED","CANCELLED")
             } }
             LazyColumn(Modifier.weight(1f),contentPadding=PaddingValues(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                if(visible.isEmpty()&&!model.busy) item { Text(if(model.mine)"这里还没有活动记录" else "暂时没有可报名的活动\n有新的校园活动时会显示在这里",modifier=Modifier.padding(vertical=35.dp)) }
+                if(visible.isEmpty()&&!model.busy && model.error==null) item {
+                    ActivityEmptyState(
+                        title=if(!model.mine) "暂无可报名活动" else if(model.items.isEmpty()) "还没有报名的活动" else "暂无${filter}的活动",
+                        subtitle=if(!model.mine) "新活动发布后会显示在这里" else if(model.items.isEmpty()) "报名成功后会显示在这里" else ""
+                    )
+                }
                 items(visible,key={it.id}) { a -> ActivityCard(a,{model.open(a.id)},{model.enroll(a)},model.busy) }
             }
         } else model.selected?.let { a ->
@@ -221,21 +241,60 @@ class ActivitiesViewModel : ViewModel() {
     RegistrationDialogs(model)
 }
 
-@Composable fun RecentActivities() {
+@Composable private fun ActivityTab(title: String, selected: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick=onClick, shape=RoundedCornerShape(50),
+        color=if(selected) Color(0xFFE4F0FC) else Color.White,
+        border=if(selected) null else BorderStroke(0.5.dp, Color(0xFFE4E8EE))
+    ) {
+        Text(title, modifier=Modifier.padding(horizontal=20.dp, vertical=11.dp),
+            fontSize=14.sp, fontWeight=if(selected) FontWeight.SemiBold else FontWeight.Normal,
+            color=if(selected) ActivityBlue else AppTheme.colors.secondaryTextColor)
+    }
+}
+
+@Composable private fun ActivityEmptyState(title: String, subtitle: String) {
+    Column(Modifier.fillMaxWidth().padding(top=64.dp, bottom=32.dp), horizontalAlignment=Alignment.CenterHorizontally,
+        verticalArrangement=Arrangement.spacedBy(10.dp)) {
+        Text(title, fontSize=16.sp, color=Color(0xFF727984), textAlign=TextAlign.Center)
+        if(subtitle.isNotBlank()) Text(subtitle, fontSize=13.sp, color=AppTheme.colors.secondaryTextColor, textAlign=TextAlign.Center)
+    }
+}
+
+@Composable fun RecentActivities(onBindClick: () -> Unit) {
     val context=LocalContext.current
     val model: ActivitiesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(key="recent_activities")
     ActivityResume(model)
     val changes by ActivityRepository.changes.collectAsState()
     LaunchedEffect(changes) { model.refresh() }
-    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-            Text("近期活动",fontSize=20.sp,fontWeight=FontWeight.Bold)
-            TextButton(onClick={CampusActivitiesActivity.open(context)}) { Text("全部 >") }
-        }
-        val recent=model.items.filter { it.can_register }.take(3)
-        if(model.error!=null) { Text("活动暂时无法加载");TextButton(onClick=model::refresh){Text("重新加载")} }
-        else if(recent.isEmpty()) Text("暂时没有可报名的活动\n有新的校园活动时会显示在这里",fontSize=13.sp,color=AppTheme.colors.secondaryTextColor)
-        recent.forEach { a -> ActivityCard(a,{CampusActivitiesActivity.open(context,a.id)},{model.enroll(a)},model.busy,compact=true) }
+    Column(verticalArrangement=Arrangement.spacedBy(18.dp)) {
+        SectionTitle("近期活动", "全部") { CampusActivitiesActivity.open(context) }
+        val recent=model.items.filter { it.can_register }.take(1)
+        if(!model.isBound || model.error!=null || recent.isEmpty()) {
+            val label=when {
+                !model.isBound -> "先绑定学号"
+                model.error!=null -> "活动暂时无法加载 · 重新加载"
+                model.busy -> "正在加载活动"
+                else -> "暂无可报名活动"
+            }
+            Surface(
+                onClick={ when {
+                    !model.isBound -> onBindClick()
+                    model.error!=null -> model.refresh()
+                    else -> CampusActivitiesActivity.open(context)
+                } },
+                shape=RoundedCornerShape(28.dp), color=AppTheme.colors.bgCardColor,
+                modifier=Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(28.dp), ambientColor=Color(0x227B9FCB), spotColor=Color(0x227B9FCB))
+            ) {
+                Row(Modifier.fillMaxWidth().padding(horizontal=22.dp, vertical=26.dp), verticalAlignment=Alignment.CenterVertically) {
+                    Text(label, fontSize=if(model.isBound)16.sp else 18.sp,
+                        fontWeight=if(model.isBound)FontWeight.Normal else FontWeight.Bold,
+                        color=if(model.isBound)AppTheme.colors.secondaryTextColor else AppTheme.colors.primaryTextColor,
+                        modifier=Modifier.weight(1f))
+                    Text("›", fontSize=24.sp, color=AppTheme.colors.secondaryTextColor)
+                }
+            }
+        } else recent.forEach { a -> ActivityCard(a,{CampusActivitiesActivity.open(context,a.id)},{model.enroll(a)},model.busy,compact=true) }
     }
     RegistrationDialogs(model)
 }

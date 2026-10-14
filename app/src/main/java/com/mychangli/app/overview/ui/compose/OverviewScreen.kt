@@ -155,7 +155,7 @@ private fun OverviewScreen(
             AdSlot(placement = AdPlacement.HOME_BANNER)
         }
 
-        item { com.mychangli.app.feature.activities.RecentActivities() }
+        item { com.mychangli.app.feature.activities.RecentActivities(onBindClick = onBindClick) }
 
         item {
             SectionTitle("待提交作业", "查看全部") { onQuickActionClick("homework") }
@@ -248,7 +248,7 @@ private fun BindPrompt(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SectionTitle(
+internal fun SectionTitle(
     title: String,
     actionText: String,
     onClick: () -> Unit
